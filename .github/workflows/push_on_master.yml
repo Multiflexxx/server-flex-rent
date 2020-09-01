@@ -22,7 +22,7 @@ jobs:
       - name: Make GET Request
         uses: fjogeleit/http-request-action@master
         with: 
-          url: 'https://mertens-web.ddns.net/Github'
+          url: 'https://flexrent.multiflexxx.de/Github'
           method: 'GET'
           customHeaders: '{"ACTION_TOKEN":"${{ secrets.ACTION_TOKEN }}"}'
 
