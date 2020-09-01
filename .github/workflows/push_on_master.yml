@@ -22,5 +22,5 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
         with:
-                url: 'https://mertens-web.ddns.net/Github'
-                method: 'GET'
+          url: 'https://mertens-web.ddns.net/Github'
+          method: 'GET'
