@@ -7,7 +7,7 @@ jobs:
     steps:
     - name: Hello world action step
       id: hello
-      uses: Multiflexxx/server-flex-rent
+      uses: multiflexxx/server-flex-rent
       with:
         who-to-greet: 'Grimmig'
     # Use the output from the `hello` step
