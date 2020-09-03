@@ -15,10 +15,10 @@
 
     // TODO: Create functions
     
-    public static async executeQuery(): Promise<any> {
+    public static async executeQuery(q: {query: string, args: any[]}): Promise<any> {
       let result = null;
       try {
-        result = await Connector.pool.getConnection().query("Select * From Test");
+        result = await Connector.pool.getConnection().query(q.query, q.args);
       } catch(err) {
         throw new InternalServerErrorException("Something went wrong");
       } finally {
@@ -26,7 +26,7 @@
         result.release();
       }
       
-
+      return result;
     }
 
 }
