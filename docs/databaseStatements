@@ -49,8 +49,8 @@ CREATE TABLE picture (
 CREATE TABLE offer_blocked (
 	offer_blocked_id int NOT NULL AUTO_INCREMENT,
 	offer_id int,
-	from datetime,
-	to datetime,
+	from date,
+	to date,
 	PRIMARY KEY (offer_blocked_id),
 	FOREIGN KEY (offer_id) REFERENCES offer (offer_id)
 );
@@ -65,8 +65,8 @@ CREATE TABLE request (
 	request_id int NOT NULL AUTO_INCREMENT,
 	user_id int,
 	offer_id int,
-	from datetime,
-	to datetime,
+	from date,
+	to date,
 	status_id int,
 	PRIMARY KEY(request_id),
 	FOREIGN KEY (user_id) REFERENCES user (user_id),
