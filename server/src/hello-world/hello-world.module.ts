@@ -4,7 +4,7 @@ import { HelloWorldService } from './hello-world.service';
 import { HelloWorld } from './hello-world.model';
 
 @Module({
-    imports: [HelloWorld],
+    //imports: [HelloWorld],
     controllers: [HelloWorldController],
     providers: [HelloWorldService]
 })
