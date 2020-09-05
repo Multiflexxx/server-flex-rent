@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
-export class HelloWorld {
+@Injectable()
+export class Offer {
 
     constructor(
         public hello: string, 

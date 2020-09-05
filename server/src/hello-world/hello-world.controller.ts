@@ -6,8 +6,7 @@ import { HelloWorld } from './hello-world.model';
 export class HelloWorldController {
     constructor(private readonly helloWorldService: HelloWorldService) {}
     @Get()
-    helloWorld(
-    ): HelloWorld {
+    helloWorld(): HelloWorld {
         return this.helloWorldService.helloWorld();
     }
 
