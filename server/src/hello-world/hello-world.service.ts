@@ -10,7 +10,7 @@ export class HelloWorldService {
             args: []
         });
         console.log(message);
-        return new HelloWorld ("Hello World", "World Hello");
+        return new HelloWorld ("Hello World", "World Hello 123");
     }
 
 }
