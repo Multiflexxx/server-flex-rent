@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Put, Body, Patch, Delete } from '@nestjs/common';
+import { Controller, Get, Param, Put, Body, Patch, Delete, Req } from '@nestjs/common';
 import { UserService } from './user.service';
 
 @Controller('user')
@@ -22,7 +22,7 @@ export class UserController {
      */
     @Put()
     createUser(
-        @Body() reqBody: {}
+        @Body() reqBody: {},
     ) {
         return this.userService.createUser(reqBody);
     }
@@ -35,9 +35,10 @@ export class UserController {
     @Patch(':id')
     updateUser(
         @Param('id') id: number,
-        @Body() reqBody: {}
+        @Body() reqBody: {},
+        @Req() req: any
     ) {
-        return this.userService.updateUser(id, reqBody);
+        return this.userService.updateUser(id, req.cookies['session_id'], reqBody);
     }
 
     /**

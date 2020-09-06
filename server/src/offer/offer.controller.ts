@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Put, Patch, Delete, Query, Body } from '@nestjs/common';
+import { Controller, Get, Param, Put, Patch, Delete, Query, Body, Post } from '@nestjs/common';
 import { OfferService } from './offer.service';
 
 @Controller('offer')
@@ -25,7 +25,7 @@ export class OfferController {
     
     
     /**
-     * Returns an offer object containing the offer by id
+     * Returns an offer object containing the offer by ID.
      * @param id ID of offer to be found
      */
     @Get(':id')
@@ -70,5 +70,18 @@ export class OfferController {
         @Body() reqBody: {}
     ) {
         return this.offerService.deleteOffer(id, reqBody);
+    }
+    
+    /**
+     * Books offer for a specified time frame, given sufficient authorization.
+     * @param id ID of offer to be booked
+     * @param reqBody 
+     */
+    @Post(':id')
+    bookOffer(
+        @Param('id') id: number,
+        @Body() reqBody: {}
+    ) {
+        return this.offerService.bookOffer(id, reqBody);
     }
 }

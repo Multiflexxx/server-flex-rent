@@ -11,7 +11,7 @@ export class OfferService {
     }
 
     getOfferById(id: number) {
-        return new NotFoundException("Offer not found");
+        throw new NotFoundException("Offer not found");
     }
 
     createOffer(reqBody: {}) {
@@ -19,6 +19,10 @@ export class OfferService {
     }
 
     updateOffer(id: any, reqbody: any) {
+        throw new Error("Method not implemented.");
+    }
+
+    bookOffer(id: number, reqBody: {}) {
         throw new Error("Method not implemented.");
     }
 
