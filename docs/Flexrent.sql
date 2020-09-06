@@ -18,7 +18,7 @@ CREATE TABLE user (
 	place_id int NOT NULL,
 	street varchar(50),
 	house_number varchar(8),
-	essee_rating DECIMAL(8, 2),
+	lessee_rating DECIMAL(8, 2),
 	lessor_rating DECIMAL(8, 2),
 	date_of_birth DATE,
 	PRIMARY KEY (user_id),
