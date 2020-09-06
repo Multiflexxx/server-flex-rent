@@ -17,10 +17,10 @@ jobs:
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      - name: Make GET Request
+      - name: Make POST Request
         uses: fjogeleit/http-request-action@master
         with: 
           url: 'https://flexrent.multiflexxx.de/Github'
-          method: 'GET'
+          method: 'POST'
           customHeaders: '{"ACTION_TOKEN":"${{ secrets.ACTION_TOKEN }}"}'
 
