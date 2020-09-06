@@ -2,7 +2,7 @@
  
  export class Connector {
   private static mariadb = require('mariadb');
-  private static credentials: any = require('../../../database.json');
+  private static credentials = require('../../../database.json');
   private static pool: any = Connector.mariadb.createPool(
     {
       host: Connector.credentials.host,
