@@ -112,7 +112,7 @@ CREATE TABLE request (
 	PRIMARY KEY (request_id),
 	FOREIGN KEY (user_id) REFERENCES user (user_id),
 	FOREIGN KEY (offer_id) REFERENCES offer (offer_id),
-	FOREIGN KEY (status_id) REFERENCES status (status_id),
+	FOREIGN KEY (status_id) REFERENCES status (status_id)
 );
 
 -- Payment
