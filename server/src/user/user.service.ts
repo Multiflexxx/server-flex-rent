@@ -1,10 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { User } from './user.model';
+import { Connector } from 'src/util/database/connector';
 
 @Injectable()
 export class UserService {
 
     async getUser(id: number): Promise<User>{
+      console.log(await Connector.executeQuery({query: "SELECT * FROM user", args: []}));
         throw new Error("Method not implemented.");
     }
     
