@@ -1,40 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { Connector } from 'src/util/database/connector';
+import { User } from './user.model';
 
-export type User = any;
 @Injectable()
 export class UserService {
 
-    /** 
-     * For testing only
-     */
-    private readonly users: User[];
-
-    constructor() {
-      this.users = [
-        {
-          userId: 1,
-          username: 'john',
-          password: 'changeme',
-        },
-        {
-          userId: 2,
-          username: 'chris',
-          password: 'secret',
-        },
-        {
-          userId: 3,
-          username: 'maria',
-          password: 'guess',
-        },
-      ];
-    }
-
-    async getUser(id: number) {
-
-      let res = await Connector.executeQuery({query: "SELECT * FROM user;", args: []});
-      console.log(res);
-      return this.users.find(user => user.userId === id);
+    async getUser(id: number): Promise<User>{
+        throw new Error("Method not implemented.");
     }
     
     createUser(reqBody: {}) {

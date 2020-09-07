@@ -1,9 +1,13 @@
-import { Controller, Get, Param, Put, Body, Patch, Delete, Req } from '@nestjs/common';
+import { Controller, Get, Param, Put, Body, Patch, Delete, Req, Post } from '@nestjs/common';
 import { UserService } from './user.service';
+import { AuthService } from 'src/auth/auth.service';
 
 @Controller('user')
 export class UserController {
-    constructor(private readonly userService: UserService) {}
+    constructor(
+        private readonly userService: UserService,
+        private readonly authService: AuthService
+        ) {}
 
     /**
      * Returns a single user specified by the ID passed in the URL
@@ -52,5 +56,14 @@ export class UserController {
         @Body() reqBody: {}
     ) {
         return this.userService.deleteUser(id, reqBody);
+    }
+
+    @Post('auth')
+    authenticateUser(
+        @Body('authorization') auth: {}
+    ) {
+        return this.authService.validateUser(
+            auth
+        )
     }
 }
