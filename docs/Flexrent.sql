@@ -91,7 +91,7 @@ CREATE TABLE payment_method (
 );
 
 -- Billing-Information
-CREATE TABLE billing_method (
+CREATE TABLE billing_information (
 	billing_information_id varchar(255) NOT NULL,
 	user_id varchar(255) NOT NULL,
 	method_id int NOT NULL,
