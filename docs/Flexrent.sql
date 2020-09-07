@@ -20,6 +20,8 @@ CREATE TABLE user (
 	house_number varchar(8),
 	lessee_rating DECIMAL(8, 2),
 	lessor_rating DECIMAL(8, 2),
+	number_of_lessee_ratings int,
+	number_of_lessor_ratings int,
 	date_of_birth DATE,
 	PRIMARY KEY (user_id),
 	FOREIGN KEY (place_id) REFERENCES place (place_id)
