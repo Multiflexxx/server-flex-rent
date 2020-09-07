@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Connector } from 'src/util/database/connector';
 
 export type User = any;
 @Injectable()
@@ -30,7 +31,10 @@ export class UserService {
     }
 
     async getUser(id: number) {
-        return this.users.find(user => user.userId === id);
+
+      let res = await Connector.executeQuery({query: "SELECT * FROM user;", args: []});
+      console.log(res);
+      return this.users.find(user => user.userId === id);
     }
     
     createUser(reqBody: {}) {

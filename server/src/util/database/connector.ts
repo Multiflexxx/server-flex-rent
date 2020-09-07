@@ -17,13 +17,16 @@
     
     public static async executeQuery(q: {query: string, args: any[]}): Promise<any> {
       let result = null;
+      let connection = null;
       try {
-        result = await Connector.pool.getConnection().query(q.query, q.args);
+        connection = await Connector.pool.getConnection();
+        result = await connection.query(q.query, q.args);
       } catch(err) {
+        console.log(err);
         throw new InternalServerErrorException("Something went wrong");
       } finally {
         // Close connection
-        result.release();
+        connection.release();
       }
       
       return result;
