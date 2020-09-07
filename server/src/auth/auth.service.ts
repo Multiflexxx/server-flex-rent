@@ -14,7 +14,10 @@ export class AuthService {
                 user_id: string
             }
         }
-    ): Promise<User> {
+    ): Promise<{
+        user: User,
+        session_id: string
+    }> {
         let user: User;
 
         // Decide whether to use login or session data
@@ -28,6 +31,9 @@ export class AuthService {
             throw new BadRequestException("Invalid authorization parameters");
         }
 
-        return user;
+        return {
+            user: user,
+            session_id: ""
+        };
     }
 }

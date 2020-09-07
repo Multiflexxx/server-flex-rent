@@ -10,6 +10,8 @@ export interface User {
     street: string,
     house_number: string,
     lessee_rating: number,
+    number_of_lessee_ratings: number,
     lessor_rating: number,
+    number_of_lessor_ratings: number,
     date_of_birth?: Date,
 }

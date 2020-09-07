@@ -26,9 +26,9 @@ export class UserController {
      */
     @Put()
     createUser(
-        @Body() reqBody: {},
+        @Body('user') user: any,
     ) {
-        return this.userService.createUser(reqBody);
+        return this.userService.createUser(user);
     }
 
     /**
