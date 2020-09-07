@@ -13,8 +13,6 @@ export class Connector {
 		connectionLimit: Connector.credentials.connectionLimit
 	});
 
-	// TODO: Create functions
-	
 	/**
 	 * 
 	 * @param q Parameter of type Query: <pre><code>{query: string, args: any[]}</code></pre>
