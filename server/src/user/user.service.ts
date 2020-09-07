@@ -1,36 +1,11 @@
 import { Injectable } from '@nestjs/common';
+import { User } from './user.model';
 
-export type User = any;
 @Injectable()
 export class UserService {
 
-    /** 
-     * For testing only
-     */
-    private readonly users: User[];
-
-    constructor() {
-      this.users = [
-        {
-          userId: 1,
-          username: 'john',
-          password: 'changeme',
-        },
-        {
-          userId: 2,
-          username: 'chris',
-          password: 'secret',
-        },
-        {
-          userId: 3,
-          username: 'maria',
-          password: 'guess',
-        },
-      ];
-    }
-
-    async getUser(id: number) {
-        return this.users.find(user => user.userId === id);
+    async getUser(id: number): Promise<User>{
+        throw new Error("Method not implemented.");
     }
     
     createUser(reqBody: {}) {

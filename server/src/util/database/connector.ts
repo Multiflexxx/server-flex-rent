@@ -15,7 +15,12 @@
 
     // TODO: Create functions
     
-    public static async executeQuery(q: {query: string, args: any[]}): Promise<any> {
+    public static async executeQuery(
+      q: {
+        query: string, 
+        args: any[]
+      }
+    ): Promise<any> {
       let result = null;
       try {
         result = await Connector.pool.getConnection().query(q.query, q.args);
