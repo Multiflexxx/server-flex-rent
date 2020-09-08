@@ -164,10 +164,19 @@ export class QueryBuilder {
 		}
 	}
 
-	public static getCategory() {
+	public static getCategory(): Query {
 		return {
 			query: "SELECT * FROM category;",
 			args: []
+		}
+	}
+
+	public static getOfferPictures(id: number): Query {
+		return {
+			query: "SELECT * FROM offer_picture WHERE offer_id = ?;",
+			args: [
+				id
+			]
 		}
 	}
 

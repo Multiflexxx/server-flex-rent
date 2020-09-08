@@ -6,5 +6,6 @@ export interface Offer {
     rating: number,
     category_id: string,
     user_id: string,
-    price: number
+    price: number,
+    picture_links?: Array<string>
 }
