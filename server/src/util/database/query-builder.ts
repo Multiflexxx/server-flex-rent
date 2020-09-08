@@ -127,7 +127,6 @@ export class QueryBuilder {
 			}
 		} else if(offer_info.query) {
 			if(offer_info.query.filters && offer_info.query.filters.length > 0) {
-				//TODO: loop over filters an build queries
 				let query = "SELECT * FROM offer WHERE ";
 				let args = [];
 
@@ -162,6 +161,13 @@ export class QueryBuilder {
 					]
 				}
 			}
+		}
+	}
+
+	public static getCategory() {
+		return {
+			query: "SELECT * FROM category;",
+			args: []
 		}
 	}
 

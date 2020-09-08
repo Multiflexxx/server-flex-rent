@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException, InternalServerErrorException, BadRequestException } from '@nestjs/common';
 import { Connector } from 'src/util/database/connector';
 import { QueryBuilder } from 'src/util/database/query-builder';
+import { Offer } from './offer.model';
+import { Category } from './category.model';
 
 @Injectable()
 export class OfferService {
@@ -21,7 +23,7 @@ export class OfferService {
     public async getAll(query: {
         limit?: number,
         filters?: string
-    }) {
+    }): Promise<Offer> {
         let limit: number = 25; // Default limit
         let filters: Array<{key: string, operator: string, value: string}> = [];
         
@@ -69,12 +71,24 @@ export class OfferService {
      * Returns an offer object containing the offer by ID.
      * @param id ID of offer to be found
      */
-    public async getOfferById(id: number) {
+    public async getOfferById(id: number): Promise<Offer> {
         let offer = await Connector.executeQuery(QueryBuilder.getOffer({offer_id: id}));
-        if(offer.length !== 0) {
+        if(offer.length > 0) {
             return offer;
         } else {
             throw new NotFoundException("Offer not found");
+        }
+    }
+
+    /**
+     * Returns all categories from database
+     */
+    public async getAllCategories(): Promise<Category> {
+        let categories = await Connector.executeQuery(QueryBuilder.getCategory());
+        if(categories.length > 0) {
+            return categories;
+        } else {
+            throw new InternalServerErrorException("Could not get categories");
         }
     }
 

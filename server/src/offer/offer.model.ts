@@ -1,10 +1,10 @@
-import { Injectable } from '@nestjs/common';
-
-@Injectable()
-export class Offer {
-
-    constructor(
-        public hello: string, 
-        public world: string
-    ) {}
+export interface Offer {
+    offer_id: string,
+    title: string,
+    description: string,
+    number_of_rating: number,
+    rating: number,
+    category_id: string,
+    user_id: string,
+    price: number
 }
