@@ -1,5 +1,6 @@
 import { User } from "src/user/user.model";
 import { Query } from "./query.model";
+import { query } from "express";
 
 export class QueryBuilder {
 
@@ -96,6 +97,70 @@ export class QueryBuilder {
 				args: [
 					place_info.post_code
 				]
+			}
+		}
+	}
+
+	/**
+	 * Looks up an offer given an offer_id OR all offers within a limit, or filters
+	 * @param offer_info object containing offer information: offer_info.offer_id OR offer_info.query
+	 */
+	public static getOffer(
+		offer_info: {
+			offer_id?: number,
+			query?: {
+				limit: number,
+				filters?: Array<{
+						key: string,
+						operator: string,
+						value: string
+					}>
+			}
+		}
+	): Query {
+		if(offer_info.offer_id) {
+			return {
+				query: "SELECT * FROM offer WHERE offer_id = ?;",
+				args: [
+					offer_info.offer_id
+				]
+			}
+		} else if(offer_info.query) {
+			if(offer_info.query.filters && offer_info.query.filters.length > 0) {
+				//TODO: loop over filters an build queries
+				let query = "SELECT * FROM offer WHERE ";
+				let args = [];
+
+				for(let i = 0; i < offer_info.query.filters.length; i++) {
+					query += "? ? ?";
+					if(i < offer_info.query.filters.length-1) {
+						query += " AND ";
+					}
+					args.push(
+						offer_info.query.filters[i].key,
+						offer_info.query.filters[i].operator,
+						offer_info.query.filters[i].value,
+					);
+				}
+
+				if(offer_info.query.limit) {
+					query += " LIMIT ?;";
+					args.push(offer_info.query.limit);
+				} else {
+					query += ";"
+				}
+
+				return {
+					query: query,
+					args: args
+				}
+			} else {
+				return {
+					query: "SELECT * FROM offer LIMIT ?;",
+					args: [
+						offer_info.query.limit
+					]
+				}
 			}
 		}
 	}
