@@ -17,48 +17,49 @@ export class OfferService {
 	 * @param query query wich is send to server
 	 * If a parameter called 'limit' with a value greater 0 is provided,
 	 * the limit is used for the return
-	 * If a parameter called 'filters' with comma seperated values containing
-	 * a key, an operator and a value is provided,
-	 * the filters are used on the database-query
-	 * (Schema: filters=<key><operator><value>,<key><operator><value>)
+	 * If a parameter called 'category' with a numeric value > 0 is provided,
+	 * the result is filtered by category
+	 * If a parameter called 'search' is provided wit a non empty string,
+	 * the result is filtered by the given search keyword
 	 */
 	public async getAll(query: {
-		limit?: number,
-		filters?: string
+		limit?: string,
+		category?: string,
+		search?: string
 	}): Promise<Offer> {
 		let limit: number = 25; // Default limit
-		let filters: Array<{ key: string, operator: string, value: string }> = [];
+		let category: number = 0;
+		let search: string = "";
 
-		if (query.limit !== null && query.limit !== undefined && +query.limit > 0) {
+		if (query.limit !== null && query.limit !== undefined) {
 			// Update limit, if given
-			// Typecast the querystring into a number using the unary '+'-operator
-			// see https://stackoverflow.com/questions/14667713/how-to-convert-a-string-to-number-in-typescript
-			// for more information 
-			limit = +query.limit;
+			limit = parseInt(query.limit);
+			if (isNaN(limit)) {
+				// Not a number
+				throw new BadRequestException("Limit is not a valid number");
+			}
 		}
-		if (query.filters !== null && query.filters !== undefined) {
-			// TODO: CHECK INCOMING QUERY
-			query.filters.split(',').map(filter => {
-				let operatorPosition = this.getOperatorPosition(filter);
-
-				if (operatorPosition.start === -1) {
-					throw new BadRequestException("Wrong filter");
-				}
-				let o = {
-					key: filter.substring(0, operatorPosition.start),
-					operator: filter.substring(operatorPosition.start, operatorPosition.end + 1),
-					value: filter.substring(operatorPosition.end + 1)
-				}
-
-				filters.push(o);
-			});
+		if (query.category !== null && query.category !== undefined) {
+			category = parseInt(query.category);
+			if (isNaN(category)) {
+				// Not a number
+				throw new BadRequestException("Category does not exist");
+			}
+		}
+		if (query.search !== null && query.search !== undefined) {
+			if (query.search === "") {
+				throw new BadRequestException("Search string is invalid");
+			} else {
+				search = query.search;
+			}
 		}
 
 		let offers = await Connector.executeQuery(
 			QueryBuilder.getOffer({
 				query: {
 					limit: limit,
-					filters: filters
+					category: category,
+					search: search
 				}
 			}));
 
@@ -91,6 +92,7 @@ export class OfferService {
 
 		if (offers.length > 0) {
 			let pictureUUIDList = await Connector.executeQuery(QueryBuilder.getOfferPictures(id));
+			let blockedDatesList = await Connector.executeQuery(QueryBuilder.getBlockedOffers(id));
 			if (pictureUUIDList.length > 0) {
 				let pictureLinks: Array<string> = [];
 
@@ -101,6 +103,23 @@ export class OfferService {
 			} else {
 				offers[0].picture_links = [];
 			}
+			if(blockedDatesList.length > 0) {
+				let blockedDates: Array<{
+					from_date: Date,
+					to_date: Date
+				}> = [];
+
+				for(let i = 0; i < blockedDatesList.length; i++) {
+					blockedDates.push({
+						from_date: blockedDatesList[i].from_date,
+						to_date: blockedDatesList[i].to_date 
+					});
+				}
+
+				offers[0].blocked_dates = blockedDates;
+			} else {
+				offers[0].blocked_dates = [];
+			}
 			return offers[0];
 		} else {
 			throw new NotFoundException("Offer not found");
@@ -110,7 +129,7 @@ export class OfferService {
 	/**
 	 * Returns all categories from database
 	 */
-	public async getAllCategories(): Promise<Category> {
+	public async getAllCategories(): Promise<Array<Category>> {
 		let categories = await Connector.executeQuery(QueryBuilder.getCategory());
 		if (categories.length > 0) {
 			return categories;
@@ -133,44 +152,5 @@ export class OfferService {
 
 	public async deleteOffer(id: any, reqBody: any) {
 		throw new Error("Method not implemented.");
-	}
-
-	/**
-	 * Method to get the position of the operator in a given filter string
-	 * @param filterString Accepts a String in format '<key><operator><value>'
-	 * @returns {start: number, end?: number} Returns an object with start and end position of operator
-	 */
-	private getOperatorPosition(filterString: string): {
-		start: number,
-		end?: number
-	} {
-		if (filterString.indexOf('<=', 0) > -1) {
-			return {
-				start: filterString.indexOf('<=', 0),
-				end: (filterString.indexOf('<=', 0) + 1)
-			};
-		} else if (filterString.indexOf('>=', 0) > -1) {
-			return {
-				start: filterString.indexOf('>=', 0),
-				end: (filterString.indexOf('>=', 0) + 1)
-			};
-		} else if (filterString.indexOf('=') > -1) {
-			return {
-				start: filterString.indexOf('='),
-				end: filterString.indexOf('=')
-			};
-		} else if (filterString.indexOf('<') > -1) {
-			return {
-				start: filterString.indexOf('<'),
-				end: filterString.indexOf('<')
-			};
-		} else if (filterString.indexOf('>') > -1) {
-			return {
-				start: filterString.indexOf('>'),
-				end: filterString.indexOf('>')
-			};
-		} else {
-			return { start: -1 }
-		}
 	}
 }

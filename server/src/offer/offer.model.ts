@@ -7,5 +7,9 @@ export interface Offer {
     category_id: string,
     user_id: string,
     price: number,
-    picture_links?: Array<string>
+    picture_links?: Array<string>,
+    blocked_dates?: Array<{
+        from_date: Date,
+        to_date: Date
+    }>
 }

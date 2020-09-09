@@ -20,7 +20,7 @@ export class QueryBuilder {
 				user.password_hash,
 				user.verified,
 				user.place_id,
-				user.street, 
+				user.street,
 				user.house_number,
 				user.lessee_rating,
 				user.number_of_lessee_ratings,
@@ -46,28 +46,28 @@ export class QueryBuilder {
 			}
 		}
 	): Query {
-		if(user_info.user_id) {
+		if (user_info.user_id) {
 			return {
 				query: "SELECT * FROM user WHERE user_id = ?;",
 				args: [
 					user_info.user_id
 				]
 			}
-		} else if(user_info.email) {
+		} else if (user_info.email) {
 			return {
 				query: "SELECT * FROM user WHERE email = ?;",
 				args: [
 					user_info.email
 				]
 			}
-		} else if(user_info.phone) {
+		} else if (user_info.phone) {
 			return {
 				query: "SELECT * FROM user WHERE phone = ?;",
 				args: [
 					user_info.phone
 				]
 			}
-		} else if(user_info.login) {
+		} else if (user_info.login) {
 			return {
 				query: "SELECT * FROM user WHERE email = ? AND password_hash = ?",
 				args: [
@@ -84,14 +84,14 @@ export class QueryBuilder {
 			post_code?: number
 		}
 	): Query {
-		if(place_info.place_id) {
+		if (place_info.place_id) {
 			return {
 				query: "SELECT * FROM place WHERE place_id = ?;",
 				args: [
 					place_info.place_id
 				]
 			}
-		} else if(place_info.post_code) {
+		} else if (place_info.post_code) {
 			return {
 				query: "SELECT * FROM place WHERE place_id = ?;",
 				args: [
@@ -102,7 +102,7 @@ export class QueryBuilder {
 	}
 
 	/**
-	 * Looks up an offer given an offer_id OR all offers within a limit, or filters
+	 * Looks up an offer given an offer_id OR all offers within a limit, category or search
 	 * @param offer_info object containing offer information: offer_info.offer_id OR offer_info.query
 	 */
 	public static getOffer(
@@ -110,44 +110,52 @@ export class QueryBuilder {
 			offer_id?: number,
 			query?: {
 				limit: number,
-				filters?: Array<{
-						key: string,
-						operator: string,
-						value: string
-					}>
+				search?: string,
+				category?: number
 			}
 		}
 	): Query {
-		if(offer_info.offer_id) {
+		if (offer_info.offer_id) {
 			return {
 				query: "SELECT * FROM offer WHERE offer_id = ?;",
 				args: [
 					offer_info.offer_id
 				]
 			}
-		} else if(offer_info.query) {
-			if(offer_info.query.filters && offer_info.query.filters.length > 0) {
-				let query = "SELECT * FROM offer WHERE ";
+		} else if (offer_info.query) {
+			if (offer_info.query.category && offer_info.query.category > 0) {
+				let query = "SELECT * FROM offer WHERE category_id = ?";
 				let args = [];
 
-				for(let i = 0; i < offer_info.query.filters.length; i++) {
-					query += "? ? ?";
-					if(i < offer_info.query.filters.length-1) {
-						query += " AND ";
-					}
-					args.push(
-						offer_info.query.filters[i].key,
-						offer_info.query.filters[i].operator,
-						offer_info.query.filters[i].value,
-					);
+				args.push(offer_info.query.category);
+
+				if (offer_info.query.search && offer_info.query.search !== "") {
+					let search = "%" + offer_info.query.search + "%";
+					query += " AND title LIKE ?";
+					args.push(search);
 				}
 
-				if(offer_info.query.limit) {
-					query += " LIMIT ?;";
-					args.push(offer_info.query.limit);
-				} else {
-					query += ";"
+				query += " LIMIT ?;";
+				args.push(offer_info.query.limit);
+
+				return {
+					query: query,
+					args: args
 				}
+			} else if (offer_info.query.search && offer_info.query.search !== "") {
+				let query = "SELECT * FROM offer WHERE title LIKE ?";
+				let args = [];
+
+				let search = "%" + offer_info.query.search + "%";
+				args.push(search);
+
+				if (offer_info.query.category && offer_info.query.category > 0) {
+					query += " AND category_id = ?";
+					args.push(offer_info.query.category);
+				}
+
+				query += " LIMIT ?;";
+				args.push(offer_info.query.limit);
 
 				return {
 					query: query,
@@ -161,6 +169,11 @@ export class QueryBuilder {
 					]
 				}
 			}
+		} else {
+			return {
+				query: "SELECT * FROM offer LIMIT 15;",
+				args: []
+			}
 		}
 	}
 
@@ -168,6 +181,15 @@ export class QueryBuilder {
 		return {
 			query: "SELECT * FROM category;",
 			args: []
+		}
+	}
+
+	public static getBlockedOffers(id: number): Query {
+		return {
+			query: "SELECT * FROM offer_blocked WHERE offer_id = ? AND (from_date >= NOW() OR to_date >= NOW());",
+			args: [
+				id
+			]
 		}
 	}
 
@@ -183,8 +205,8 @@ export class QueryBuilder {
 	public static testQuery() {
 		return {
 			query: "SELECT * FROM place WHERE place_id = 100000000000;",
-				args: [
-				]
+			args: [
+			]
 		}
 	}
 }
