@@ -182,7 +182,7 @@ export class QueryBuilder {
 
 	public static testQuery() {
 		return {
-			query: "SELECT * FROM place WHERE place_id = 100000000000;",
+			query: "SELECT * FROM place WHERE place_id < 4;",
 				args: [
 				]
 		}
