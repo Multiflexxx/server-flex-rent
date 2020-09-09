@@ -1,9 +1,13 @@
-import { Controller, Get, Param, Put, Body, Patch, Delete } from '@nestjs/common';
+import { Controller, Get, Param, Put, Body, Patch, Delete, Req, Post } from '@nestjs/common';
 import { UserService } from './user.service';
+import { AuthService } from 'src/auth/auth.service';
 
 @Controller('user')
 export class UserController {
-    constructor(private readonly userService: UserService) {}
+    constructor(
+        private readonly userService: UserService,
+        private readonly authService: AuthService
+        ) {}
 
     /**
      * Returns a single user specified by the ID passed in the URL
@@ -11,7 +15,7 @@ export class UserController {
      */
     @Get(':id')
     getUser(
-        @Param('id') id: number
+        @Param('id') id: string
     ) {
         return this.userService.getUser(id);
     }
@@ -22,9 +26,9 @@ export class UserController {
      */
     @Put()
     createUser(
-        @Body() reqBody: {}
+        @Body('user') user: any,
     ) {
-        return this.userService.createUser(reqBody);
+        return this.userService.createUser(user);
     }
 
     /**
@@ -35,9 +39,10 @@ export class UserController {
     @Patch(':id')
     updateUser(
         @Param('id') id: number,
-        @Body() reqBody: {}
+        @Body() reqBody: {},
+        @Req() req: any
     ) {
-        return this.userService.updateUser(id, reqBody);
+        return this.userService.updateUser(id, req.cookies['session_id'], reqBody);
     }
 
     /**
@@ -51,5 +56,14 @@ export class UserController {
         @Body() reqBody: {}
     ) {
         return this.userService.deleteUser(id, reqBody);
+    }
+
+    @Post('auth')
+    authenticateUser(
+        @Body('authorization') auth: {}
+    ) {
+        return this.authService.validateUser(
+            auth
+        )
     }
 }
