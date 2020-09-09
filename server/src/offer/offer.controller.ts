@@ -10,9 +10,9 @@ export class OfferController {
 		 */
 		@Get('all')
 		getAllOffers(
-				@Query() query: {}
+			@Query() query: {}
 		) {
-				return this.offerService.getAll(query);
+			return this.offerService.getAll(query);
 		}
 
 		/**
@@ -28,7 +28,7 @@ export class OfferController {
 		 */
 		@Get()
 		getHomePageOffers() {
-				return this.offerService.getHomePageOffers();
+			return this.offerService.getHomePageOffers();
 		}
 		
 		
@@ -38,9 +38,9 @@ export class OfferController {
 		 */
 		@Get(':id')
 		getOfferById(
-				@Param('id') id: number
+			@Param('id') id: number
 		) {
-				return this.offerService.getOfferById(id);
+			return this.offerService.getOfferById(id);
 		}
 
 		/**
@@ -50,10 +50,10 @@ export class OfferController {
 		 */
 		@Patch(':id')
 		updateOffer(
-				@Body() reqBody: {},
-				@Param('id') id: number
+			@Body() reqBody: {},
+			@Param('id') id: number
 		) {
-				return this.offerService.updateOffer(id, reqBody);
+			return this.offerService.updateOffer(id, reqBody);
 		}
 
 		/**
@@ -62,9 +62,9 @@ export class OfferController {
 		 */
 		@Put()
 		createOffer(
-				@Body() reqBody: {}
+			@Body() reqBody: {}
 		) {
-				return this.offerService.createOffer(reqBody);
+			return this.offerService.createOffer(reqBody);
 		}
 
 		/**
@@ -74,10 +74,10 @@ export class OfferController {
 		 */
 		@Delete(':id')
 		deleteOffer(
-				@Param('id') id: number,
-				@Body() reqBody: {}
+			@Param('id') id: number,
+			@Body() reqBody: {}
 		) {
-				return this.offerService.deleteOffer(id, reqBody);
+			return this.offerService.deleteOffer(id, reqBody);
 		}
 		
 		/**
@@ -87,9 +87,9 @@ export class OfferController {
 		 */
 		@Post(':id')
 		bookOffer(
-				@Param('id') id: number,
-				@Body() reqBody: {}
+			@Param('id') id: number,
+			@Body() reqBody: {}
 		) {
-				return this.offerService.bookOffer(id, reqBody);
+			return this.offerService.bookOffer(id, reqBody);
 		}
 }
