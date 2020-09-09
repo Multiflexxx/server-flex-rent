@@ -13,23 +13,23 @@ export class UserService {
 	 */
 	public async getUser(id: string): Promise<User>{
 		let user: User;
-		try {
-			let result = await Connector.executeQuery(QueryBuilder.getUser({user_id: id}))[0];
-			user = {
-				user_id = result.user_id,
-				first_name: result.first_name,
-				last_name: result.last_name,
-				email: result.email,
-				phone_number: result.phone_number,
-				password_hash: result.password_hash,
-				verified: result.verified,
-				place_id: result.place_id,
-				street: "",
+		// try {
+		// 	let result = await Connector.executeQuery(QueryBuilder.getUser({user_id: id}))[0];
+		// 	user = {
+		// 		user_id = result.user_id,
+		// 		first_name: result.first_name,
+		// 		last_name: result.last_name,
+		// 		email: result.email,
+		// 		phone_number: result.phone_number,
+		// 		password_hash: result.password_hash,
+		// 		verified: result.verified,
+		// 		place_id: result.place_id,
+		// 		street: "",
 				
-			}
+		// 	}
 
-		}
-		await Connector.executeQuery(QueryBuilder.testQuery());
+		// }
+		// await Connector.executeQuery(QueryBuilder.testQuery());
 
 		// console.log(await Connector.executeQuery(QueryBuilder.testQuery()));
 		return null;
