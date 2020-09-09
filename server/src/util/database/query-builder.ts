@@ -177,6 +177,9 @@ export class QueryBuilder {
 		}
 	}
 
+	/**
+	 * Returns all categories
+	 */
 	public static getCategory(): Query {
 		return {
 			query: "SELECT * FROM category;",
@@ -184,7 +187,11 @@ export class QueryBuilder {
 		}
 	}
 
-	public static getBlockedOffers(id: number): Query {
+	/**
+	 * Returns all blocked dates for a given offer_id
+	 * @param id ID of the offer for which the blocked dates are requested
+	 */
+	public static getBlockedOfferDates(id: number): Query {
 		return {
 			query: "SELECT * FROM offer_blocked WHERE offer_id = ? AND (from_date >= NOW() OR to_date >= NOW());",
 			args: [
@@ -193,6 +200,10 @@ export class QueryBuilder {
 		}
 	}
 
+	/**
+	 * Returns all picture details for a given offer_id
+	 * @param id ID of the offer for which the picture data is requested
+	 */
 	public static getOfferPictures(id: number): Query {
 		return {
 			query: "SELECT * FROM offer_picture WHERE offer_id = ?;",

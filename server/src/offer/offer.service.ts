@@ -92,7 +92,7 @@ export class OfferService {
 
 		if (offers.length > 0) {
 			let pictureUUIDList = await Connector.executeQuery(QueryBuilder.getOfferPictures(id));
-			let blockedDatesList = await Connector.executeQuery(QueryBuilder.getBlockedOffers(id));
+			let blockedDatesList = await Connector.executeQuery(QueryBuilder.getBlockedOfferDates(id));
 			if (pictureUUIDList.length > 0) {
 				let pictureLinks: Array<string> = [];
 
