@@ -78,6 +78,10 @@ export class QueryBuilder {
 		}
 	}
 
+	/**
+	 * Looks up a place given a place_id or a post_code
+	 * @param place_info Information of place to be looked up, either contains a place_id or a post_code
+	 */
 	public static getPlace(
 		place_info: {
 			place_id?: number,

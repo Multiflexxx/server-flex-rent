@@ -3,6 +3,7 @@ import { User } from './user.model';
 import { Connector } from 'src/util/database/connector';
 import * as EmailValidator from 'email-validator';
 import { QueryBuilder } from 'src/util/database/query-builder';
+import { debug } from 'console';
 
 @Injectable()
 export class UserService {
@@ -13,41 +14,57 @@ export class UserService {
 	 */
 	public async getUser(id: string): Promise<User>{
 		let user: User;
-		// try {
-		// 	let result = await Connector.executeQuery(QueryBuilder.getUser({user_id: id}))[0];
-		// 	user = {
-		// 		user_id = result.user_id,
-		// 		first_name: result.first_name,
-		// 		last_name: result.last_name,
-		// 		email: result.email,
-		// 		phone_number: result.phone_number,
-		// 		password_hash: result.password_hash,
-		// 		verified: result.verified,
-		// 		place_id: result.place_id,
-		// 		street: "",
-				
-		// 	}
-
-		// }
-		// await Connector.executeQuery(QueryBuilder.testQuery());
-
-		// console.log(await Connector.executeQuery(QueryBuilder.testQuery()));
-		return null;
-		/* let user;
 		try {
-			user = await Connector.executeQuery(
-				QueryBuilder.getUser({
-					user_id: id
-				})
-			);
+			let result = (await Connector.executeQuery(QueryBuilder.getUser({user_id: id})))[0];
+			if(!result) {
+				throw new NotFoundException("User not found");
+			}
+			user = {
+				user_id: result.user_id,
+				first_name: result.first_name,
+				last_name: result.last_name,
+				verified: result.verified,
+				place_id: result.place_id,
+				street: result.street,
+				house_number: result.house_number,
+				lessee_rating: result.lessee_rating,
+				number_of_lessee_ratings: result.number_of_lessee_ratings,
+				lessor_rating: result.lessor_rating,
+				number_of_lessor_ratings: result.number_of_lessor_ratings
+			}
+		} catch(e) {
+			if(e instanceof NotFoundException) {
+				throw e
+			}
+			throw new InternalServerErrorException("Something went wrong...");
+		}
+
+		// Get post code and city name by place_id
+		let place = {
+			place_id: user.place_id,
+			post_code: "",
+			city: ""
+		}
+
+		place.place_id = user.place_id;
+
+		try {
+			let result = (await Connector.executeQuery(QueryBuilder.getPlace({place_id: place.place_id})))[0];
+			console.log(result);
+			place.post_code = result.post_code;
+			place.city = result.name;
 		} catch(e) {
 			throw new InternalServerErrorException("Something went wrong...");
 		}
 
+		user.post_code = place.post_code;
+		user.city = place.city;
 
-		if(!user) {
-			throw new 
-		} */
+		if(!user || !user.user_id) {
+			throw new NotFoundException("User not found");
+		}
+
+		return user;
 	}
 	
 	public async createUser(user: any) : Promise<User> {
