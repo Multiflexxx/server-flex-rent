@@ -4,7 +4,7 @@ export interface Offer {
     description: string,
     number_of_rating: number,
     rating: number,
-    category_id: string,
+    category_id: number,
     user_id: string,
     price: number,
     picture_links?: Array<string>,

@@ -64,6 +64,7 @@ export class OfferController {
 	createOffer(
 		@Body() reqBody: {}
 	) {
+		console.log(reqBody);
 		return this.offerService.createOffer(reqBody);
 	}
 

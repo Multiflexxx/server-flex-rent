@@ -1,6 +1,6 @@
 import { User } from "src/user/user.model";
 import { Query } from "./query.model";
-import { query } from "express";
+import { Offer } from "src/offer/offer.model";
 
 export class QueryBuilder {
 
@@ -209,6 +209,22 @@ export class QueryBuilder {
 			query: "SELECT * FROM offer_picture WHERE offer_id = ?;",
 			args: [
 				id
+			]
+		}
+	}
+
+	public static createOffer(offer: Offer) : Query {
+		return {
+			query: "INSERT INTO offer (offer_id, user_id, title, description, rating, price, category_id, number_of_rating) VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
+			args: [
+				offer.offer_id,
+				offer.user_id,
+				offer.title,
+				offer.description,
+				offer.rating,
+				offer.price,
+				offer.category_id,
+				offer.number_of_rating
 			]
 		}
 	}

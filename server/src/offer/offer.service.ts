@@ -3,6 +3,8 @@ import { Connector } from 'src/util/database/connector';
 import { QueryBuilder } from 'src/util/database/query-builder';
 import { Offer } from './offer.model';
 import { Category } from './category.model';
+import { uuid } from 'uuidv4';
+import { title } from 'process';
 
 const BASE_OFFER_LINK = "https://flexrent.multiflexxx.de/pictures/";
 
@@ -138,8 +140,45 @@ export class OfferService {
 		}
 	}
 
-	public async createOffer(reqBody: {}) {
-		throw new Error("Method not implemented.");
+	public async createOffer(reqBody: {
+		user_id?: string, 
+		title?: string,
+		description?: string,
+		price?: number,
+		category_id?: number,
+		pictureLinks?: Array<string>,
+		blockedDates?:Array<{
+        	from_date: Date,
+			to_date: Date
+		}>
+	}): Promise<Offer> {
+		//reqBody prüfen
+		//Title und description nicht leer, cateogory_id prüfen, price nicht leer
+
+	
+		//Validate User 
+		let offer_id = uuid();
+		
+		let offer: Offer = {
+			offer_id: offer_id,
+			title: reqBody.title,
+			description: reqBody.description,
+			number_of_rating: 0,
+			rating: 0,
+			category_id: reqBody.category_id,
+			user_id: reqBody.user_id,
+			price: reqBody.price,
+			picture_links: reqBody.pictureLinks,
+			blocked_dates: reqBody.blockedDates
+		};
+
+		let response = await Connector.executeQuery(QueryBuilder.createOffer(offer));
+		console.log(response);
+		if(response === 201) {
+			return offer;
+		} else {
+			throw new Error("Method not implemented.");
+		}
 	}
 
 	public async updateOffer(id: any, reqbody: any) {
