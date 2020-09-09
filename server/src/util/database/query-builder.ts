@@ -107,7 +107,7 @@ export class QueryBuilder {
 	 */
 	public static getOffer(
 		offer_info: {
-			offer_id?: number,
+			offer_id?: string,
 			query?: {
 				limit: number,
 				search?: string,
@@ -178,20 +178,32 @@ export class QueryBuilder {
 	}
 
 	/**
-	 * Returns all categories
+	 * Returns all categories OR a category with a given id
 	 */
-	public static getCategory(): Query {
-		return {
-			query: "SELECT * FROM category;",
-			args: []
+	public static getCategories(category_info: {
+		category_id?: number
+	}): Query {
+		if(category_info.category_id) {
+			return {
+				query: "SELECT * FROM category WHERE category_id = ?;",
+				args: [
+					category_info.category_id
+				]
+			}
+		} else {
+			return {
+				query: "SELECT * FROM category;",
+				args: []
+			}
 		}
+		
 	}
 
 	/**
 	 * Returns all blocked dates for a given offer_id
 	 * @param id ID of the offer for which the blocked dates are requested
 	 */
-	public static getBlockedOfferDates(id: number): Query {
+	public static getBlockedOfferDates(id: string): Query {
 		return {
 			query: "SELECT * FROM offer_blocked WHERE offer_id = ? AND (from_date >= NOW() OR to_date >= NOW());",
 			args: [
@@ -204,7 +216,7 @@ export class QueryBuilder {
 	 * Returns all picture details for a given offer_id
 	 * @param id ID of the offer for which the picture data is requested
 	 */
-	public static getOfferPictures(id: number): Query {
+	public static getOfferPictures(id: string): Query {
 		return {
 			query: "SELECT * FROM offer_picture WHERE offer_id = ?;",
 			args: [
@@ -227,6 +239,67 @@ export class QueryBuilder {
 				offer.number_of_rating
 			]
 		}
+	}
+
+	public static updateOffer(offer: {
+		offer_id: string,
+		title: string,
+		description: string,
+		price: number,
+		category_id: number
+	}): Query {
+		return {
+			query: "UPDATE offer SET title = ?, description = ?, price = ?, category_id = ? WHERE offer_id = ?;",
+			args: [
+				offer.title,
+				offer.description,
+				offer.price,
+				offer.category_id,
+				offer.offer_id
+			]
+		}
+	}
+
+	public static deleteBlockedDatesForOfferId(id: string): Query {
+		return {
+			query: "DELETE FROM offer_blocked WHERE offer_id = ?",
+			args: [
+				id
+			]
+		}
+	}
+
+	public static insertBlockedDateForOfferId(blocked_date: {
+		offer_blocked_id: string,
+		offer_id: string,
+		from_date: Date,
+		to_date: Date,
+		reason?: string
+	}): Query {
+		if(blocked_date.reason !== undefined
+			&& blocked_date.reason !== null
+			&& blocked_date.reason !== "") {
+				return {
+					query: "INSERT INTO offer_blocked (offer_blocked_id, offer_id, from_date, to_date, reason) VALUES (?, ?, ?, ?, ?)",
+					args: [
+						blocked_date.offer_blocked_id,
+						blocked_date.offer_id,
+						blocked_date.from_date,
+						blocked_date.to_date,
+						blocked_date.reason
+					]
+				}
+			} else {
+				return {
+					query: "INSERT INTO offer_blocked (offer_blocked_id, offer_id, from_date, to_date) VALUES (?, ?, ?, ?)",
+					args: [
+						blocked_date.offer_blocked_id,
+						blocked_date.offer_id,
+						blocked_date.from_date,
+						blocked_date.to_date
+					]
+				}
+			}
 	}
 
 	public static testQuery() {

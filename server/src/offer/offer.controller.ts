@@ -38,7 +38,7 @@ export class OfferController {
 	 */
 	@Get(':id')
 	getOfferById(
-		@Param('id') id: number
+		@Param('id') id: string
 	) {
 		return this.offerService.getOfferById(id);
 	}
