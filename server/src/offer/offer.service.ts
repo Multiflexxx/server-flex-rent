@@ -196,38 +196,142 @@ export class OfferService {
 		description?: string,
 		price?: number,
 		category_id?: number,
-		pictureLinks?: Array<string>,
-		blockedDates?: Array<{
+		picture_links?: Array<string>,
+		blocked_dates?: Array<{
 			from_date: Date,
 			to_date: Date
 		}>
 	}): Promise<Offer> {
-		//reqBody prüfen
-		//Title und description nicht leer, cateogory_id prüfen, price nicht leer
 
+		if (reqBody !== undefined && reqBody !== null) {
+			let categoryId = 0;
+			let price = 0;
 
-		//Validate User 
-		let offer_id = uuid();
+			//TODO: Validate User 
 
-		let offer: Offer = {
-			offer_id: offer_id,
-			title: reqBody.title,
-			description: reqBody.description,
-			number_of_rating: 0,
-			rating: 0,
-			category_id: reqBody.category_id,
-			user_id: reqBody.user_id,
-			price: reqBody.price,
-			picture_links: reqBody.pictureLinks,
-			blocked_dates: reqBody.blockedDates
-		};
+			// convert category_id to number if not a number
+			if (isNaN(reqBody.category_id)) {
+				categoryId = parseInt(reqBody.category_id.toString());
+				if (isNaN(categoryId)) {
+					throw new BadRequestException("Not a valid category");
+				}
+			} else {
+				categoryId = reqBody.category_id;
+			}
 
-		let response = await Connector.executeQuery(QueryBuilder.createOffer(offer));
-		console.log(response);
-		if (response === 201) {
-			return offer;
+			// Check if category is valid
+			let validCategory = await this.isValidCategoryId(categoryId);
+			if (!validCategory) {
+				throw new BadRequestException("Not a valid category");
+			}
+
+			// convert price to number if not a number
+			// and check if price is greater 0
+			if (isNaN(reqBody.price)) {
+				price = parseFloat(reqBody.price.toString());
+				if (isNaN(price) || price <= 0) {
+					throw new BadRequestException("Not a valid price");
+				}
+			} else {
+				if (reqBody.price <= 0) {
+					throw new BadRequestException("Not a valid price");
+				} else {
+					price = reqBody.price;
+				}
+			}
+
+			// Check if title is empty
+			if (reqBody.title === undefined
+				|| reqBody.title === null
+				|| reqBody.title === "") {
+				throw new BadRequestException("Title is required");
+			}
+
+			// check if description is empty
+			if (reqBody.description === undefined
+				|| reqBody.description === null
+				|| reqBody.description === "") {
+				throw new BadRequestException("Description is required");
+			}
+
+			let offer_id;
+			let offers: Array<Offer> = [];
+			let isValid: boolean = true;
+			
+			// check if offer_id is already used
+			do {	
+				offer_id = uuid();
+				isValid = await this.isValidOfferId(offer_id);
+			} while(isValid === true)
+
+			let offer: Offer = {
+				offer_id: offer_id,
+				title: reqBody.title,
+				description: reqBody.description,
+				number_of_rating: 0,
+				rating: 0,
+				category_id: reqBody.category_id,
+				user_id: reqBody.user_id,
+				price: reqBody.price
+			};
+
+		Connector.executeQuery(QueryBuilder.createOffer(offer));
+
+		//TODO: validate picturelinks
+
+		//validate blocked dates
+		if (reqBody.blocked_dates !== undefined
+			&& reqBody.blocked_dates !== null) {
+			reqBody.blocked_dates.forEach(dateRange => {
+				// Throw error, if no date is set
+				if (dateRange.from_date === undefined
+					|| dateRange.from_date === null
+					|| dateRange.to_date === undefined
+					|| dateRange.to_date == null) {
+					throw new BadRequestException("Invaild date for unavailablity of product");
+				} else {
+					// Throw error, if a start_date, end_date
+					// or range from start to end is invalid
+					if (!moment(dateRange.from_date.toString()).isValid()
+						|| !moment(dateRange.to_date.toString()).isValid()
+						|| moment(dateRange.to_date.toString()).diff(dateRange.from_date.toString()) < 0) {
+						throw new BadRequestException("Invalid date range for unavailablity of product");
+					} else if (moment(dateRange.from_date.toString()).diff(moment()) < 0
+						|| moment(dateRange.to_date.toString()).diff(moment()) < 0) {
+						// Throw error, if from_date or to_date is in past
+						throw new BadRequestException("Blocked dates cannot be set in past")
+					}
+				}
+			});
+
+			// Insert blocked dates in database
+			reqBody.blocked_dates.forEach(async (blockedDateRange) => {
+				// Generate new uuid
+				let offerBlockedId = uuid();
+				// Insert new blocked dates
+				try {
+					await Connector.executeQuery(QueryBuilder.insertBlockedDateForOfferId({
+						offer_blocked_id: offerBlockedId,
+						offer_id: offer_id,
+						from_date: new Date(moment(
+							blockedDateRange.from_date.toString()
+						).format("YYYY-MM-DD")),
+						to_date: new Date(moment(
+							blockedDateRange.to_date.toString()
+						).format("YYYY-MM-DD"))
+					}));
+				} catch (e) {
+					throw new BadRequestException("Could not set new unavailable dates for product");
+				}
+			});
+		}
+
+		offer[9] = reqBody.blocked_dates;
+
+		return offer;
+
 		} else {
-			throw new Error("Method not implemented.");
+			throw new BadRequestException('Could not create offer');
 		}
 	}
 
@@ -404,13 +508,9 @@ export class OfferService {
 	private async isValidOfferId(id: string): Promise<boolean> {
 		let offers: Array<Offer> = [];
 
-		try {
-			offers = await Connector.executeQuery(
-				QueryBuilder.getOffer({ offer_id: id })
-			);
-		} catch (e) {
-			return false;
-		}
+		offers = await Connector.executeQuery(
+			QueryBuilder.getOffer({ offer_id: id })
+		);
 
 		if (offers.length === 1) {
 			return true;
@@ -440,4 +540,6 @@ export class OfferService {
 			return false;
 		}
 	}
+
+	
 }
