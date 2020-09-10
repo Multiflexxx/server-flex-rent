@@ -246,6 +246,10 @@ export class QueryBuilder {
 		}
 	}
 
+	/**
+	 * Returns a Query to update a given offer
+	 * @param offer Data which are needed to update the offer object
+	 */
 	public static updateOffer(offer: {
 		offer_id: string,
 		title: string,
@@ -265,6 +269,10 @@ export class QueryBuilder {
 		}
 	}
 
+	/**
+	 * Returns a Query to delete all blocked dates to a given offer id
+	 * @param id ID of the offer for which the blocked dates shall be deleted
+	 */
 	public static deleteBlockedDatesForOfferId(id: string): Query {
 		return {
 			query: "DELETE FROM offer_blocked WHERE offer_id = ?",
@@ -274,6 +282,11 @@ export class QueryBuilder {
 		}
 	}
 
+	/**
+	 * Returns a Query to insert either a blocked date range with reason
+	 * or a blocked date range without a reason
+	 * @param blocked_date Data which is needed to insert a ne blocked date range
+	 */
 	public static insertBlockedDateForOfferId(blocked_date: {
 		offer_blocked_id: string,
 		offer_id: string,
