@@ -28,7 +28,7 @@ export class OfferService {
 		limit?: string,
 		category?: string,
 		search?: string
-	}): Promise<Offer> {
+	}): Promise<Array<Offer>> {
 		let limit: number = 25; // Default limit
 		let category: number = 0;
 		let search: string = "";
@@ -56,18 +56,33 @@ export class OfferService {
 			}
 		}
 
-		let offers = await Connector.executeQuery(
-			QueryBuilder.getOffer({
-				query: {
-					limit: limit,
-					category: category,
-					search: search
-				}
-			}));
+		let offers: Array<Offer>;
+		try {
+			offers = await Connector.executeQuery(
+				QueryBuilder.getOffer({
+					query: {
+						limit: limit,
+						category: category,
+						search: search
+					}
+				}));
+		} catch (e) {
+			throw new InternalServerErrorException("Something went wrong...")
+		}
 
 		if (offers.length > 0) {
 			for (let i = 0; i < offers.length; i++) {
-				let pictureUUIDList = await Connector.executeQuery(QueryBuilder.getOfferPictures(offers[i].offer_id));
+				let pictureUUIDList: Array<{
+					uuid: string,
+					offer_id: string
+				}> = [];
+
+				try {
+					pictureUUIDList = await Connector.executeQuery(QueryBuilder.getOfferPictures(offers[i].offer_id));
+				} catch (e) {
+					throw new InternalServerErrorException("Something went wrong...");
+				}
+
 				if (pictureUUIDList.length > 0) {
 					let pictureLinks: Array<string> = [];
 
@@ -81,7 +96,7 @@ export class OfferService {
 			}
 			return offers;
 		} else {
-			throw new NotFoundException("No offers found");
+			return [];
 		}
 	}
 
@@ -90,11 +105,39 @@ export class OfferService {
 	 * @param id ID of offer to be found
 	 */
 	public async getOfferById(id: string): Promise<Offer> {
-		let offers: Array<Offer> = await Connector.executeQuery(QueryBuilder.getOffer({ offer_id: id }));
+		let offers: Array<Offer>
+		try {
+			offers = await Connector.executeQuery(QueryBuilder.getOffer({ offer_id: id }));
+		} catch (e) {
+			throw new InternalServerErrorException("Something went wrong...");
+		}
 
 		if (offers.length > 0) {
-			let pictureUUIDList = await Connector.executeQuery(QueryBuilder.getOfferPictures(id));
-			let blockedDatesList = await Connector.executeQuery(QueryBuilder.getBlockedOfferDates(id));
+			let pictureUUIDList: Array<{
+				uuid: string,
+				offer_id: string
+			}> = [];
+
+			let blockedDatesList: Array<{
+				offer_blocked_id: string,
+				offer_id: string,
+				from_date: Date,
+				to_date: Date,
+				reason?: string
+			}> = [];
+
+			try {
+				pictureUUIDList = await Connector.executeQuery(QueryBuilder.getOfferPictures(id));
+			} catch (error) {
+				throw new InternalServerErrorException("Something went wrong...");
+			}
+
+			try {
+				blockedDatesList = await Connector.executeQuery(QueryBuilder.getBlockedOfferDates(id));
+			} catch (e) {
+				throw new InternalServerErrorException("something went wrong...");
+			}
+
 			if (pictureUUIDList.length > 0) {
 				let pictureLinks: Array<string> = [];
 
@@ -132,7 +175,14 @@ export class OfferService {
 	 * Returns all categories from database
 	 */
 	public async getAllCategories(): Promise<Array<Category>> {
-		let categories = await Connector.executeQuery(QueryBuilder.getCategories({}));
+		let categories: Array<Category> = [];
+
+		try {
+			categories = await Connector.executeQuery(QueryBuilder.getCategories({}));
+		} catch (e) {
+			throw new InternalServerErrorException("Something went wrong...");
+		}
+
 		if (categories.length > 0) {
 			return categories;
 		} else {
@@ -181,6 +231,11 @@ export class OfferService {
 		}
 	}
 
+	/**
+	 * Method to update an offer with a given ID
+	 * @param id ID of the offer which shall be updated
+	 * @param reqBody Data to update the offer
+	 */
 	public async updateOffer(id: any, reqBody: {
 		user_id?: string,
 		title?: string,
@@ -272,22 +327,22 @@ export class OfferService {
 				&& reqBody.blocked_dates !== null) {
 				reqBody.blocked_dates.forEach(dateRange => {
 					// Throw error, if no date is set
-					if(dateRange.from_date === undefined
+					if (dateRange.from_date === undefined
 						|| dateRange.from_date === null
 						|| dateRange.to_date === undefined
 						|| dateRange.to_date == null) {
-							throw new BadRequestException("Invaild date for unavailablity of product");
+						throw new BadRequestException("Invaild date for unavailablity of product");
 					} else {
 						// Throw error, if a start_date, end_date
 						// or range from start to end is invalid
 						if (!moment(dateRange.from_date.toString()).isValid()
 							|| !moment(dateRange.to_date.toString()).isValid()
 							|| moment(dateRange.to_date.toString()).diff(dateRange.from_date.toString()) < 0) {
-								throw new BadRequestException("Invalid date range for unavailablity of product");
-						} else if(moment(dateRange.from_date.toString()).diff(moment()) < 0
+							throw new BadRequestException("Invalid date range for unavailablity of product");
+						} else if (moment(dateRange.from_date.toString()).diff(moment()) < 0
 							|| moment(dateRange.to_date.toString()).diff(moment()) < 0) {
-								// Throw error, if from_date or to_date is in past
-								throw new BadRequestException("Blocked dates cannot be set in past")
+							// Throw error, if from_date or to_date is in past
+							throw new BadRequestException("Blocked dates cannot be set in past")
 						}
 					}
 				});
@@ -310,10 +365,10 @@ export class OfferService {
 							offer_id: id,
 							from_date: new Date(moment(
 								blockedDateRange.from_date.toString()
-								).format("YYYY-MM-DD")),
+							).format("YYYY-MM-DD")),
 							to_date: new Date(moment(
 								blockedDateRange.to_date.toString()
-								).format("YYYY-MM-DD"))
+							).format("YYYY-MM-DD"))
 						}));
 					} catch (e) {
 						throw new BadRequestException("Could not set new unavailable dates for product");
@@ -326,7 +381,7 @@ export class OfferService {
 			try {
 				updatedOffer = await this.getOfferById(id);
 			} catch (e) {
-				throw e;
+				throw new InternalServerErrorException("Something went wrong...");
 			}
 			return updatedOffer;
 		} else {
@@ -342,9 +397,21 @@ export class OfferService {
 		throw new Error("Method not implemented.");
 	}
 
+	/**
+	 * returns true if an offer is valid
+	 * @param id ID of the offer which shall be validated
+	 */
 	private async isValidOfferId(id: string): Promise<boolean> {
-		let offers = await Connector.executeQuery(
-			QueryBuilder.getOffer({ offer_id: id }));
+		let offers: Array<Offer> = [];
+
+		try {
+			offers = await Connector.executeQuery(
+				QueryBuilder.getOffer({ offer_id: id })
+			);
+		} catch (e) {
+			return false;
+		}
+
 		if (offers.length === 1) {
 			return true;
 		} else {
@@ -352,10 +419,21 @@ export class OfferService {
 		}
 	}
 
+	/**
+	 * Returns true if a category is valid
+	 * @param id ID of the category which shall be validated
+	 */
 	private async isValidCategoryId(id: number): Promise<boolean> {
-		let categories = await Connector.executeQuery(
-			QueryBuilder.getCategories({ category_id: id })
-		);
+		let categories: Array<Category> = [];
+
+		try {
+			categories = await Connector.executeQuery(
+				QueryBuilder.getCategories({ category_id: id })
+			);
+		} catch (e) {
+			return false;
+		}
+
 		if (categories.length === 1) {
 			return true;
 		} else {
