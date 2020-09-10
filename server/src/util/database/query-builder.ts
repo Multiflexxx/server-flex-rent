@@ -183,6 +183,7 @@ export class QueryBuilder {
 
 	/**
 	 * Returns all categories OR a category with a given id
+	 * @param category_info 
 	 */
 	public static getCategories(category_info: {
 		category_id?: number

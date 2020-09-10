@@ -50,7 +50,7 @@ export class UserService {
 
 		try {
 			let result = (await Connector.executeQuery(QueryBuilder.getPlace({place_id: place.place_id})))[0];
-			console.log(result);
+
 			place.post_code = result.post_code;
 			place.city = result.name;
 		} catch(e) {
@@ -89,16 +89,37 @@ export class UserService {
 	 * Checks whether user input is valid for registration. Returns true if input is valid, otherwise false
 	 * @param user Input to be checked, format should follow the {User} schema
 	 */
-	private validateRegistrationInput(user: any) {
+	 private async validateRegistrationInput(user: any): Promise<void> {
 		// Validate Email format
 		if (!user.email || !EmailValidator.validate(user.email)) {
 			throw new BadRequestException("Invalid Email address");
 		}
 
 		// Check if Email is already registered
-		if(Connector.executeQuery(QueryBuilder.getUser({email: user.email})))
+		try {
+			let result = (await Connector.executeQuery(QueryBuilder.getUser({email: user.email})))[0];
+			if(result.user_id) {
+				throw new BadRequestException("Email address already registered");
+			}
+		}catch(e) {
+			if(e instanceof BadRequestException) {
+				throw e;
+			}
+			throw new InternalServerErrorException("Something went wrong...")
+		}
 
 		// Check if phone is already registered
+		try {
+			let result = (await Connector.executeQuery(QueryBuilder.getUser({phone: user.phone})))[0];
+			if(result.user_id) {
+				throw new BadRequestException("Phone number address already registered");
+			}
+		}catch(e) {
+			if(e instanceof BadRequestException) {
+				throw e;
+			}
+			throw new InternalServerErrorException("Something went wrong...")
+		}
 
 		// Validate date of birth
 		if (Object.prototype.toString.call(user.date_of_birth) === '[object Date]') {
@@ -126,6 +147,5 @@ export class UserService {
 			throw new BadRequestException("Invalid post code / city");
 		}
 
-		return true;
 	}
 }
