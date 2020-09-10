@@ -232,7 +232,7 @@ export class QueryBuilder {
 
 	public static createOffer(offer: Offer) : Query {
 		return {
-			query: "INSERT INTO offer (offer_id, user_id, title, description, rating, price, category_id, number_of_rating) VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
+			query: "INSERT INTO offer (offer_id, user_id, title, description, rating, price, category_id, number_of_ratings) VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
 			args: [
 				offer.offer_id,
 				offer.user_id,
@@ -241,7 +241,7 @@ export class QueryBuilder {
 				offer.rating,
 				offer.price,
 				offer.category_id,
-				offer.number_of_rating
+				offer.number_of_ratings
 			]
 		}
 	}
