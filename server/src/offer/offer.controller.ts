@@ -74,7 +74,7 @@ export class OfferController {
 	 */
 	@Delete(':id')
 	deleteOffer(
-		@Param('id') id: number,
+		@Param('id') id: string,
 		@Body() reqBody: {}
 	) {
 		return this.offerService.deleteOffer(id, reqBody);

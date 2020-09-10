@@ -1,3 +1,5 @@
+import { User } from "src/user/user.model";
+
 export interface Offer {
     offer_id: string,
     title: string,
@@ -11,5 +13,13 @@ export interface Offer {
     blocked_dates?: Array<{
         from_date: Date,
         to_date: Date
-    }>
+    }>,
+    user?: {
+        first_name: string,
+        last_name: string,
+        post_code: string,
+        city: string,
+        verified: boolean,
+        rating: number
+    }
 }

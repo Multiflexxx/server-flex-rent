@@ -45,7 +45,13 @@ export class OfferService {
 			category = parseInt(query.category);
 			if (isNaN(category)) {
 				// Not a number
-				throw new BadRequestException("Category does not exist");
+				throw new BadRequestException("Not a valid category");
+			}
+
+			// Check if category is valid
+			let validCategory = await this.isValidCategoryId(category);
+			if (!validCategory) {
+				throw new BadRequestException("Not a valid category");
 			}
 		}
 		if (query.search !== null && query.search !== undefined) {
@@ -126,6 +132,15 @@ export class OfferService {
 				reason?: string
 			}> = [];
 
+			let userDataList: Array<{
+				first_name: string,
+				last_name: string,
+				post_code: string,
+				city: string,
+				verified: number,
+				rating: number
+			}>;
+
 			try {
 				pictureUUIDList = await Connector.executeQuery(QueryBuilder.getOfferPictures(id));
 			} catch (error) {
@@ -135,7 +150,13 @@ export class OfferService {
 			try {
 				blockedDatesList = await Connector.executeQuery(QueryBuilder.getBlockedOfferDates(id));
 			} catch (e) {
-				throw new InternalServerErrorException("something went wrong...");
+				throw new InternalServerErrorException("Something went wrong...");
+			}
+
+			try {
+				userDataList = await Connector.executeQuery(QueryBuilder.getUserByOfferId(id));
+			} catch (e) {
+				throw new InternalServerErrorException("Something went wrong...");
 			}
 
 			if (pictureUUIDList.length > 0) {
@@ -165,6 +186,25 @@ export class OfferService {
 			} else {
 				offers[0].blocked_dates = [];
 			}
+
+			if (userDataList.length > 0) {
+				// SQL has no real boolean, so we need to change 0/1 to boolean
+				// to achieve this, this helper object is used
+				let o = {
+					first_name: userDataList[0].first_name,
+					last_name: userDataList[0].last_name,
+					post_code: userDataList[0].post_code,
+					city: userDataList[0].city,
+					verified: (userDataList[0].verified === 1 ? true : false),
+					rating: userDataList[0].rating
+				}
+
+				offers[0].user = o;
+			} else {
+				// It is impossible to have an offer without an user
+				throw new InternalServerErrorException("Something went wrong...");
+			}
+
 			return offers[0];
 		} else {
 			throw new NotFoundException("Offer not found");
@@ -196,6 +236,7 @@ export class OfferService {
 	 * @param reqBody Data which is needed to create an offer
 	 */
 	public async createOffer(reqBody: {
+		session_token?: string,
 		user_id?: string,
 		title?: string,
 		description?: string,
@@ -286,13 +327,13 @@ export class OfferService {
 			} catch (e) {
 				throw new InternalServerErrorException("Could not create offer");
 			}
-			
+
 			let offerResult: Offer;
 			try {
 				offerResult = await this.getOfferById(offerId);
 			} catch (e) {
 				throw new InternalServerErrorException("Could not create offer");
-			}			
+			}
 			return offerResult;
 		} else {
 			throw new BadRequestException("Could not create offer");
@@ -305,6 +346,7 @@ export class OfferService {
 	 * @param reqBody Data to update the offer
 	 */
 	public async updateOffer(id: any, reqBody: {
+		session_token?: string,
 		user_id?: string,
 		title?: string,
 		description?: string,
@@ -330,7 +372,7 @@ export class OfferService {
 				throw new BadRequestException("Not a valid offer");
 			}
 
-			// convert category_id to number if not a number
+			// Convert category_id to number if not a number
 			if (isNaN(reqBody.category_id)) {
 				categoryId = parseInt(reqBody.category_id.toString());
 				if (isNaN(categoryId)) {
@@ -346,7 +388,7 @@ export class OfferService {
 				throw new BadRequestException("Not a valid category");
 			}
 
-			// convert price to number if not a number
+			// Convert price to number if not a number
 			// and check if price is greater 0
 			if (isNaN(reqBody.price)) {
 				price = parseFloat(reqBody.price.toString());
@@ -368,7 +410,7 @@ export class OfferService {
 				throw new BadRequestException("Title is required");
 			}
 
-			// check if description is empty
+			// Check if description is empty
 			if (reqBody.description === undefined
 				|| reqBody.description === null
 				|| reqBody.description === "") {
@@ -461,8 +503,48 @@ export class OfferService {
 		throw new Error("Method not implemented.");
 	}
 
-	public async deleteOffer(id: any, reqBody: any) {
-		throw new Error("Method not implemented.");
+	public async deleteOffer(id: string, reqBody: {
+		session_token?: string,
+		user_id?: string
+	}): Promise<Offer> {
+		if (id !== undefined && id !== null && id !== "" && reqBody !== undefined && reqBody !== null) {
+
+			//TODO: Authenticate User
+
+			//TODO: Check Session
+
+			// Check if offer exists
+			let validOffer = await this.isValidOfferId(id);
+			if (!validOffer) {
+				throw new BadRequestException("Not a valid offer");
+			}
+
+			// Get old offer from database (for return)
+			let offer: Offer;
+			try {
+				offer = await this.getOfferById(id);
+			} catch (e) {
+				throw new InternalServerErrorException("Something went wrong...")
+			}
+
+			// Delete all blocked dates
+			try {
+				await Connector.executeQuery(QueryBuilder.deleteBlockedDatesForOfferId(id));
+			} catch (e) {
+				throw new BadRequestException("Could not delete old unavailable dates of product");
+			}
+
+			// Delete offer from database
+			try {
+				await Connector.executeQuery(QueryBuilder.deleteOfferById(id));
+			} catch (e) {
+				throw new InternalServerErrorException("Something went wrong...")
+			}
+
+			return offer;
+		} else {
+			throw new BadRequestException("Could not delete offer");
+		}
 	}
 
 	/**
