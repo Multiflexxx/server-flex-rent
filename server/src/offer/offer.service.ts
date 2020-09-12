@@ -7,9 +7,7 @@ import { Category } from './category.model';
 import { uuid } from 'uuidv4';
 import moment = require('moment');
 
-// TODO: Change links (Create config file)
-const BASE_OFFER_LINK = "https://flexrent.multiflexxx.de/pictures/";
-
+const BASE_OFFER_LINK = require('../../file-handler-config.json').image_base_link;
 
 @Injectable()
 export class OfferService {
@@ -398,8 +396,9 @@ export class OfferService {
 				}
 
 				// Write to database
+				let fileEnding = ('.' + image.originalname.replace(/^.*\./, ''));
 				try {
-					await Connector.executeQuery(QueryBuilder.insertImageByOfferId(reqBody.offer_id, imageId))
+					await Connector.executeQuery(QueryBuilder.insertImageByOfferId(reqBody.offer_id, (imageId+fileEnding)))
 				} catch (e) {
 					throw new InternalServerErrorException("Something went wrong...");
 				}
