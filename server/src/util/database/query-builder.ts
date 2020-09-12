@@ -350,6 +350,21 @@ export class QueryBuilder {
 			}
 	}
 
+	/**
+	 * Returns a Query to insert an image ID and offer ID  in the pictures table
+	 * @param offer_id ID of the offer
+	 * @param image_id ID of the image
+	 */
+	public static insertImageByOfferId(offer_id:string, image_id: string): Query {
+		return {
+			query: "INSERT INTO offer_picture (offer_id, uuid) VALUES (?, ?);",
+			args: [
+				offer_id,
+				image_id
+			]
+		}
+	}
+
 	public static testQuery() {
 		return {
 			query: "SELECT * FROM place WHERE place_id < 4;",

@@ -1,5 +1,6 @@
-import { Controller, Get, Param, Put, Patch, Delete, Query, Body, Post } from '@nestjs/common';
+import { Controller, Get, Param, Put, Patch, Delete, Query, Body, Post, UseInterceptors, UploadedFiles } from '@nestjs/common';
 import { OfferService } from './offer.service';
+import { FilesInterceptor, AnyFilesInterceptor} from '@nestjs/platform-express';
 
 @Controller('offer')
 export class OfferController {
@@ -65,6 +66,19 @@ export class OfferController {
 		@Body() reqBody: {}
 	) {
 		return this.offerService.createOffer(reqBody);
+	}
+
+	/**
+	 * Accepts up to ten files to upload images
+	 * @param images field key for files array
+	 */
+	@Put('images')
+	@UseInterceptors(FilesInterceptor('images', 10))
+	uploadOfferPicture(
+		@UploadedFiles() images,
+		@Body() reqBody
+	) {
+		return this.offerService.uploadPicture(reqBody, images);
 	}
 
 	/**

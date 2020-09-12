@@ -1,12 +1,15 @@
 import { Injectable, NotFoundException, InternalServerErrorException, BadRequestException } from '@nestjs/common';
 import { Connector } from 'src/util/database/connector';
 import { QueryBuilder } from 'src/util/database/query-builder';
+import { FileHandler } from 'src/util/file-handler/file-handler'
 import { Offer } from './offer.model';
 import { Category } from './category.model';
 import { uuid } from 'uuidv4';
 import moment = require('moment');
 
+// TODO: Change links (Create config file)
 const BASE_OFFER_LINK = "https://flexrent.multiflexxx.de/pictures/";
+
 
 @Injectable()
 export class OfferService {
@@ -341,6 +344,75 @@ export class OfferService {
 	}
 
 	/**
+	 * Accepts offer images to save on disk and IDs in database
+	 * Returns an offer after new images are uploaded
+	 * @param reqBody Request Body containing the offer ID, the user ID and the session
+	 * @param images Array of multipart image files
+	 */
+	public async uploadPicture(reqBody: {
+		session?: string,
+		offer_id?: string,
+		user_id?: string
+	},
+		images: Array<{
+			fieldname: string,
+			originalname: string,
+			encoding: string,
+			mimetype: string,
+			buffer: Buffer,
+			size: number
+		}>): Promise<Offer> {
+		if (reqBody !== undefined
+			&& reqBody !== null
+			&& images !== undefined
+			&& images !== null
+			&& images.length > 0) {
+			// Check if offer exists
+			let validOffer = await this.isValidOfferId(reqBody.offer_id);
+			if (!validOffer) {
+				throw new BadRequestException("Not a valid offer");
+			}
+
+			images.forEach(async image => {
+				// Generate a new uuid for each picture,
+				// save picture on disk and create database insert
+				let imageId = uuid();
+
+				// Check if images 
+				if (image.fieldname === undefined || image.fieldname === null || image.fieldname !== "images") {
+					throw new BadRequestException("Invalid fields");
+				}
+
+				if (image.size === undefined
+					|| image.size === null
+					|| image.size <= 0
+					|| image.size > 5242880) {
+					throw new BadRequestException("Invalid image size");
+				}
+
+				// Save image
+				try {
+					await FileHandler.saveImage(image, imageId);
+				} catch (e) {
+					throw e;
+				}
+
+				// Write to database
+				try {
+					await Connector.executeQuery(QueryBuilder.insertImageByOfferId(reqBody.offer_id, imageId))
+				} catch (e) {
+					throw new InternalServerErrorException("Something went wrong...");
+				}
+			});
+
+			// Return offer
+			return await this.getOfferById(reqBody.offer_id);
+		} else {
+			throw new BadRequestException("Could not upload image(s)");
+		}
+	}
+
+	/**
 	 * Method to update an offer with a given ID
 	 * @param id ID of the offer which shall be updated
 	 * @param reqBody Data to update the offer
@@ -552,9 +624,15 @@ export class OfferService {
 	 * @param id ID of the offer which shall be validated
 	 */
 	private async isValidOfferId(id: string): Promise<boolean> {
-		let offers = await Connector.executeQuery(
-			QueryBuilder.getOffer({ offer_id: id })
-		);
+		let offers: Array<Offer> = [];
+
+		if (id !== undefined && id !== null && id !== "") {
+			offers = await Connector.executeQuery(
+				QueryBuilder.getOffer({ offer_id: id })
+			);
+		} else {
+			throw new BadRequestException("Not a valid offer id");
+		}
 
 		if (offers.length === 1) {
 			return true;
@@ -568,9 +646,15 @@ export class OfferService {
 	 * @param id ID of the category which shall be validated
 	 */
 	private async isValidCategoryId(id: number): Promise<boolean> {
-		let categories = await Connector.executeQuery(
-			QueryBuilder.getCategories({ category_id: id })
-		);
+		let categories: Array<Category> = [];
+
+		if (id !== undefined && id !== null) {
+			categories = await Connector.executeQuery(
+				QueryBuilder.getCategories({ category_id: id })
+			);
+		} else {
+			throw new BadRequestException("Not a valid category id");
+		}
 
 		if (categories.length === 1) {
 			return true;
