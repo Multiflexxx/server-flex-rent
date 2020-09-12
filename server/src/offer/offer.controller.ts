@@ -1,10 +1,11 @@
-import { Controller, Get, Param, Put, Patch, Delete, Query, Body, Post, UseInterceptors, UploadedFiles } from '@nestjs/common';
+import { Controller, Get, Param, Put, Patch, Delete, Query, Body, Post, UseInterceptors, UploadedFiles, Res, NotFoundException } from '@nestjs/common';
 import { OfferService } from './offer.service';
-import { FilesInterceptor, AnyFilesInterceptor} from '@nestjs/platform-express';
+import { FilesInterceptor } from '@nestjs/platform-express';
+const fileConfig = require('../../file-handler-config.json');
 
 @Controller('offer')
 export class OfferController {
-	constructor(private readonly offerService: OfferService) {}
+	constructor(private readonly offerService: OfferService) { }
 
 	/**
 	 * Applies filters passed in the request and return a subset of all Offers 
@@ -25,14 +26,32 @@ export class OfferController {
 	}
 
 	/**
+	 * Returns an image from disk
+	 * @param image image name and ending in format <name>.<ending>
+	 * @param response Image as file
+	 */
+	@Get('images/:id')
+	getImages(
+		@Param('id') image: string,
+		@Res() response
+	) {
+		let filePath = this.offerService.checkImagePath(image);
+		if (filePath !== "") {
+			response.sendFile(fileConfig.file_storage_path + image);
+		} else {
+			throw new NotFoundException("Image not found");
+		}
+	}
+
+	/**
 	 * Returns a set of offers to be shown on the Homepage
 	 */
 	@Get()
 	getHomePageOffers() {
 		return this.offerService.getHomePageOffers();
 	}
-	
-	
+
+
 	/**
 	 * Returns an offer object containing the offer by ID.
 	 * @param id ID of offer to be found
@@ -93,7 +112,7 @@ export class OfferController {
 	) {
 		return this.offerService.deleteOffer(id, reqBody);
 	}
-	
+
 	/**
 	 * Books offer for a specified time frame, given sufficient authorization.
 	 * @param id ID of offer to be booked

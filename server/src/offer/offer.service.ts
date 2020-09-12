@@ -413,6 +413,17 @@ export class OfferService {
 	}
 
 	/**
+	 * Checks if an given image is valid and returns the given path if so else it throws an exeption
+	 * @param image image name and ending in format <name>.<ending>
+	 */
+	public checkImagePath(imagePath: string): string {
+		if (!FileHandler.isValidImagePath(imagePath)) {
+			throw new NotFoundException("Could not find requested image");
+		}
+		return imagePath;
+	}
+
+	/**
 	 * Method to update an offer with a given ID
 	 * @param id ID of the offer which shall be updated
 	 * @param reqBody Data to update the offer
