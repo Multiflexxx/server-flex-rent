@@ -34,7 +34,7 @@ export class OfferService {
 		let category: number = 0;
 		let search: string = "";
 
-		if (query.limit !== null && query.limit !== undefined) {
+		if (query.limit !== undefined && query.limit !== null) {
 			// Update limit, if given
 			limit = parseInt(query.limit);
 			if (isNaN(limit)) {
@@ -42,7 +42,7 @@ export class OfferService {
 				throw new BadRequestException("Limit is not a valid number");
 			}
 		}
-		if (query.category !== null && query.category !== undefined) {
+		if (query.category !== undefined && query.category !== null) {
 			category = parseInt(query.category);
 			if (isNaN(category)) {
 				// Not a number
@@ -55,7 +55,7 @@ export class OfferService {
 				throw new BadRequestException("Not a valid category");
 			}
 		}
-		if (query.search !== null && query.search !== undefined) {
+		if (query.search !== undefined && query.search !== null) {
 			if (query.search === "") {
 				throw new BadRequestException("Search string is invalid");
 			} else {
@@ -112,6 +112,10 @@ export class OfferService {
 	 * @param id ID of offer to be found
 	 */
 	public async getOfferById(id: string): Promise<Offer> {
+		if(id === undefined || id === null) {
+			throw new BadRequestException("No id provided");
+		}
+
 		let offers: Array<Offer>
 		try {
 			offers = await Connector.executeQuery(QueryBuilder.getOffer({ offer_id: id }));
