@@ -117,4 +117,5 @@ dist
 
 # Custom
 database.json
-geo/*
+geo/
+server/file-handler-config.json
