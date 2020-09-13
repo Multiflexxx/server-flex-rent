@@ -390,7 +390,6 @@ export class QueryBuilder {
 			args: [
 				offer_id,
 				image_id
-
 			]
 		}
 	}
