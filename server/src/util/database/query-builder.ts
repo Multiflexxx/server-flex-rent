@@ -79,6 +79,19 @@ export class QueryBuilder {
 	}
 
 	/**
+	 * Returns a Query to get user information for an offer by a given offer ID
+	 * @param id ID of the offer which belongs to the user, which is requested
+	 */
+	public static getUserByOfferId(id: string): Query {
+		return {
+			query: "SELECT first_name, last_name, place.post_code, place.name AS city, verified, rating FROM user INNER JOIN offer ON offer.user_id = user.user_id INNER JOIN place ON user.place_id = place.place_id WHERE offer.offer_id = ?",
+			args: [
+				id
+			]
+		}
+	}
+
+	/**
 	 * Looks up a place given a place_id or a post_code
 	 * @param place_info Information of place to be looked up, either contains a place_id or a post_code
 	 */
@@ -230,6 +243,10 @@ export class QueryBuilder {
 		}
 	}
 
+	/**
+	 * Returns a Query to create a new offer with the given values
+	 * @param offer Offer object containing the data to create a new offer
+	 */
 	public static createOffer(offer: Offer) : Query {
 		return {
 			query: "INSERT INTO offer (offer_id, user_id, title, description, rating, price, category_id, number_of_ratings) VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
@@ -265,6 +282,19 @@ export class QueryBuilder {
 				offer.price,
 				offer.category_id,
 				offer.offer_id
+			]
+		}
+	}
+
+	/**
+	 * Returns a Query to delete an offer with a given ID
+	 * @param id ID of the offer to be deleted
+	 */
+	public static deleteOfferById(id: string): Query {
+		return {
+			query: "DELETE FROM offer WHERE offer_id = ?;",
+			args: [
+				id
 			]
 		}
 	}
@@ -344,6 +374,23 @@ export class QueryBuilder {
 			query: "SELECT * FROM user_session WHERE session_id = ?;",
 			args: [
 				session_id
+			]
+		}
+	}
+
+	
+	/** 
+	 * Returns a Query to insert an image ID and offer ID  in the pictures table
+	 * @param offer_id ID of the offer
+	 * @param image_id ID of the image
+	 */
+	public static insertImageByOfferId(offer_id:string, image_id: string): Query {
+		return {
+			query: "INSERT INTO offer_picture (offer_id, uuid) VALUES (?, ?);",
+			args: [
+				offer_id,
+				image_id
+
 			]
 		}
 	}
