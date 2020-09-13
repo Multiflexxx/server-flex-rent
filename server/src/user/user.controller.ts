@@ -1,12 +1,11 @@
 import { Controller, Get, Param, Put, Body, Patch, Delete, Req, Post } from '@nestjs/common';
 import { UserService } from './user.service';
-import { AuthService } from 'src/auth/auth.service';
+import { User } from './user.model';
 
 @Controller('user')
 export class UserController {
     constructor(
-        private readonly userService: UserService,
-        private readonly authService: AuthService
+        private readonly userService: UserService
         ) {}
 
     /**
@@ -14,10 +13,10 @@ export class UserController {
      * @param id ID of user
      */
     @Get(':id')
-    getUser(
+    async getUser(
         @Param('id') id: string
     ) {
-        return this.userService.getUser(id);
+        return await this.userService.getUser(id);
     }
 
     /**
@@ -58,12 +57,22 @@ export class UserController {
         return this.userService.deleteUser(id, reqBody);
     }
 
-    @Post('auth')
-    authenticateUser(
-        @Body('authorization') auth: {}
-    ) {
-        return this.authService.validateUser(
-            auth
-        )
+    @Post(':id')
+    async authenticateUser(
+        @Body('authorization') auth: {
+            login?: {
+                email: string,
+                password_hash: string
+            },
+            session?: {
+                session_id: string,
+                user_id: string
+            }
+        }
+    ): Promise<{
+        user: User,
+        session_id: string
+    }> {
+        return await this.userService.validateUser(auth);
     }
 }

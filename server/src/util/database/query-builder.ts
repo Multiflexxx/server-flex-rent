@@ -62,7 +62,7 @@ export class QueryBuilder {
 			}
 		} else if (user_info.phone) {
 			return {
-				query: "SELECT * FROM user WHERE phone = ?;",
+				query: "SELECT * FROM user WHERE phone_number = ?;",
 				args: [
 					user_info.phone
 				]
@@ -85,7 +85,7 @@ export class QueryBuilder {
 	public static getPlace(
 		place_info: {
 			place_id?: number,
-			post_code?: number
+			post_code?: string
 		}
 	): Query {
 		if (place_info.place_id) {
@@ -97,7 +97,7 @@ export class QueryBuilder {
 			}
 		} else if (place_info.post_code) {
 			return {
-				query: "SELECT * FROM place WHERE place_id = ?;",
+				query: "SELECT * FROM place WHERE post_code = ?;",
 				args: [
 					place_info.post_code
 				]
@@ -285,7 +285,7 @@ export class QueryBuilder {
 	/**
 	 * Returns a Query to insert either a blocked date range with reason
 	 * or a blocked date range without a reason
-	 * @param blocked_date Data which is needed to insert a ne blocked date range
+	 * @param blocked_date Data which is needed to insert a new blocked date range
 	 */
 	public static insertBlockedDateForOfferId(blocked_date: {
 		offer_blocked_id: string,
@@ -318,6 +318,34 @@ export class QueryBuilder {
 					]
 				}
 			}
+	}
+
+	/**
+	 * Creates a Session for a user given a session_id (uuid4) and a user_id
+	 * @param session_id Session ID of new session
+	 * @param user_id User ID of user
+	 */
+	public static createSession(session_id: string, user_id: string) {
+		return {
+			query: "INSERT INTO user_session (session_id, user_id, stay_logged_in, expiration_date) VALUES (?, ?, true, DATE_ADD(CURRENT_DATE(), INTERVAL 1 YEAR));",
+			args: [
+				session_id,
+				user_id
+			]
+		}
+	}
+
+	/**
+	 * Get session by session_id
+	 * @param session_id 
+	 */
+	public static getSession(session_id: string) {
+		return {
+			query: "SELECT * FROM user_session WHERE session_id = ?;",
+			args: [
+				session_id
+			]
+		}
 	}
 
 	public static testQuery() {
