@@ -55,12 +55,15 @@ export class UserService {
 	}
 
 	public async createUser(user: User): Promise<{user: User, session_id: string}> {
+		if(!user) {
+			throw new BadRequestException("No user information supplied")
+		}
 		// Validate User input:
 		await this.validateRegistrationInput(user);
 
 		// Assign user a new user ID
 		user.user_id = uuidv4();
-		
+
 		// Create User
 		await Connector.executeQuery(QueryBuilder.createUser(user));
 
@@ -73,12 +76,32 @@ export class UserService {
 		});
 	}
 
-	public updateUser(id: number, cookie: any, req: any) {
-		console.log(id, cookie, req);
-		throw new Error("Method not implemented.");
+	public async updateUser(
+		auth: {
+			session_id: string,
+			user_id: string
+		}, 
+		user: User
+	): Promise<User> {
+		// // Authenticate request
+		// const validatedUser = await this.validateUser({
+		// 	session: {
+		// 		session_id: auth.session_id
+		// 	}
+		// }, id);
+
+		// if(.user)
+		// throw new Error("Method not implemented.");
+		return null;
 	}
 
-	public deleteUser(id: number, reqBody: {}) {
+	public deleteUser(
+		user_id: string, 
+		auth: { 
+			session_id: string 
+		}
+	): Promise<{}> {
+		// How do we delete users?
 		throw new Error("Method not implemented.");
 	}
 
@@ -93,14 +116,19 @@ export class UserService {
                 password_hash: string
             },
             session?: {
-                session_id: string,
-                user_id: string
+				session_id: string,
+				user_id: string
             }
-        }
+		}
     ): Promise<{
         user: User,
         session_id: string
     }> {
+
+		if(!authorization) {
+			throw new BadRequestException("Invalid authorization parameters");
+		}
+
         let user: User;
         let session_id: string;
 
@@ -118,7 +146,10 @@ export class UserService {
 				user = await this.getUser(result.user_id, true);
             } else {
                 throw new UnauthorizedException("Email and Password don't match.");
-            }
+			}
+			
+			// Delete any old sessions
+			await Connector.executeQuery(QueryBuilder.deleteOldSessions(user.user_id));
 
             // Set Session
             session_id = uuidv4();
