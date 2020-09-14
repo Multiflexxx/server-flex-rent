@@ -6,11 +6,14 @@ import { Offer } from './offer.model';
 import { Category } from './category.model';
 import { uuid } from 'uuidv4';
 import moment = require('moment');
+import { UserService } from 'src/user/user.service';
 
 const BASE_OFFER_LINK = require('../../file-handler-config.json').image_base_link;
 
 @Injectable()
 export class OfferService {
+	constructor(private readonly userService: UserService) { }
+
 	public async getHomePageOffers() {
 		throw new Error("Method not implemented.");
 	}
@@ -112,7 +115,7 @@ export class OfferService {
 	 * @param id ID of offer to be found
 	 */
 	public async getOfferById(id: string): Promise<Offer> {
-		if(id === undefined || id === null) {
+		if (id === undefined || id === null) {
 			throw new BadRequestException("No id provided");
 		}
 
@@ -241,7 +244,7 @@ export class OfferService {
 	 * @param reqBody Data which is needed to create an offer
 	 */
 	public async createOffer(reqBody: {
-		session_token?: string,
+		session_id?: string,
 		user_id?: string,
 		title?: string,
 		description?: string,
@@ -257,9 +260,19 @@ export class OfferService {
 			let categoryId = 0;
 			let price = 0;
 
-			//TODO: Validate User 
+			// Validate session and user
+			let user = await this.userService.validateUser({
+				session: {
+					session_id: reqBody.session_id,
+					user_id: reqBody.user_id
+				}
+			});
 
-			// convert category_id to number if not a number
+			if (user === undefined || user === null) {
+				throw new BadRequestException("Not a valid user/session");
+			}
+
+			// Convert category_id to number if not a number
 			if (isNaN(reqBody.category_id)) {
 				categoryId = parseInt(reqBody.category_id.toString());
 				if (isNaN(categoryId)) {
@@ -352,7 +365,7 @@ export class OfferService {
 	 * @param images Array of multipart image files
 	 */
 	public async uploadPicture(reqBody: {
-		session?: string,
+		session_id?: string,
 		offer_id?: string,
 		user_id?: string
 	},
@@ -369,6 +382,19 @@ export class OfferService {
 			&& images !== undefined
 			&& images !== null
 			&& images.length > 0) {
+
+			// Validate session and user
+			let user = await this.userService.validateUser({
+				session: {
+					session_id: reqBody.session_id,
+					user_id: reqBody.user_id
+				}
+			});
+
+			if (user === undefined || user === null) {
+				throw new BadRequestException("Not a valid user/session");
+			}
+
 			// Check if offer exists
 			let validOffer = await this.isValidOfferId(reqBody.offer_id);
 			if (!validOffer) {
@@ -402,7 +428,7 @@ export class OfferService {
 				// Write to database
 				let fileEnding = ('.' + image.originalname.replace(/^.*\./, ''));
 				try {
-					await Connector.executeQuery(QueryBuilder.insertImageByOfferId(reqBody.offer_id, (imageId+fileEnding)))
+					await Connector.executeQuery(QueryBuilder.insertImageByOfferId(reqBody.offer_id, (imageId + fileEnding)))
 				} catch (e) {
 					throw new InternalServerErrorException("Something went wrong...");
 				}
@@ -432,7 +458,7 @@ export class OfferService {
 	 * @param reqBody Data to update the offer
 	 */
 	public async updateOffer(id: any, reqBody: {
-		session_token?: string,
+		session_id?: string,
 		user_id?: string,
 		title?: string,
 		description?: string,
@@ -449,7 +475,17 @@ export class OfferService {
 			let categoryId: number = 0;
 			let price: number = 0;
 
-			//TODO: Authenticate User
+			// Validate session and user
+			let user = await this.userService.validateUser({
+				session: {
+					session_id: reqBody.session_id,
+					user_id: reqBody.user_id
+				}
+			});
+
+			if (user === undefined || user === null) {
+				throw new BadRequestException("Not a valid user/session");
+			}
 
 
 			// Check if offer exists
@@ -590,14 +626,22 @@ export class OfferService {
 	}
 
 	public async deleteOffer(id: string, reqBody: {
-		session_token?: string,
+		session_id?: string,
 		user_id?: string
 	}): Promise<Offer> {
 		if (id !== undefined && id !== null && id !== "" && reqBody !== undefined && reqBody !== null) {
 
-			//TODO: Authenticate User
+			// Validate session and user
+			let user = await this.userService.validateUser({
+				session: {
+					session_id: reqBody.session_id,
+					user_id: reqBody.user_id
+				}
+			});
 
-			//TODO: Check Session
+			if (user === undefined || user === null) {
+				throw new BadRequestException("Not a valid user/session");
+			}
 
 			// Check if offer exists
 			let validOffer = await this.isValidOfferId(id);
