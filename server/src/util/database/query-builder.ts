@@ -31,6 +31,15 @@ export class QueryBuilder {
 		}
 	}
 
+	public static updateUser(user: User): Query {
+		return {
+			query: "UPDATE user SET ",
+			args: [
+
+			]
+		}
+	}
+
 	/**
 	 * Looks up a user given either a user_id OR login information
 	 * @param user_info object containing user information: either user_info.user_id OR user_info.login

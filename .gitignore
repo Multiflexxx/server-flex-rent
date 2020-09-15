@@ -117,4 +117,4 @@ dist
 
 # Custom
 database.json
-geo/*
+geo/
