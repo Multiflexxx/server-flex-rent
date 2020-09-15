@@ -31,6 +31,15 @@ export class QueryBuilder {
 		}
 	}
 
+	public static updateUser(user: User): Query {
+		return {
+			query: "UPDATE user SET ",
+			args: [
+
+			]
+		}
+	}
+
 	/**
 	 * Looks up a user given either a user_id OR login information
 	 * @param user_info object containing user information: either user_info.user_id OR user_info.login
@@ -355,7 +364,7 @@ export class QueryBuilder {
 	 * @param session_id Session ID of new session
 	 * @param user_id User ID of user
 	 */
-	public static createSession(session_id: string, user_id: string) {
+	public static createSession(session_id: string, user_id: string): Query {
 		return {
 			query: "INSERT INTO user_session (session_id, user_id, stay_logged_in, expiration_date) VALUES (?, ?, true, DATE_ADD(CURRENT_DATE(), INTERVAL 1 YEAR));",
 			args: [
@@ -369,11 +378,24 @@ export class QueryBuilder {
 	 * Get session by session_id
 	 * @param session_id 
 	 */
-	public static getSession(session_id: string) {
+	public static getSession(session_id: string): Query {
 		return {
 			query: "SELECT * FROM user_session WHERE session_id = ?;",
 			args: [
 				session_id
+			]
+		}
+	}
+
+	/**
+	 * Deletes all old active sessions for a user
+	 * @param user_id 
+	 */
+	public static deleteOldSessions(user_id: string): Query {
+		return {
+			query: "DELETE FROM user_session WHERE user_id = ?;",
+			args: [
+				user_id
 			]
 		}
 	}

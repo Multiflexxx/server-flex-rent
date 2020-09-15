@@ -24,10 +24,10 @@ export class UserController {
      * @param reqBody Parameters of user to be created
      */
     @Put()
-    createUser(
+    async createUser(
         @Body('user') user: any,
     ) {
-        return this.userService.createUser(user);
+        return await this.userService.createUser(user);
     }
 
     /**
@@ -35,13 +35,15 @@ export class UserController {
      * @param id ID of user to be updated
      * @param reqBody Parameters-Value pairs to be updated, also contains authorization
      */
-    @Patch(':id')
-    updateUser(
-        @Param('id') id: number,
-        @Body() reqBody: {},
-        @Req() req: any
+    @Patch()
+    async updateUser(
+        @Body('auth') auth: {
+            session_id: string,
+            user_id: string
+        },
+        @Body('user') user: User
     ) {
-        return this.userService.updateUser(id, req.cookies['session_id'], reqBody);
+        return await this.userService.updateUser(auth, user);
     }
 
     /**
@@ -50,16 +52,18 @@ export class UserController {
      * @param reqBody 
      */
     @Delete(':id')
-    deleteUser(
-        @Param('id') id: number,
-        @Body() reqBody: {}
+    async deleteUser(
+        @Param('id') id: string,
+        @Body('auth') auth: {
+            session_id: string
+        }
     ) {
-        return this.userService.deleteUser(id, reqBody);
+        return await this.userService.deleteUser(id, auth);
     }
 
-    @Post(':id')
+    @Post()
     async authenticateUser(
-        @Body('authorization') auth: {
+        @Body('auth') auth: {
             login?: {
                 email: string,
                 password_hash: string

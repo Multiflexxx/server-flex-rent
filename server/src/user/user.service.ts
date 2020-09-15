@@ -13,7 +13,7 @@ export class UserService {
 	 * @param id ID of user
 	 */
 	public async getUser(id: string, isAuthenticated?: boolean): Promise<User> {
-		
+
 		let user: User;
 
 		let result = (await Connector.executeQuery(QueryBuilder.getUser({ user_id: id })))[0];
@@ -43,7 +43,7 @@ export class UserService {
 			// Get post code and city name by place_id
 			result = (await Connector.executeQuery(QueryBuilder.getPlace({ place_id: user.place_id })))[0];
 
-			if(!result) {
+			if (!result) {
 				throw new InternalServerErrorException("Something went wrong...");
 			}
 
@@ -54,13 +54,16 @@ export class UserService {
 		return user;
 	}
 
-	public async createUser(user: User): Promise<{user: User, session_id: string}> {
+	public async createUser(user: User): Promise<{ user: User, session_id: string }> {
+		if (!user) {
+			throw new BadRequestException("No user information supplied")
+		}
 		// Validate User input:
 		await this.validateRegistrationInput(user);
 
 		// Assign user a new user ID
 		user.user_id = uuidv4();
-		
+
 		// Create User
 		await Connector.executeQuery(QueryBuilder.createUser(user));
 
@@ -73,76 +76,104 @@ export class UserService {
 		});
 	}
 
-	public updateUser(id: number, cookie: any, req: any) {
-		console.log(id, cookie, req);
-		throw new Error("Method not implemented.");
+	public async updateUser(
+		auth: {
+			session_id: string,
+			user_id: string
+		},
+		user: User
+	): Promise<User> {
+		// Authenticate request
+		const validatedUser = await this.validateUser({ session: auth });
+
+		if (!(validatedUser && validatedUser.user.user_id === auth.user_id)) {
+			throw new Error("Method not implemented.");
+		}
+		
+		// Update User information
+		
+		return null;
 	}
 
-	public deleteUser(id: number, reqBody: {}) {
+	public deleteUser(
+		user_id: string,
+		auth: {
+			session_id: string
+		}
+	): Promise<{}> {
+		// How do we delete users?
 		throw new Error("Method not implemented.");
 	}
 
 	/**
-     * Returns a complete user object and session_id given proper authorization details
-     * @param authorization 
-     */
-    public async validateUser(
-        authorization: {
-            login?: {
-                email: string,
-                password_hash: string
-            },
-            session?: {
-                session_id: string,
-                user_id: string
-            }
-        }
-    ): Promise<{
-        user: User,
-        session_id: string
-    }> {
-        let user: User;
-        let session_id: string;
+	 * Returns a complete user object and session_id given proper authorization details
+	 * @param authorization 
+	 */
+	public async validateUser(
+		authorization: {
+			login?: {
+				email: string,
+				password_hash: string
+			},
+			session?: {
+				session_id: string,
+				user_id: string
+			}
+		}
+	): Promise<{
+		user: User,
+		session_id: string
+	}> {
 
-        // Decide whether to use login or session data
-        if(authorization.login) {
-            // Authenticate using login data
-            let result = (await Connector.executeQuery(QueryBuilder.getUser({
-                login: {
-                    email: authorization.login.email,
-                    password_hash: authorization.login.password_hash
-                }
-            })))[0];
+		if (!authorization) {
+			throw new BadRequestException("Invalid authorization parameters");
+		}
 
-            if(result && result.user_id) {
+		let user: User;
+		let session_id: string;
+
+		// Decide whether to use login or session data
+		if (authorization.login && authorization.login.email && authorization.login.password_hash) {
+			// Authenticate using login data
+			let result = (await Connector.executeQuery(QueryBuilder.getUser({
+				login: {
+					email: authorization.login.email,
+					password_hash: authorization.login.password_hash
+				}
+			})))[0];
+
+			if (result && result.user_id) {
 				user = await this.getUser(result.user_id, true);
-            } else {
-                throw new UnauthorizedException("Email and Password don't match.");
-            }
+			} else {
+				throw new UnauthorizedException("Email and Password don't match.");
+			}
 
-            // Set Session
-            session_id = uuidv4();
-            await Connector.executeQuery(QueryBuilder.createSession(session_id, user.user_id));
-            
-        } else if(authorization.session) {
-            // Authenticate using session data 
-            let result = (await Connector.executeQuery(QueryBuilder.getSession(authorization.session.session_id)))[0];
+			// Delete any old sessions
+			await Connector.executeQuery(QueryBuilder.deleteOldSessions(user.user_id));
 
-            if(!(result && result.user_id === authorization.session.user_id)) {
-                throw new UnauthorizedException("Invalid session.");
-            }
+			// Set Session
+			session_id = uuidv4();
+			await Connector.executeQuery(QueryBuilder.createSession(session_id, user.user_id));
 
-            user = await this.getUser(result.user_id, true);
+		} else if (authorization.session && authorization.session.session_id && authorization.session.user_id) {
+			// Authenticate using session data 
+			let result = (await Connector.executeQuery(QueryBuilder.getSession(authorization.session.session_id)))[0];
 
-        } else {
-            throw new BadRequestException("Invalid authorization parameters");
-        }
+			if (!(result && result.user_id === authorization.session.user_id)) {
+				throw new UnauthorizedException("Invalid session.");
+			}
 
-        return {
-            user: user,
-            session_id: session_id
-        }
-    }
+			user = await this.getUser(result.user_id, true);
+
+		} else {
+			throw new BadRequestException("Invalid authorization parameters");
+		}
+
+		return {
+			user: user,
+			session_id: session_id
+		}
+	}
 
 	/**
 	 * Checks whether user input is valid for registration. Returns true if input is valid, otherwise false
@@ -198,8 +229,8 @@ export class UserService {
 
 		// Check region/place
 		// TODO
-		let result = (await Connector.executeQuery(QueryBuilder.getPlace({post_code: user.post_code})))[0];
-		if(result) {
+		let result = (await Connector.executeQuery(QueryBuilder.getPlace({ post_code: user.post_code })))[0];
+		if (result) {
 			user.city = result.name;
 			user.place_id = result.place_id;
 		} else {
