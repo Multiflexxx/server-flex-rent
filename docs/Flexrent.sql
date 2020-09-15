@@ -116,6 +116,7 @@ CREATE TABLE request (
 	status_id int NOT NULL,
 	from_date DATE NOT NULL,
 	to_date DATE NOT NULL,
+	message varchar(255),
 	PRIMARY KEY (request_id),
 	FOREIGN KEY (user_id) REFERENCES user (user_id),
 	FOREIGN KEY (offer_id) REFERENCES offer (offer_id),
