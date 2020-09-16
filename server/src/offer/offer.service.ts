@@ -66,9 +66,23 @@ export class OfferService {
 			}
 		}
 
-		let offers: Array<Offer>;
+		let dbOffers: Array<{
+			offer_id: string,
+			user_id: string,
+			title: string,
+			description: string,
+			rating: number,
+			price: number,
+			category_id: number,
+			category_name: string,
+			picture_link: string,
+			number_of_ratings: number
+		}> = [];
+
+		let offers: Array<Offer> = [];
+
 		try {
-			offers = await Connector.executeQuery(
+			dbOffers = await Connector.executeQuery(
 				QueryBuilder.getOffer({
 					query: {
 						limit: limit,
@@ -80,16 +94,37 @@ export class OfferService {
 			throw new InternalServerErrorException("Something went wrong...")
 		}
 
-		if (offers.length > 0) {
-			for (let i = 0; i < offers.length; i++) {
+		if (dbOffers.length > 0) {
+			for (let i = 0; i < dbOffers.length; i++) {
 				let pictureUUIDList: Array<{
 					uuid: string,
 					offer_id: string
 				}> = [];
 
+				let lessorDataList: Array<{
+					first_name: string,
+					last_name: string,
+					user_id: string,
+					post_code: string,
+					city: string,
+					verified: number,
+					lessor_rating: number,
+					number_of_lessor_ratings: number
+				}> = [];
+
 				try {
-					pictureUUIDList = await Connector.executeQuery(QueryBuilder.getOfferPictures(offers[i].offer_id));
+					pictureUUIDList = await Connector.executeQuery(QueryBuilder.getOfferPictures(dbOffers[i].offer_id));
 				} catch (e) {
+					throw new InternalServerErrorException("Something went wrong...");
+				}
+
+				try {
+					lessorDataList = await Connector.executeQuery(QueryBuilder.getUserByOfferId(dbOffers[i].offer_id));
+				} catch (e) {
+					throw new InternalServerErrorException("Something went wrong...");
+				}
+
+				if (lessorDataList === undefined || lessorDataList === null || lessorDataList.length !== 1) {
 					throw new InternalServerErrorException("Something went wrong...");
 				}
 
@@ -97,11 +132,60 @@ export class OfferService {
 					let pictureLinks: Array<string> = [];
 
 					for (let j = 0; j < pictureUUIDList.length; j++) {
-						pictureLinks.push(BASE_OFFER_LINK + pictureUUIDList[j].uuid)
+						pictureLinks.push(BASE_OFFER_LINK + pictureUUIDList[j].uuid);
 					}
-					offers[i].picture_links = pictureLinks;
+
+					offers.push({
+						offer_id: dbOffers[i].offer_id,
+						title: dbOffers[i].title,
+						description: dbOffers[i].description,
+						number_of_ratings: dbOffers[i].number_of_ratings,
+						rating: dbOffers[i].rating,
+						price: dbOffers[i].price,
+						category: {
+							name: dbOffers[i].category_name,
+							category_id: dbOffers[i].category_id,
+							picture_link: dbOffers[i].picture_link
+						},
+						picture_links: pictureLinks,
+						lessor: {
+							first_name: lessorDataList[0].first_name,
+							last_name: lessorDataList[0].last_name,
+							user_id: dbOffers[i].user_id,
+							post_code: lessorDataList[0].post_code,
+							city: lessorDataList[0].city,
+							verified: (lessorDataList[0].verified === 1 ? true : false),
+							lessor_rating: lessorDataList[0].lessor_rating,
+							number_of_lessor_ratings: lessorDataList[0].number_of_lessor_ratings
+						}
+					});
+
 				} else {
-					offers[i].picture_links = [];
+					offers.push({
+						offer_id: dbOffers[i].offer_id,
+						title: dbOffers[i].title,
+						description: dbOffers[i].description,
+						number_of_ratings: dbOffers[i].number_of_ratings,
+						rating: dbOffers[i].rating,
+						price: dbOffers[i].price,
+						category: {
+							name: dbOffers[i].category_name,
+							category_id: dbOffers[i].category_id,
+							picture_link: dbOffers[i].picture_link
+						},
+						picture_links: [],
+						lessor: {
+							first_name: lessorDataList[0].first_name,
+							last_name: lessorDataList[0].last_name,
+							user_id: dbOffers[i].user_id,
+							post_code: lessorDataList[0].post_code,
+							city: lessorDataList[0].city,
+							verified: (lessorDataList[0].verified === 1 ? true : false),
+							lessor_rating: lessorDataList[0].lessor_rating,
+							number_of_lessor_ratings: lessorDataList[0].number_of_lessor_ratings
+						}
+
+					});
 				}
 			}
 			return offers;
@@ -119,14 +203,59 @@ export class OfferService {
 			throw new BadRequestException("No id provided");
 		}
 
-		let offers: Array<Offer>
+		let offer: Offer = {
+			offer_id: "",
+			title: "",
+			description: "",
+			number_of_ratings: 0,
+			rating: 0,
+			price: 0,
+			category: {
+				name: "",
+				category_id: 0,
+				picture_link: ""
+			},
+			picture_links: [],
+			blocked_dates: [],
+			lessor: {
+				first_name: "",
+				last_name: "",
+				user_id: "",
+				post_code: "",
+				city: "",
+				verified: false,
+				lessor_rating: 0,
+				number_of_lessor_ratings: 0
+			}
+		}
+
+		let dbOffers: Array<{
+			offer_id: string,
+			user_id: string,
+			title: string,
+			description: string,
+			rating: number,
+			price: number,
+			category_id: number,
+			category_name: string,
+			picture_link: string,
+			number_of_ratings: number
+		}> = [];
+
 		try {
-			offers = await Connector.executeQuery(QueryBuilder.getOffer({ offer_id: id }));
+			dbOffers = await Connector.executeQuery(QueryBuilder.getOffer({ offer_id: id }));
 		} catch (e) {
 			throw new InternalServerErrorException("Something went wrong...");
 		}
 
-		if (offers.length > 0) {
+		if (dbOffers.length > 0) {
+			offer.offer_id = dbOffers[0].offer_id;
+			offer.title = dbOffers[0].title;
+			offer.description = dbOffers[0].description;
+			offer.number_of_ratings = dbOffers[0].number_of_ratings;
+			offer.rating = dbOffers[0].rating;
+			offer.price = dbOffers[0].price;
+
 			let pictureUUIDList: Array<{
 				uuid: string,
 				offer_id: string
@@ -140,14 +269,16 @@ export class OfferService {
 				reason?: string
 			}> = [];
 
-			let userDataList: Array<{
+			let lessorDataList: Array<{
 				first_name: string,
 				last_name: string,
+				user_id: string,
 				post_code: string,
 				city: string,
 				verified: number,
-				rating: number
-			}>;
+				lessor_rating: number,
+				number_of_lessor_ratings: number
+			}> = [];
 
 			try {
 				pictureUUIDList = await Connector.executeQuery(QueryBuilder.getOfferPictures(id));
@@ -162,7 +293,7 @@ export class OfferService {
 			}
 
 			try {
-				userDataList = await Connector.executeQuery(QueryBuilder.getUserByOfferId(id));
+				lessorDataList = await Connector.executeQuery(QueryBuilder.getUserByOfferId(id));
 			} catch (e) {
 				throw new InternalServerErrorException("Something went wrong...");
 			}
@@ -173,9 +304,9 @@ export class OfferService {
 				for (let i = 0; i < pictureUUIDList.length; i++) {
 					pictureLinks.push(BASE_OFFER_LINK + pictureUUIDList[i].uuid)
 				}
-				offers[0].picture_links = pictureLinks;
+				offer.picture_links = pictureLinks;
 			} else {
-				offers[0].picture_links = [];
+				offer.picture_links = [];
 			}
 			if (blockedDatesList.length > 0) {
 				let blockedDates: Array<{
@@ -190,30 +321,39 @@ export class OfferService {
 					});
 				}
 
-				offers[0].blocked_dates = blockedDates;
+				offer.blocked_dates = blockedDates;
 			} else {
-				offers[0].blocked_dates = [];
+				offer.blocked_dates = [];
 			}
 
-			if (userDataList.length > 0) {
+			if (lessorDataList.length > 0) {
 				// SQL has no real boolean, so we need to change 0/1 to boolean
 				// to achieve this, this helper object is used
-				let o = {
-					first_name: userDataList[0].first_name,
-					last_name: userDataList[0].last_name,
-					post_code: userDataList[0].post_code,
-					city: userDataList[0].city,
-					verified: (userDataList[0].verified === 1 ? true : false),
-					rating: userDataList[0].rating
+				let lessor = {
+					first_name: lessorDataList[0].first_name,
+					last_name: lessorDataList[0].last_name,
+					user_id: lessorDataList[0].user_id,
+					post_code: lessorDataList[0].post_code,
+					city: lessorDataList[0].city,
+					verified: (lessorDataList[0].verified === 1 ? true : false),
+					lessor_rating: lessorDataList[0].lessor_rating,
+					number_of_lessor_ratings: lessorDataList[0].number_of_lessor_ratings
 				}
 
-				offers[0].user = o;
+				let category = {
+					name: dbOffers[0].category_name,
+					category_id: dbOffers[0].category_id,
+					picture_link: dbOffers[0].picture_link
+				}
+
+				offer.lessor = lessor;
+				offer.category = category;
 			} else {
 				// It is impossible to have an offer without an user
 				throw new InternalServerErrorException("Something went wrong...");
 			}
 
-			return offers[0];
+			return offer;
 		} else {
 			throw new NotFoundException("Offer not found");
 		}
@@ -329,7 +469,7 @@ export class OfferService {
 			//TODO: validate picturelinks
 
 
-			let offer: Offer = {
+			let offer = {
 				offer_id: offerId,
 				title: reqBody.title,
 				description: reqBody.description,
@@ -341,7 +481,7 @@ export class OfferService {
 			};
 
 			try {
-				await Connector.executeQuery(QueryBuilder.createOffer(offer));
+				//await Connector.executeQuery(QueryBuilder.createOffer(offer));
 			} catch (e) {
 				throw new InternalServerErrorException("Could not create offer");
 			}

@@ -105,7 +105,7 @@ export class QueryBuilder {
 	 */
 	public static getUserByOfferId(id: string): Query {
 		return {
-			query: "SELECT first_name, last_name, place.post_code, place.name AS city, verified, rating FROM user INNER JOIN offer ON offer.user_id = user.user_id INNER JOIN place ON user.place_id = place.place_id WHERE offer.offer_id = ?",
+			query: "SELECT first_name, last_name,user.user_id, user.lessor_rating, user.number_of_lessor_ratings, place.post_code, place.name AS city, verified FROM user INNER JOIN offer ON offer.user_id = user.user_id INNER JOIN place ON user.place_id = place.place_id WHERE offer.offer_id = ?",
 			args: [
 				id
 			]
@@ -155,14 +155,14 @@ export class QueryBuilder {
 	): Query {
 		if (offer_info.offer_id) {
 			return {
-				query: "SELECT * FROM offer WHERE offer_id = ?;",
+				query: "SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id WHERE offer_id = ?;",
 				args: [
 					offer_info.offer_id
 				]
 			}
 		} else if (offer_info.query) {
 			if (offer_info.query.category && offer_info.query.category > 0) {
-				let query = "SELECT * FROM offer WHERE category_id = ?";
+				let query = "SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id WHERE offer.category_id = ?";
 				let args = [];
 
 				args.push(offer_info.query.category);
@@ -181,7 +181,7 @@ export class QueryBuilder {
 					args: args
 				}
 			} else if (offer_info.query.search && offer_info.query.search !== "") {
-				let query = "SELECT * FROM offer WHERE title LIKE ?";
+				let query = "SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id WHERE title LIKE ?";
 				let args = [];
 
 				let search = "%" + offer_info.query.search + "%";
@@ -201,7 +201,7 @@ export class QueryBuilder {
 				}
 			} else {
 				return {
-					query: "SELECT * FROM offer LIMIT ?;",
+					query: "SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id LIMIT ?;",
 					args: [
 						offer_info.query.limit
 					]
@@ -209,7 +209,7 @@ export class QueryBuilder {
 			}
 		} else {
 			return {
-				query: "SELECT * FROM offer LIMIT 15;",
+				query: "SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id FROM offer LIMIT 15;",
 				args: []
 			}
 		}
@@ -268,20 +268,21 @@ export class QueryBuilder {
 	 * Returns a Query to create a new offer with the given values
 	 * @param offer Offer object containing the data to create a new offer
 	 */
-	public static createOffer(offer: Offer) : Query {
-		return {
-			query: "INSERT INTO offer (offer_id, user_id, title, description, rating, price, category_id, number_of_ratings) VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
-			args: [
-				offer.offer_id,
-				offer.user_id,
-				offer.title,
-				offer.description,
-				offer.rating,
-				offer.price,
-				offer.category_id,
-				offer.number_of_ratings
-			]
-		}
+	public static createOffer(offer: {}) : Query {
+		// return {
+		// 	query: "INSERT INTO offer (offer_id, user_id, title, description, rating, price, category_id, number_of_ratings) VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
+		// 	args: [
+		// 		offer.offer_id,
+		// 		offer.user_id,
+		// 		offer.title,
+		// 		offer.description,
+		// 		offer.rating,
+		// 		offer.price,
+		// 		offer.category_id,
+		// 		offer.number_of_ratings
+		// 	]
+		// }
+		return null
 	}
 
 	/**
