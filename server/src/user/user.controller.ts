@@ -38,12 +38,18 @@ export class UserController {
     @Patch()
     async updateUser(
         @Body('auth') auth: {
-            session_id: string,
-            user_id: string
+            session: {
+                session_id: string,
+                user_id: string
+            }
         },
-        @Body('user') user: User
+        @Body('user') user: User,
+        @Body('password') password?: {
+            old_password_hash: string,
+            new_password_hash: string,
+        }
     ) {
-        return await this.userService.updateUser(auth, user);
+        return await this.userService.updateUser(auth, user, password);
     }
 
     /**
