@@ -636,11 +636,18 @@ export class OfferService {
 				throw new BadRequestException("Not a valid user/session");
 			}
 
-
 			// Check if offer exists
 			let validOffer = await this.isValidOfferId(id);
 			if (!validOffer) {
 				throw new BadRequestException("Not a valid offer");
+			}
+
+			// Check owner of offer
+			let offerToValidateUser: Offer;
+			try {
+				offerToValidateUser = await this.getOfferById(id);
+			} catch (e) {
+				throw new InternalServerErrorException("Something went wrong...");
 			}
 
 			// Convert category_id to number if not a number
