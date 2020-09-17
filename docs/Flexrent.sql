@@ -49,6 +49,7 @@ CREATE TABLE offer (
 	price DECIMAL(8, 2),
 	category_id int NOT NULL,
 	number_of_ratings int(11),
+	created_at DATETIME NOT NULL,
 	PRIMARY KEY (offer_id),
 	FOREIGN KEY (user_id) REFERENCES user (user_id),
 	FOREIGN KEY (category_id) REFERENCES category (category_id)
