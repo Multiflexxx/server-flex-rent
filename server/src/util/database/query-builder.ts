@@ -1,6 +1,5 @@
 import { User } from "src/user/user.model";
 import { Query } from "./query.model";
-import { Offer } from "src/offer/offer.model";
 
 export class QueryBuilder {
 
@@ -268,20 +267,29 @@ export class QueryBuilder {
 	 * Returns a Query to create a new offer with the given values
 	 * @param offer Offer object containing the data to create a new offer
 	 */
-	public static createOffer(offer: {}) : Query {
-		// return {
-		// 	query: "INSERT INTO offer (offer_id, user_id, title, description, rating, price, category_id, number_of_ratings) VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
-		// 	args: [
-		// 		offer.offer_id,
-		// 		offer.user_id,
-		// 		offer.title,
-		// 		offer.description,
-		// 		offer.rating,
-		// 		offer.price,
-		// 		offer.category_id,
-		// 		offer.number_of_ratings
-		// 	]
-		// }
+	public static createOffer(offer: {
+		offer_id: string,
+		user_id: string,
+		title: string,
+		description: string,
+		rating: number,
+		number_of_ratings: number,
+		price: number,
+		category_id: number
+	}) : Query {
+		return {
+			query: "INSERT INTO offer (offer_id, user_id, title, description, rating, price, category_id, number_of_ratings) VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
+			args: [
+				offer.offer_id,
+				offer.user_id,
+				offer.title,
+				offer.description,
+				offer.rating,
+				offer.price,
+				offer.category_id,
+				offer.number_of_ratings
+			]
+		}
 		return null
 	}
 
@@ -327,7 +335,29 @@ export class QueryBuilder {
 	 */
 	public static deleteBlockedDatesForOfferId(id: string): Query {
 		return {
-			query: "DELETE FROM offer_blocked WHERE offer_id = ?",
+			query: "DELETE FROM offer_blocked WHERE offer_id = ?;",
+			args: [
+				id
+			]
+		}
+	}
+
+	/**
+	 * Returns a query to delete all picture uuid's for a given offer ID
+	 * @param id ID of the offer
+	 */
+	public static deletePicturesByOfferId(id: string): Query {
+		return {
+			query: "DELETE FROM offer_picture WHERE offer_id = ?;",
+			args: [
+				id
+			]
+		}
+	}
+
+	public static deletePictureById(id: string): Query {
+		return {
+			query: "DELETE FROM offer_picture WHERE uuid = ?;",
 			args: [
 				id
 			]
