@@ -801,7 +801,23 @@ export class OfferService {
 			try {
 				await Connector.executeQuery(QueryBuilder.deleteBlockedDatesForOfferId(id));
 			} catch (e) {
-				throw new BadRequestException("Could not delete old unavailable dates of product");
+				throw new InternalServerErrorException("Something went wrong...");
+			}
+
+			// Delete images from disk
+			offer.picture_links.forEach(imageUrl => {
+				try {
+					FileHandler.deleteImage(imageUrl);
+				} catch (e) {
+					throw new InternalServerErrorException("Something went wrong...");
+				}
+			});
+
+			// Delete images from database
+			try {
+				await Connector.executeQuery(QueryBuilder.deletePicturesByOfferId(id));
+			} catch (e) {
+				throw new InternalServerErrorException("Something went wrong...");
 			}
 
 			// Delete offer from database

@@ -327,7 +327,16 @@ export class QueryBuilder {
 	 */
 	public static deleteBlockedDatesForOfferId(id: string): Query {
 		return {
-			query: "DELETE FROM offer_blocked WHERE offer_id = ?",
+			query: "DELETE FROM offer_blocked WHERE offer_id = ?;",
+			args: [
+				id
+			]
+		}
+	}
+
+	public static deletePicturesByOfferId(id: string): Query {
+		return {
+			query: "DELETE FROM offer_picture WHERE offer_id = ?;",
 			args: [
 				id
 			]
