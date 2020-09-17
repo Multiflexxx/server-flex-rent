@@ -38,6 +38,10 @@ export class FileHandler {
 		}
 	}
 
+	/**
+	 * Deletes a given image
+	 * @param imageUrl URL of the image from database
+	 */
 	public static deleteImage(imageUrl: string) {
 		//remove url part, which is stored together with the image in the database
 		let image = imageUrl.replace(config.image_base_link, '');

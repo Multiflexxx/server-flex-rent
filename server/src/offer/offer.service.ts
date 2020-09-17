@@ -390,7 +390,6 @@ export class OfferService {
 		description?: string,
 		price?: number,
 		category_id?: number,
-		picture_links?: Array<string>,
 		blocked_dates?: Array<{
 			from_date: Date,
 			to_date: Date
@@ -466,9 +465,7 @@ export class OfferService {
 				isValid = await this.isValidOfferId(offerId);
 			} while (isValid === true);
 
-			//TODO: validate picturelinks
-
-
+			// Prepare object to write to database
 			let offer = {
 				offer_id: offerId,
 				title: reqBody.title,
@@ -481,7 +478,7 @@ export class OfferService {
 			};
 
 			try {
-				//await Connector.executeQuery(QueryBuilder.createOffer(offer));
+				await Connector.executeQuery(QueryBuilder.createOffer(offer));
 			} catch (e) {
 				throw new InternalServerErrorException("Could not create offer");
 			}
