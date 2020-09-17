@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, InternalServerErrorException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, InternalServerErrorException, BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { Connector } from 'src/util/database/connector';
 import { QueryBuilder } from 'src/util/database/query-builder';
 import { FileHandler } from 'src/util/file-handler/file-handler'
@@ -538,6 +538,18 @@ export class OfferService {
 				throw new BadRequestException("Not a valid offer");
 			}
 
+			// Check owner of offer
+			let offerToValidateUser: Offer;
+			try {
+				offerToValidateUser = await this.getOfferById(reqBody.offer_id);
+			} catch (e) {
+				throw new InternalServerErrorException("Something went wrong...");
+			}
+			
+			if(offerToValidateUser.lessor.user_id !== user.user.user_id) {
+				throw new UnauthorizedException("User does not match");
+			}
+
 			images.forEach(async image => {
 				// Generate a new uuid for each picture,
 				// save picture on disk and create database insert
@@ -792,6 +804,11 @@ export class OfferService {
 				offer = await this.getOfferById(id);
 			} catch (e) {
 				throw new InternalServerErrorException("Something went wrong...")
+			}
+
+			// Check owner of offer
+			if(offer.lessor.user_id !== user.user.user_id) {
+				throw new UnauthorizedException("User does not match");
 			}
 
 			// Delete all blocked dates
