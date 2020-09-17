@@ -64,16 +64,19 @@ export class OfferController {
 	}
 
 	/**
-	 * Updates an offer given the id and parameters to be updated, given sufficient authorization. 
+ 	 * Updates an offer given the id and parameters to be updated, given sufficient authorization. 
 	 * @param reqBody Update parameters
 	 * @param id ID of offer to be updated
+	 * @param images An array of images 
 	 */
 	@Patch(':id')
+	@UseInterceptors(FilesInterceptor('images', 10))
 	updateOffer(
 		@Body() reqBody: {},
-		@Param('id') id: number
+		@Param('id') id: number,
+		@UploadedFiles() images
 	) {
-		return this.offerService.updateOffer(id, reqBody);
+		return this.offerService.updateOffer(id, reqBody, images);
 	}
 
 	/**

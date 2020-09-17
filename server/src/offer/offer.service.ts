@@ -545,8 +545,8 @@ export class OfferService {
 			} catch (e) {
 				throw new InternalServerErrorException("Something went wrong...");
 			}
-			
-			if(offerToValidateUser.lessor.user_id !== user.user.user_id) {
+
+			if (offerToValidateUser.lessor.user_id !== user.user.user_id) {
 				throw new UnauthorizedException("User does not match");
 			}
 
@@ -613,12 +613,19 @@ export class OfferService {
 		description?: string,
 		price?: number,
 		category_id?: number,
-		picture_links?: Array<string>,
+		delete_images?: Array<string>,
 		blocked_dates?: Array<{
 			from_date: Date,
 			to_date: Date
 		}>
-	}): Promise<Offer> {
+	}, images?: Array<{
+		fieldname: string,
+		originalname: string,
+		encoding: string,
+		mimetype: string,
+		buffer: Buffer,
+		size: number
+	}>): Promise<Offer> {
 
 		if (id !== undefined && id !== null && id !== "" && reqBody !== undefined && reqBody !== null) {
 			let categoryId: number = 0;
@@ -695,7 +702,47 @@ export class OfferService {
 				throw new BadRequestException("Description is required");
 			}
 
-			//TODO: Check picture links
+			// Delete images
+			if (reqBody.delete_images !== undefined && reqBody.delete_images !== null) {
+				reqBody.delete_images.forEach(imageUrl => {
+					try {
+						let image = imageUrl.replace(BASE_OFFER_LINK, '');
+						Connector.executeQuery(QueryBuilder.deletePictureById(image));
+						FileHandler.deleteImage(imageUrl);
+					} catch (e) {
+						throw new InternalServerErrorException("Could not delete image");
+					}
+				});
+			}
+
+			// upload images
+			if (images !== undefined && images !== null) {
+
+				// Check number of images
+				let imagesFromDatabase;
+				try {
+					imagesFromDatabase = await Connector.executeQuery(QueryBuilder.getOfferPictures(offerToValidateUser.offer_id));
+
+				} catch (e) {
+					throw new InternalServerErrorException("Something went wrong...");
+				}
+
+				let numberOfimages = imagesFromDatabase.length + images.length;
+
+				if (numberOfimages > 10) {
+					throw new BadRequestException("Too many images");
+				} else {
+					try {
+						await this.uploadPicture({
+							session_id: reqBody.session_id,
+							user_id: reqBody.user_id,
+							offer_id: offerToValidateUser.offer_id
+						}, images);
+					} catch (e) {
+						throw new InternalServerErrorException("Something went wrong...");
+					}
+				}
+			}
 
 			// Update offer
 			try {
@@ -814,7 +861,7 @@ export class OfferService {
 			}
 
 			// Check owner of offer
-			if(offer.lessor.user_id !== user.user.user_id) {
+			if (offer.lessor.user_id !== user.user.user_id) {
 				throw new UnauthorizedException("User does not match");
 			}
 

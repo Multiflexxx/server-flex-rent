@@ -1,6 +1,5 @@
 import { User } from "src/user/user.model";
 import { Query } from "./query.model";
-import { Offer } from "src/offer/offer.model";
 
 export class QueryBuilder {
 
@@ -350,6 +349,15 @@ export class QueryBuilder {
 	public static deletePicturesByOfferId(id: string): Query {
 		return {
 			query: "DELETE FROM offer_picture WHERE offer_id = ?;",
+			args: [
+				id
+			]
+		}
+	}
+
+	public static deletePictureById(id: string): Query {
+		return {
+			query: "DELETE FROM offer_picture WHERE uuid = ?;",
 			args: [
 				id
 			]
