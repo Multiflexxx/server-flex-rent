@@ -39,6 +39,21 @@ export class FileHandler {
 	}
 
 	/**
+	 * Deletes a given image
+	 * @param imageUrl URL of the image from database
+	 */
+	public static deleteImage(imageUrl: string) {
+		//remove url part, which is stored together with the image in the database
+		let image = imageUrl.replace(config.image_base_link, '');
+		try {
+			fs.unlinkSync((config.file_storage_path + image));
+		} catch (e) {
+			console.log(e)
+			throw new InternalServerErrorException("Could not delete image");
+		}
+	}
+
+	/**
 	 * Returns true or false wether the image exists on the disk or not
 	 * @param image image which is requested in format <image-name>.<ending>
 	 */
