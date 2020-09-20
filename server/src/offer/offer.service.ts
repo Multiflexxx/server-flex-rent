@@ -41,7 +41,6 @@ export class OfferService {
 			number_of_ratings: number
 		}> = [];
 
-
 		try {
 			dbOffers = await Connector.executeQuery(QueryBuilder.getHomepageOffers({ best_offers: true }));
 			homePageOffers.best_offers = await this.addDataToOffers(dbOffers);
