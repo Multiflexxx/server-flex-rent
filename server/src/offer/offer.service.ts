@@ -14,8 +14,12 @@ const BASE_OFFER_LINK = require('../../file-handler-config.json').image_base_lin
 export class OfferService {
 	constructor(private readonly userService: UserService) { }
 
+	/**
+	 * Returns nine offers for each best offers, best lessors, and latest offers
+	 */
 	public async getHomePageOffers(): Promise<{
 		best_offers: Array<Offer>,
+		best_lessors: Array<Offer>,
 		latest_offers: Array<Offer>
 	}> {
 		let homePageOffers = {
