@@ -41,10 +41,9 @@ export class OfferService {
 			number_of_ratings: number
 		}> = [];
 
-
 		try {
 			dbOffers = await Connector.executeQuery(QueryBuilder.getHomepageOffers({ best_offers: true }));
-			homePageOffers.latest_offers = await this.addDataToOffers(dbOffers);
+			homePageOffers.best_offers = await this.addDataToOffers(dbOffers);
 
 			dbOffers = await Connector.executeQuery(QueryBuilder.getHomepageOffers({ best_lessors: true }));
 			homePageOffers.best_lessors = await this.addDataToOffers(dbOffers);
@@ -767,7 +766,11 @@ export class OfferService {
 		}
 	}
 
-	public async bookOffer(id: number, reqBody: {}) {
+	public async bookOffer(id: string, reqBody: {}) {
+		throw new Error("Method not implemented.");
+	}
+
+	public async rateOffer(id: string, reqBody: {}) {
 		throw new Error("Method not implemented.");
 	}
 
