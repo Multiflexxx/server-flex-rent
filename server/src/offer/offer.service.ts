@@ -891,6 +891,10 @@ export class OfferService {
 	/**
 	 * Returns either an empty array or an array with offer objects after
 	 * adding additional information like user data and picture links
+	 * 
+	 * This method does NOT add the blocked dates to the offer list!
+	 * Therefore a similar code is used in getOfferById method
+	 * 
 	 * @param offerList offer list with data from database
 	 */
 	private async addDataToOffers(offerList: Array<{
