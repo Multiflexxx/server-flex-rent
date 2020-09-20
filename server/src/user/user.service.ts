@@ -26,7 +26,7 @@ export class UserService {
 			user_id: result.user_id,
 			first_name: result.first_name,
 			last_name: result.last_name,
-			verified: result.verified,
+			verified: (result.verified === 1 ? true : false),
 			place_id: result.place_id,
 			lessee_rating: result.lessee_rating,
 			number_of_lessee_ratings: result.number_of_lessee_ratings,
@@ -84,11 +84,11 @@ export class UserService {
 	 */
 	public async updateUser(
 		auth: {
-            session: {
-                session_id: string,
-                user_id: string
-            }
-        },
+			session: {
+				session_id: string,
+				user_id: string
+			}
+		},
 		user: User,
 		password?: {
 			old_password_hash: string,
@@ -96,7 +96,7 @@ export class UserService {
 		}
 	): Promise<User> {
 		// Authenticate request
-		if(!(auth && auth.session.session_id && auth.session.user_id && user)) {
+		if (!(auth && auth.session.session_id && auth.session.user_id && user)) {
 			throw new BadRequestException("Insufficient Arguments");
 		}
 
@@ -107,12 +107,12 @@ export class UserService {
 		}
 
 		// Check old password
-		if(validatedUser.user.password_hash != password.old_password_hash) {
+		if (validatedUser.user.password_hash != password.old_password_hash) {
 			throw new UnauthorizedException("Incorrect Password");
 		}
 
 		// Validate new Email
-		if(!EmailValidator.validate(user.email)) {
+		if (!EmailValidator.validate(user.email)) {
 			throw new BadRequestException("Invalid Email");
 		}
 
@@ -131,15 +131,63 @@ export class UserService {
 
 		// Get new place_id
 		const newPlace = (await Connector.executeQuery(QueryBuilder.getPlace({ post_code: user.post_code })))[0];
-		if(!newPlace) {
+		if (!newPlace) {
 			throw new BadRequestException("Invalid post Code");
 		}
 		user.city = newPlace.name;
 
 		// Update User information
 		await Connector.executeQuery(QueryBuilder.updateUser(user));
-		
+
 		return await Connector.executeQuery(QueryBuilder.getUser({ user_id: user.user_id }));
+	}
+
+	public async rateUser(
+		auth: {
+			session: {
+				session_id: string,
+				user_id: string
+			}
+		},
+		rating: {
+			user_id: string,
+			rating_type: string,
+			rating: number,
+			headline: string,
+			text: string
+		}
+	) {
+		// Check auth input
+		if (!auth || !auth.session || !auth.session.session_id || !auth.session.user_id) {
+			throw new BadRequestException("Invalid auth arguments");
+		}
+
+		// Check rating input
+		if (!rating || !rating.user_id || !rating.rating_type || !rating.rating || !rating.headline || !rating.text) {
+			throw new BadRequestException("Invalid rating arguments");
+		}
+
+		// Validate auth
+		const validatedUser = await this.validateUser(auth);
+		if (!validatedUser || validatedUser.user.user_id !== auth.session.user_id) {
+			throw new UnauthorizedException("Invalid Session");
+		}
+
+		// Make sure user doesn't rate themselves
+		if (auth.session.user_id === rating.user_id) {
+			throw new BadRequestException("Users can't rate themselves");
+		}
+
+		// user#1 = user who rates
+		// user#2 = user who is rated
+		// Check if user#1 already rated user#2
+		const userPairRating = await Connector.executeQuery(QueryBuilder.getRating({ 
+			user_pair: { 
+				rating_user_id: auth.session.user_id, 
+				rated_user_id: rating.user_id 
+			} 
+		}));
+
 	}
 
 	public deleteUser(
@@ -149,7 +197,7 @@ export class UserService {
 		}
 	): Promise<{}> {
 		// How do we delete users?
-		throw new Error("Method not implemented.");
+		throw new Error("Method not implemented. (And will never be implemented");
 	}
 
 	/**

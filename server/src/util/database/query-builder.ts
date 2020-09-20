@@ -458,6 +458,41 @@ export class QueryBuilder {
 			]
 		}
 	}
+	
+	public static getRating(
+		offer: {
+			rating_id?: number,
+			user_pair?: {
+				rating_user_id: string,
+				rated_user_id: string
+			},
+			rated_user_id?: string
+		}
+	): Query {
+		if(offer.rating_id) {
+			return {
+				query: "SELECT * FROM rating WHERE rating_id = ?;",
+				args: [
+					offer.rating_id
+				]
+			}
+		} else if(offer.user_pair) {
+			return {
+				query: "SELECT * FROM rating WHERE rating_user_id = ? AND rated_user_id = ?;",
+				args: [
+					offer.user_pair.rating_user_id,
+					offer.user_pair.rated_user_id
+				]
+			}
+		} else if(offer.rated_user_id) {
+			return {
+				query: "SELECT * FROM rating WHERE rated_user_id = ?",
+				args: [
+					offer.rated_user_id
+				]
+			}
+		}
+	}
 
 	public static testQuery() {
 		return {

@@ -31,6 +31,20 @@ CREATE TABLE user (
 	FOREIGN KEY (place_id) REFERENCES place (place_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- user ratings
+Create Table rating(
+    rating_id int NOT NULL AUTO_INCREMENT,
+    rating_user_id varchar(255) NOT NULL,
+    rated_user_id varchar(255) NOT NULL,
+    rating_type varchar(6) NOT NULL,
+    rating int NOT NULL,
+    headline varchar(400) NOT NULL,
+    rating_text varchar(400) NOT NULL,
+    PRIMARY KEY (rating_id),
+    FOREIGN KEY (rating_user_id) REFERENCES user (user_id),
+    FOREIGN KEY (rated_user_id) REFERENCES user (user_id) 
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- Category
 CREATE TABLE category (
 	category_id int NOT NULL AUTO_INCREMENT,
@@ -49,6 +63,7 @@ CREATE TABLE offer (
 	price DECIMAL(8, 2),
 	category_id int NOT NULL,
 	number_of_ratings int(11),
+	created_at DATETIME NOT NULL,
 	PRIMARY KEY (offer_id),
 	FOREIGN KEY (user_id) REFERENCES user (user_id),
 	FOREIGN KEY (category_id) REFERENCES category (category_id)

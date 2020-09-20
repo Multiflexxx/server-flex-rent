@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Put, Body, Patch, Delete, Req, Post } from '@nestjs/common';
+import { Controller, Get, Param, Put, Body, Patch, Delete, Req, Post, Res } from '@nestjs/common';
 import { UserService } from './user.service';
 import { User } from './user.model';
 
@@ -67,6 +67,10 @@ export class UserController {
         return await this.userService.deleteUser(id, auth);
     }
 
+    /**
+     * Used for logging in a user, either with a session or email + password
+     * @param auth authentication details containing a user_id and session_id in the session object OR an email and password_hash as part of the login object
+     */
     @Post()
     async authenticateUser(
         @Body('auth') auth: {
@@ -84,5 +88,26 @@ export class UserController {
         session_id: string
     }> {
         return await this.userService.validateUser(auth);
+    }
+
+    @Post('rate')
+    async rateUser(
+        @Body('auth') auth: {
+            session: {
+                session_id: string,
+                user_id: string
+            }
+        },
+        @Body('rating') rating: {
+            user_id: string,
+            rating_type: string,
+            rating: number,
+            headline: string,
+            text: string
+        },
+        @Res() res: any
+    ) {
+        await this.userService.rateUser(auth, rating);
+        res.status(201).send("Hello World")
     }
 }
