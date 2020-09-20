@@ -44,7 +44,7 @@ export class OfferService {
 
 		try {
 			dbOffers = await Connector.executeQuery(QueryBuilder.getHomepageOffers({ best_offers: true }));
-			homePageOffers.latest_offers = await this.addDataToOffers(dbOffers);
+			homePageOffers.best_offers = await this.addDataToOffers(dbOffers);
 
 			dbOffers = await Connector.executeQuery(QueryBuilder.getHomepageOffers({ best_lessors: true }));
 			homePageOffers.best_lessors = await this.addDataToOffers(dbOffers);
