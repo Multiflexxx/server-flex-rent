@@ -14,8 +14,25 @@ const BASE_OFFER_LINK = require('../../file-handler-config.json').image_base_lin
 export class OfferService {
 	constructor(private readonly userService: UserService) { }
 
-	public async getHomePageOffers() {
-		throw new Error("Method not implemented.");
+	public async getHomePageOffers(): Promise<{
+		best_offers: Array<Offer>,
+		latest_offers: Array<Offer>
+	}> {
+		let homePageOffers = {
+			"best_offers": [],
+			"best_lessors": [],
+			"latest_offers": []
+		};
+
+		try {
+			homePageOffers.best_offers = await Connector.executeQuery(QueryBuilder.getHomepageOffers({best_offers: true}));
+			homePageOffers.best_lessors = await Connector.executeQuery(QueryBuilder.getHomepageOffers({best_lessors: true}));
+			homePageOffers.latest_offers = await Connector.executeQuery(QueryBuilder.getHomepageOffers({latest_offers: true}));
+		} catch (e) {
+			throw new InternalServerErrorException("Something went wrong...");
+		}
+
+		return homePageOffers;
 	}
 
 	/**

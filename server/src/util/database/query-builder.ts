@@ -208,7 +208,37 @@ export class QueryBuilder {
 			}
 		} else {
 			return {
-				query: "SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id FROM offer LIMIT 15;",
+				query: "SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id LIMIT 15;",
+				args: []
+			}
+		}
+	}
+
+	public static getHomepageOffers(offer_info: {
+		best_offers?: boolean,
+		latest_offers?: boolean,
+		best_lessors?: boolean
+	}): Query {
+		if(offer_info){
+			if(offer_info && offer_info.best_offers) {
+				return {
+					query: "SELECT offer_id, user_id, title, description, offer.rating, price, offer.category_id, category.name AS category_name, category.picture_link, offer.number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id ORDER BY offer.rating DESC, offer.number_of_ratings DESC LIMIT 9;",
+					args: []
+				}
+			} else if(offer_info && offer_info.latest_offers) {
+				return {
+					query: "SELECT offer_id, user_id, title, description, offer.rating, price, offer.category_id, category.name AS category_name, category.picture_link, offer.number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id ORDER BY offer.created_at DESC LIMIT 9;",
+					args: []
+				}
+			} else if(offer_info && offer_info.best_lessors) {
+				return {
+					query: "SELECT offer_id, offer.user_id, title, description, offer.rating, price, offer.category_id, category.name AS category_name, category.picture_link, offer.number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id ORDER BY user.lessor_rating DESC, user.number_of_lessor_ratings DESC LIMIT 9;",
+					args: []
+				}
+			}
+		} else {
+			return {
+				query: "SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id LIMIT 15;",
 				args: []
 			}
 		}
