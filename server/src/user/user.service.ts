@@ -26,7 +26,7 @@ export class UserService {
 			user_id: result.user_id,
 			first_name: result.first_name,
 			last_name: result.last_name,
-			verified: result.verified,
+			verified: (result.verified === 1 ? true : false),
 			place_id: result.place_id,
 			lessee_rating: result.lessee_rating,
 			number_of_lessee_ratings: result.number_of_lessee_ratings,
