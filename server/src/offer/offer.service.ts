@@ -766,7 +766,11 @@ export class OfferService {
 		}
 	}
 
-	public async bookOffer(id: number, reqBody: {}) {
+	public async bookOffer(id: string, reqBody: {}) {
+		throw new Error("Method not implemented.");
+	}
+
+	public async rateOffer(id: string, reqBody: {}) {
 		throw new Error("Method not implemented.");
 	}
 

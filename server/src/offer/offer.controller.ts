@@ -123,9 +123,17 @@ export class OfferController {
 	 */
 	@Post(':id')
 	bookOffer(
-		@Param('id') id: number,
+		@Param('id') id: string,
 		@Body() reqBody: {}
 	) {
 		return this.offerService.bookOffer(id, reqBody);
+	}
+
+	@Post('rate/:id')
+	rateOffer(
+		@Param('id') id: string,
+		@Body() reqBody: {}
+	) {
+		return this.offerService.rateOffer(id, reqBody);
 	}
 }
