@@ -14,8 +14,48 @@ const BASE_OFFER_LINK = require('../../file-handler-config.json').image_base_lin
 export class OfferService {
 	constructor(private readonly userService: UserService) { }
 
-	public async getHomePageOffers() {
-		throw new Error("Method not implemented.");
+	/**
+	 * Returns nine offers for each best offers, best lessors, and latest offers
+	 */
+	public async getHomePageOffers(): Promise<{
+		best_offers: Array<Offer>,
+		best_lessors: Array<Offer>,
+		latest_offers: Array<Offer>
+	}> {
+		let homePageOffers = {
+			"best_offers": [],
+			"best_lessors": [],
+			"latest_offers": []
+		};
+
+		let dbOffers: Array<{
+			offer_id: string,
+			user_id: string,
+			title: string,
+			description: string,
+			rating: number,
+			price: number,
+			category_id: number,
+			category_name: string,
+			picture_link: string,
+			number_of_ratings: number
+		}> = [];
+
+
+		try {
+			dbOffers = await Connector.executeQuery(QueryBuilder.getHomepageOffers({ best_offers: true }));
+			homePageOffers.latest_offers = await this.addDataToOffers(dbOffers);
+
+			dbOffers = await Connector.executeQuery(QueryBuilder.getHomepageOffers({ best_lessors: true }));
+			homePageOffers.best_lessors = await this.addDataToOffers(dbOffers);
+
+			dbOffers = await Connector.executeQuery(QueryBuilder.getHomepageOffers({ latest_offers: true }));
+			homePageOffers.latest_offers = await this.addDataToOffers(dbOffers);
+		} catch (e) {
+			throw new InternalServerErrorException("Something went wrong...");
+		}
+
+		return homePageOffers;
 	}
 
 	/**
@@ -94,104 +134,7 @@ export class OfferService {
 			throw new InternalServerErrorException("Something went wrong...")
 		}
 
-		if (dbOffers.length > 0) {
-			for (let i = 0; i < dbOffers.length; i++) {
-				let pictureUUIDList: Array<{
-					uuid: string,
-					offer_id: string
-				}> = [];
-
-				let lessorDataList: Array<{
-					first_name: string,
-					last_name: string,
-					user_id: string,
-					post_code: string,
-					city: string,
-					verified: number,
-					lessor_rating: number,
-					number_of_lessor_ratings: number
-				}> = [];
-
-				try {
-					pictureUUIDList = await Connector.executeQuery(QueryBuilder.getOfferPictures(dbOffers[i].offer_id));
-				} catch (e) {
-					throw new InternalServerErrorException("Something went wrong...");
-				}
-
-				try {
-					lessorDataList = await Connector.executeQuery(QueryBuilder.getUserByOfferId(dbOffers[i].offer_id));
-				} catch (e) {
-					throw new InternalServerErrorException("Something went wrong...");
-				}
-
-				if (lessorDataList === undefined || lessorDataList === null || lessorDataList.length !== 1) {
-					throw new InternalServerErrorException("Something went wrong...");
-				}
-
-				if (pictureUUIDList.length > 0) {
-					let pictureLinks: Array<string> = [];
-
-					for (let j = 0; j < pictureUUIDList.length; j++) {
-						pictureLinks.push(BASE_OFFER_LINK + pictureUUIDList[j].uuid);
-					}
-
-					offers.push({
-						offer_id: dbOffers[i].offer_id,
-						title: dbOffers[i].title,
-						description: dbOffers[i].description,
-						number_of_ratings: dbOffers[i].number_of_ratings,
-						rating: dbOffers[i].rating,
-						price: dbOffers[i].price,
-						category: {
-							name: dbOffers[i].category_name,
-							category_id: dbOffers[i].category_id,
-							picture_link: dbOffers[i].picture_link
-						},
-						picture_links: pictureLinks,
-						lessor: {
-							first_name: lessorDataList[0].first_name,
-							last_name: lessorDataList[0].last_name,
-							user_id: dbOffers[i].user_id,
-							post_code: lessorDataList[0].post_code,
-							city: lessorDataList[0].city,
-							verified: (lessorDataList[0].verified === 1 ? true : false),
-							lessor_rating: lessorDataList[0].lessor_rating,
-							number_of_lessor_ratings: lessorDataList[0].number_of_lessor_ratings
-						}
-					});
-
-				} else {
-					offers.push({
-						offer_id: dbOffers[i].offer_id,
-						title: dbOffers[i].title,
-						description: dbOffers[i].description,
-						number_of_ratings: dbOffers[i].number_of_ratings,
-						rating: dbOffers[i].rating,
-						price: dbOffers[i].price,
-						category: {
-							name: dbOffers[i].category_name,
-							category_id: dbOffers[i].category_id,
-							picture_link: dbOffers[i].picture_link
-						},
-						picture_links: [],
-						lessor: {
-							first_name: lessorDataList[0].first_name,
-							last_name: lessorDataList[0].last_name,
-							user_id: dbOffers[i].user_id,
-							post_code: lessorDataList[0].post_code,
-							city: lessorDataList[0].city,
-							verified: (lessorDataList[0].verified === 1 ? true : false),
-							lessor_rating: lessorDataList[0].lessor_rating,
-							number_of_lessor_ratings: lessorDataList[0].number_of_lessor_ratings
-						}
-
-					});
-				}
-			}
-			return offers;
-		} else {
-			return [];
-		}
+		return await this.addDataToOffers(dbOffers);
 	}
 
 	/**
@@ -942,6 +885,128 @@ export class OfferService {
 			return true;
 		} else {
 			return false;
+		}
+	}
+
+	/**
+	 * Returns either an empty array or an array with offer objects after
+	 * adding additional information like user data and picture links
+	 * 
+	 * This method does NOT add the blocked dates to the offer list!
+	 * Therefore a similar code is used in getOfferById method
+	 * 
+	 * @param offerList offer list with data from database
+	 */
+	private async addDataToOffers(offerList: Array<{
+		offer_id: string,
+		user_id: string,
+		title: string,
+		description: string,
+		rating: number,
+		price: number,
+		category_id: number,
+		category_name: string,
+		picture_link: string,
+		number_of_ratings: number
+	}>): Promise<Array<Offer>> {
+		let offers: Array<Offer> = [];
+
+		if (offerList.length > 0) {
+			for (let i = 0; i < offerList.length; i++) {
+				let pictureUUIDList: Array<{
+					uuid: string,
+					offer_id: string
+				}> = [];
+
+				let lessorDataList: Array<{
+					first_name: string,
+					last_name: string,
+					user_id: string,
+					post_code: string,
+					city: string,
+					verified: number,
+					lessor_rating: number,
+					number_of_lessor_ratings: number
+				}> = [];
+
+				try {
+					pictureUUIDList = await Connector.executeQuery(QueryBuilder.getOfferPictures(offerList[i].offer_id));
+				} catch (e) {
+					throw new InternalServerErrorException("Something went wrong...");
+				}
+
+				try {
+					lessorDataList = await Connector.executeQuery(QueryBuilder.getUserByOfferId(offerList[i].offer_id));
+				} catch (e) {
+					throw new InternalServerErrorException("Something went wrong...");
+				}
+
+				if (lessorDataList === undefined || lessorDataList === null || lessorDataList.length !== 1) {
+					throw new InternalServerErrorException("Something went wrong...");
+				}
+
+				if (pictureUUIDList.length > 0) {
+					let pictureLinks: Array<string> = [];
+
+					for (let j = 0; j < pictureUUIDList.length; j++) {
+						pictureLinks.push(BASE_OFFER_LINK + pictureUUIDList[j].uuid);
+					}
+
+					offers.push({
+						offer_id: offerList[i].offer_id,
+						title: offerList[i].title,
+						description: offerList[i].description,
+						number_of_ratings: offerList[i].number_of_ratings,
+						rating: offerList[i].rating,
+						price: offerList[i].price,
+						category: {
+							name: offerList[i].category_name,
+							category_id: offerList[i].category_id,
+							picture_link: offerList[i].picture_link
+						},
+						picture_links: pictureLinks,
+						lessor: {
+							first_name: lessorDataList[0].first_name,
+							last_name: lessorDataList[0].last_name,
+							user_id: offerList[i].user_id,
+							post_code: lessorDataList[0].post_code,
+							city: lessorDataList[0].city,
+							verified: (lessorDataList[0].verified === 1 ? true : false),
+							lessor_rating: lessorDataList[0].lessor_rating,
+							number_of_lessor_ratings: lessorDataList[0].number_of_lessor_ratings
+						}
+					});
+
+				} else {
+					offers.push({
+						offer_id: offerList[i].offer_id,
+						title: offerList[i].title,
+						description: offerList[i].description,
+						number_of_ratings: offerList[i].number_of_ratings,
+						rating: offerList[i].rating,
+						price: offerList[i].price,
+						category: {
+							name: offerList[i].category_name,
+							category_id: offerList[i].category_id,
+							picture_link: offerList[i].picture_link
+						},
+						picture_links: [],
+						lessor: {
+							first_name: lessorDataList[0].first_name,
+							last_name: lessorDataList[0].last_name,
+							user_id: offerList[i].user_id,
+							post_code: lessorDataList[0].post_code,
+							city: lessorDataList[0].city,
+							verified: (lessorDataList[0].verified === 1 ? true : false),
+							lessor_rating: lessorDataList[0].lessor_rating,
+							number_of_lessor_ratings: lessorDataList[0].number_of_lessor_ratings
+						}
+					});
+				}
+			}
+			return offers;
+		} else {
+			return [];
 		}
 	}
 }
