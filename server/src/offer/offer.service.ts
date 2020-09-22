@@ -64,7 +64,7 @@ export class OfferService {
 	 * the limit is used for the return
 	 * If a parameter called 'category' with a numeric value > 0 is provided,
 	 * the result is filtered by category
-	 * If a parameter called 'search' is provided wit a non empty string,
+	 * If a parameter called 'search' is provided with a non empty string,
 	 * the result is filtered by the given search keyword
 	 */
 	public async getAll(query: {
@@ -117,8 +117,6 @@ export class OfferService {
 			picture_link: string,
 			number_of_ratings: number
 		}> = [];
-
-		let offers: Array<Offer> = [];
 
 		try {
 			dbOffers = await Connector.executeQuery(
@@ -766,8 +764,57 @@ export class OfferService {
 		}
 	}
 
-	public async bookOffer(id: string, reqBody: {}) {
-		throw new Error("Method not implemented.");
+	/**
+	 * Method is used to book an offer
+	 * @param id ID of the offer to be booked
+	 * @param reqBody Additional data to book an offer
+	 */
+	public async bookOffer(id: string, reqBody: {
+		session_id?: string,
+		user_id?: string,
+		message?: string,
+		date_range?: {
+			from_date: Date,
+			to_date: Date
+		} 
+	}) {
+		if (id !== undefined && id !== null && id !== "" && reqBody !== undefined && reqBody !== null) {
+			// Validate session and user
+			let user = await this.userService.validateUser({
+				session: {
+					session_id: reqBody.session_id,
+					user_id: reqBody.user_id
+				}
+			});
+
+			if (user === undefined || user === null) {
+				throw new BadRequestException("Not a valid user/session");
+			}
+
+			// Check if offer exists
+			let validOffer = await this.isValidOfferId(id);
+			if (!validOffer) {
+				throw new BadRequestException("Not a valid offer");
+			}
+
+			// Check if lessee is not lessor
+			let offer: Offer;
+			try {
+				offer = await this.getOfferById(id);
+			} catch (e) {
+				throw new InternalServerErrorException("Something went wrong...")
+			}
+
+			// Check owner of offer
+			if (offer.lessor.user_id === user.user.user_id) {
+				throw new BadRequestException("Lessee cannot be same as lessor");
+			}
+
+			//TODO: Book offer
+
+		} else {
+			throw new BadRequestException("Could not book offer");
+		}
 	}
 
 	public async rateOffer(id: string, reqBody: {}) {

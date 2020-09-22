@@ -126,6 +126,7 @@ export class OfferController {
 		@Param('id') id: string,
 		@Body() reqBody: {}
 	) {
+		// User-ID, offer-ID, date-range, message, (payment?)
 		return this.offerService.bookOffer(id, reqBody);
 	}
 
