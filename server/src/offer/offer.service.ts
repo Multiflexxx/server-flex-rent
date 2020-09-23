@@ -776,8 +776,16 @@ export class OfferService {
 		date_range?: {
 			from_date: Date,
 			to_date: Date
-		} 
-	}) {
+		}
+	}): Promise<{
+		request_id: string,
+		user_id: string,
+		offer_id: string,
+		status_id: number,
+		from_date: Date,
+		to_date: Date,
+		message: string
+	}> {
 		if (id !== undefined && id !== null && id !== "" && reqBody !== undefined && reqBody !== null) {
 			// Validate session and user
 			let user = await this.userService.validateUser({
@@ -810,7 +818,62 @@ export class OfferService {
 				throw new BadRequestException("Lessee cannot be same as lessor");
 			}
 
-			//TODO: Book offer
+			// Check date range
+			if (reqBody.date_range.from_date === undefined
+				|| reqBody.date_range.from_date === null
+				|| reqBody.date_range.to_date === undefined
+				|| reqBody.date_range.to_date == null) {
+				throw new BadRequestException("Invaild date/date range");
+			} else {
+				// Throw error, if a start_date, end_date
+				// or range from start to end is invalid
+				if (!moment(reqBody.date_range.from_date.toString()).isValid()
+					|| !moment(reqBody.date_range.to_date.toString()).isValid()
+					|| moment(reqBody.date_range.to_date.toString()).diff(reqBody.date_range.from_date.toString()) < 0) {
+					throw new BadRequestException("Invalid date range for request");
+				} else if (moment(reqBody.date_range.from_date.toString()).diff(moment()) < 0
+					|| moment(reqBody.date_range.to_date.toString()).diff(moment()) < 0) {
+					// Throw error, if from_date or to_date is in past
+					throw new BadRequestException("Requested dates cannot be set in past")
+				}
+			}
+			// TODO: Check if offer is bookable in time range
+
+			// Generate uuid for request
+			//(it should not happen that two request have the same id 
+			//also it should be almost impossible to guess the id [security])
+			let requestUuid = uuid();
+
+			// TODO: Create concept for status
+			let request: {
+				request_id: string,
+				user_id: string,
+				offer_id: string,
+				status_id: number,
+				from_date: Date,
+				to_date: Date,
+				message: string
+			} = {
+				request_id: requestUuid,
+				user_id: reqBody.user_id,
+				offer_id: id,
+				status_id: 1,
+				from_date: new Date(moment(
+					reqBody.date_range.from_date.toString()
+				).format("YYYY-MM-DD")),
+				to_date: new Date(moment(
+					reqBody.date_range.to_date.toString()
+				).format("YYYY-MM-DD")),
+				message: (reqBody.message === undefined || reqBody.message === null) ? "" : reqBody.message
+			}
+
+			try {
+				await Connector.executeQuery(QueryBuilder.createRequest(request));
+			} catch (e) {
+				throw new InternalServerErrorException("Something went wrong...");
+			}
+
+			return request;
 
 		} else {
 			throw new BadRequestException("Could not book offer");
@@ -821,6 +884,11 @@ export class OfferService {
 		throw new Error("Method not implemented.");
 	}
 
+	/**
+	 * Deletes a given offer after user is authenticated
+	 * @param id ID of the offer to be deleted
+	 * @param reqBody Additional data to authenticate user and delete offer
+	 */
 	public async deleteOffer(id: string, reqBody: {
 		session_id?: string,
 		user_id?: string

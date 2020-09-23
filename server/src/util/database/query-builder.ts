@@ -492,6 +492,33 @@ export class QueryBuilder {
 		}
 	}
 
+	/**
+	 * Returns a query to create a request on database
+	 * @param request Data to fill the request table
+	 */
+	public static createRequest(request: {
+		request_id: string,
+		user_id: string,
+		offer_id: string,
+		status_id: number,
+		from_date: Date,
+		to_date: Date,
+		message: string
+	}): Query {
+		return {
+			query: "INSERT INTO request (request_id, user_id, offer_id, status_id, from_date, to_date, message) VALUES (?, ?, ?, ?, ?, ?, ?);",
+			args: [
+				request.request_id,
+				request.user_id,
+				request.offer_id,
+				request.status_id,
+				request.from_date,
+				request.to_date,
+				request.message
+			]
+		}
+	}
+
 	public static getRating(
 		offer: {
 			rating_id?: number,
