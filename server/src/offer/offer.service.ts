@@ -15,7 +15,7 @@ export class OfferService {
 	constructor(private readonly userService: UserService) { }
 
 	/**
-	 * Returns nine offers for each best offers, best lessors, and latest offers
+	 * Returns five offers for each best offers, best lessors, and latest offers
 	 */
 	public async getHomePageOffers(): Promise<{
 		best_offers: Array<Offer>,
