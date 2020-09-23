@@ -64,7 +64,7 @@ export class OfferService {
 	 * the limit is used for the return
 	 * If a parameter called 'category' with a numeric value > 0 is provided,
 	 * the result is filtered by category
-	 * If a parameter called 'search' is provided wit a non empty string,
+	 * If a parameter called 'search' is provided with a non empty string,
 	 * the result is filtered by the given search keyword
 	 */
 	public async getAll(query: {
@@ -117,8 +117,6 @@ export class OfferService {
 			picture_link: string,
 			number_of_ratings: number
 		}> = [];
-
-		let offers: Array<Offer> = [];
 
 		try {
 			dbOffers = await Connector.executeQuery(
@@ -766,14 +764,131 @@ export class OfferService {
 		}
 	}
 
-	public async bookOffer(id: string, reqBody: {}) {
-		throw new Error("Method not implemented.");
+	/**
+	 * Method is used to book an offer
+	 * @param id ID of the offer to be booked
+	 * @param reqBody Additional data to book an offer
+	 */
+	public async bookOffer(id: string, reqBody: {
+		session_id?: string,
+		user_id?: string,
+		message?: string,
+		date_range?: {
+			from_date: Date,
+			to_date: Date
+		}
+	}): Promise<{
+		request_id: string,
+		user_id: string,
+		offer_id: string,
+		status_id: number,
+		from_date: Date,
+		to_date: Date,
+		message: string
+	}> {
+		if (id !== undefined && id !== null && id !== "" && reqBody !== undefined && reqBody !== null) {
+			// Validate session and user
+			let user = await this.userService.validateUser({
+				session: {
+					session_id: reqBody.session_id,
+					user_id: reqBody.user_id
+				}
+			});
+
+			if (user === undefined || user === null) {
+				throw new BadRequestException("Not a valid user/session");
+			}
+
+			// Check if offer exists
+			let validOffer = await this.isValidOfferId(id);
+			if (!validOffer) {
+				throw new BadRequestException("Not a valid offer");
+			}
+
+			// Check if lessee is not lessor
+			let offer: Offer;
+			try {
+				offer = await this.getOfferById(id);
+			} catch (e) {
+				throw new InternalServerErrorException("Something went wrong...")
+			}
+
+			// Check owner of offer
+			if (offer.lessor.user_id === user.user.user_id) {
+				throw new BadRequestException("Lessee cannot be same as lessor");
+			}
+
+			// Check date range
+			if (reqBody.date_range.from_date === undefined
+				|| reqBody.date_range.from_date === null
+				|| reqBody.date_range.to_date === undefined
+				|| reqBody.date_range.to_date == null) {
+				throw new BadRequestException("Invaild date/date range");
+			} else {
+				// Throw error, if a start_date, end_date
+				// or range from start to end is invalid
+				if (!moment(reqBody.date_range.from_date.toString()).isValid()
+					|| !moment(reqBody.date_range.to_date.toString()).isValid()
+					|| moment(reqBody.date_range.to_date.toString()).diff(reqBody.date_range.from_date.toString()) < 0) {
+					throw new BadRequestException("Invalid date range for request");
+				} else if (moment(reqBody.date_range.from_date.toString()).diff(moment()) < 0
+					|| moment(reqBody.date_range.to_date.toString()).diff(moment()) < 0) {
+					// Throw error, if from_date or to_date is in past
+					throw new BadRequestException("Requested dates cannot be set in past")
+				}
+			}
+			// TODO: Check if offer is bookable in time range
+
+			// Generate uuid for request
+			//(it should not happen that two request have the same id 
+			//also it should be almost impossible to guess the id [security])
+			let requestUuid = uuid();
+
+			// TODO: Create concept for status
+			let request: {
+				request_id: string,
+				user_id: string,
+				offer_id: string,
+				status_id: number,
+				from_date: Date,
+				to_date: Date,
+				message: string
+			} = {
+				request_id: requestUuid,
+				user_id: reqBody.user_id,
+				offer_id: id,
+				status_id: 1,
+				from_date: new Date(moment(
+					reqBody.date_range.from_date.toString()
+				).format("YYYY-MM-DD")),
+				to_date: new Date(moment(
+					reqBody.date_range.to_date.toString()
+				).format("YYYY-MM-DD")),
+				message: (reqBody.message === undefined || reqBody.message === null) ? "" : reqBody.message
+			}
+
+			try {
+				await Connector.executeQuery(QueryBuilder.createRequest(request));
+			} catch (e) {
+				throw new InternalServerErrorException("Something went wrong...");
+			}
+
+			return request;
+
+		} else {
+			throw new BadRequestException("Could not book offer");
+		}
 	}
 
 	public async rateOffer(id: string, reqBody: {}) {
 		throw new Error("Method not implemented.");
 	}
 
+	/**
+	 * Deletes a given offer after user is authenticated
+	 * @param id ID of the offer to be deleted
+	 * @param reqBody Additional data to authenticate user and delete offer
+	 */
 	public async deleteOffer(id: string, reqBody: {
 		session_id?: string,
 		user_id?: string
