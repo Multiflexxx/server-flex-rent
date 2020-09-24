@@ -5,7 +5,9 @@ import { FileHandler } from 'src/util/file-handler/file-handler'
 import { Offer } from './offer.model';
 import { Category } from './category.model';
 import { uuid } from 'uuidv4';
-import moment = require('moment');
+import * as Moment from 'moment';
+import { extendMoment } from 'moment-range';
+const moment = extendMoment(Moment);
 import { UserService } from 'src/user/user.service';
 
 const BASE_OFFER_LINK = require('../../file-handler-config.json').image_base_link;
@@ -15,7 +17,8 @@ export class OfferService {
 	constructor(private readonly userService: UserService) { }
 
 	/**
-	 * Returns five offers for each best offers, best lessors, and latest offers
+	 * Returns five best offers, best lessors, and latest offers
+	 * If the code would run faster more offers would be great
 	 */
 	public async getHomePageOffers(): Promise<{
 		best_offers: Array<Offer>,
@@ -837,7 +840,45 @@ export class OfferService {
 					throw new BadRequestException("Requested dates cannot be set in past")
 				}
 			}
-			// TODO: Check if offer is bookable in time range
+
+			let blockedDatesList: Array<{
+				offer_blocked_id: string,
+				offer_id: string,
+				from_date: Date,
+				to_date: Date,
+				reason?: string
+			}> = [];
+
+			try {
+				blockedDatesList = await Connector.executeQuery(QueryBuilder.getBlockedOfferDates(id));
+			} catch (e) {
+				throw new InternalServerErrorException("Something went wrong...");
+			}
+
+			// Use extension of moment for daterange
+			// See https://www.thetopsites.net/article/53065781.shtml
+			// and https://github.com/rotaready/moment-range
+			let inputRange = moment.range(
+				new Date(reqBody.date_range.from_date),
+				new Date(reqBody.date_range.to_date)
+			);
+
+			console.log(inputRange)
+
+			blockedDatesList.forEach(blockedDateRange => {
+				let dbRange = moment.range(
+					new Date(blockedDateRange.from_date),
+					new Date(blockedDateRange.to_date));
+
+				// Maybe using overlaps() could shorten the if statement
+				// but is '{ adjacent: true }' needed as second parameter?
+				if (dbRange.contains(reqBody.date_range.from_date)
+					|| dbRange.contains(reqBody.date_range.to_date)
+					|| inputRange.contains(blockedDateRange.from_date)
+					|| inputRange.contains(blockedDateRange.to_date)) {
+					throw new BadRequestException("Cannot book an offer if the offer is already blocked");
+				}
+			});
 
 			// Generate uuid for request
 			//(it should not happen that two request have the same id 
