@@ -62,7 +62,6 @@ export class OfferController {
 		return this.offerService.getHomePageOffers();
 	}
 
-
 	/**
 	 * Returns an offer object containing the offer by ID.
 	 * @param id ID of offer to be found
@@ -84,7 +83,7 @@ export class OfferController {
 	@UseInterceptors(FilesInterceptor('images', 10))
 	updateOffer(
 		@Body() reqBody: {},
-		@Param('id') id: number,
+		@Param('id') id: string,
 		@UploadedFiles() images
 	) {
 		return this.offerService.updateOffer(id, reqBody, images);

@@ -478,7 +478,7 @@ export class OfferService {
 	 * @param id ID of the offer which shall be updated
 	 * @param reqBody Data to update the offer
 	 */
-	public async updateOffer(id: any, reqBody: {
+	public async updateOffer(id: string, reqBody: {
 		session_id?: string,
 		user_id?: string,
 		title?: string,

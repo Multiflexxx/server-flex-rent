@@ -316,10 +316,10 @@ export class QueryBuilder {
 		rating: number,
 		number_of_ratings: number,
 		price: number,
-		category_id: number
+		category_id: number,
 	}): Query {
 		return {
-			query: "INSERT INTO offer (offer_id, user_id, title, description, rating, price, category_id, number_of_ratings) VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
+			query: "INSERT INTO offer (offer_id, user_id, title, description, rating, price, category_id, number_of_ratings, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW());",
 			args: [
 				offer.offer_id,
 				offer.user_id,
