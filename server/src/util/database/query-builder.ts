@@ -139,7 +139,7 @@ export class QueryBuilder {
 	}
 
 	/**
-	 * Looks up an offer given an offer_id OR all offers within a limit, category or search
+	 * Looks up an offer given an offer_id OR all offers within a limit, category or search OR all offers for a user
 	 * @param offer_info object containing offer information: offer_info.offer_id OR offer_info.query
 	 */
 	public static getOffer(
@@ -149,7 +149,8 @@ export class QueryBuilder {
 				limit: number,
 				search?: string,
 				category?: number
-			}
+			},
+			user_id?: string
 		}
 	): Query {
 		if (offer_info.offer_id) {
@@ -205,6 +206,13 @@ export class QueryBuilder {
 						offer_info.query.limit
 					]
 				}
+			}
+		} else if (offer_info.user_id){
+			return {
+				query: "SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id WHERE user_id = ?;",
+				args: [
+					offer_info.user_id
+				]
 			}
 		} else {
 			return {

@@ -43,6 +43,13 @@ export class OfferController {
 		}
 	}
 
+	@Get('user-offers/')
+	getOffersByUserId(
+		@Body() reqBody: {}
+	) {
+		return this.offerService.getOffersByUserId(reqBody);
+	}
+
 	/**
 	 * Returns a set of offers to be shown on the Homepage
 	 */
