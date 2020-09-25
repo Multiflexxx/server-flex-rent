@@ -138,6 +138,10 @@ export class OfferService {
 		return await this.addDataToOffers(dbOffers);
 	}
 
+	/**
+	 * Returns all offers for a given user id
+	 * @param reqBody User data to validate the user
+	 */
 	public async getOffersByUserId(reqBody: {
 		session_id?: string,
 		user_id?: string
@@ -1094,6 +1098,10 @@ export class OfferService {
 		}
 	}
 
+	/**
+	 * Returns a list of offers after adding data for blocked dates to it
+	 * @param offerList List of offers (after data is added to database offers)
+	 */
 	private async addBlockedDatesToOffers(offerList: Array<Offer>): Promise<Array<Offer>> {
 		let offers: Array<Offer> = []
 		if (offerList) {
