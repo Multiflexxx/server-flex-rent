@@ -31,18 +31,29 @@ CREATE TABLE user (
 	FOREIGN KEY (place_id) REFERENCES place (place_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- User Session
+CREATE TABLE user_session (
+	session_id varchar(50) NOT NULL,
+	user_id varchar(255) NOT NULL,
+	stay_logged_in tinyint NOT NULL,
+	expiration_date DATE,
+	PRIMARY KEY (session_id),
+	FOREIGN KEY (user_id) REFERENCES user (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- user ratings
 Create Table rating(
-    rating_id int NOT NULL AUTO_INCREMENT,
-    rating_user_id varchar(255) NOT NULL,
-    rated_user_id varchar(255) NOT NULL,
-    rating_type varchar(6) NOT NULL,
-    rating int NOT NULL,
-    headline varchar(400) NOT NULL,
-    rating_text varchar(400) NOT NULL,
-    PRIMARY KEY (rating_id),
-    FOREIGN KEY (rating_user_id) REFERENCES user (user_id),
-    FOREIGN KEY (rated_user_id) REFERENCES user (user_id) 
+    	rating_id int NOT NULL AUTO_INCREMENT,
+    	rating_user_id varchar(255) NOT NULL,
+    	rated_user_id varchar(255) NOT NULL,
+    	rating_type varchar(6) NOT NULL,
+    	rating int NOT NULL,
+    	headline varchar(400) NOT NULL,
+    	rating_text varchar(400) NOT NULL,
+	created_at DATE,
+    	PRIMARY KEY (rating_id),
+    	FOREIGN KEY (rating_user_id) REFERENCES user (user_id),
+    	FOREIGN KEY (rated_user_id) REFERENCES user (user_id) 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Category
