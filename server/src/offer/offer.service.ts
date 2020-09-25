@@ -355,6 +355,53 @@ export class OfferService {
 				throw new InternalServerErrorException("Could not create offer");
 			}
 
+			// Check dates if given
+			if (reqBody.blocked_dates !== undefined
+				&& reqBody.blocked_dates !== null) {
+				reqBody.blocked_dates.forEach(dateRange => {
+					// Throw error, if no date is set
+					if (dateRange.from_date === undefined
+						|| dateRange.from_date === null
+						|| dateRange.to_date === undefined
+						|| dateRange.to_date == null) {
+						throw new BadRequestException("Invaild date for unavailablity of product");
+					} else {
+						// Throw error, if a start_date, end_date
+						// or range from start to end is invalid
+						if (!moment(dateRange.from_date.toString()).isValid()
+							|| !moment(dateRange.to_date.toString()).isValid()
+							|| moment(dateRange.to_date.toString()).diff(dateRange.from_date.toString()) < 0) {
+							throw new BadRequestException("Invalid date range for unavailablity of product");
+						} else if (moment(dateRange.from_date.toString()).diff(moment()) < 0
+							|| moment(dateRange.to_date.toString()).diff(moment()) < 0) {
+							// Throw error, if from_date or to_date is in past
+							throw new BadRequestException("Blocked dates cannot be set in past")
+						}
+					}
+				});
+
+				// Insert blocked dates in database
+				await reqBody.blocked_dates.forEach(async (blockedDateRange) => {
+					// Generate new uuid
+					let offerBlockedId = uuid();
+					// Insert new blocked dates
+					try {
+						await Connector.executeQuery(QueryBuilder.insertBlockedDateForOfferId({
+							offer_blocked_id: offerBlockedId,
+							offer_id: offerId,
+							from_date: new Date(moment(
+								blockedDateRange.from_date.toString()
+							).format("YYYY-MM-DD")),
+							to_date: new Date(moment(
+								blockedDateRange.to_date.toString()
+							).format("YYYY-MM-DD"))
+						}));
+					} catch (e) {
+						throw new BadRequestException("Could not set new unavailable dates for product");
+					}
+				});
+			}
+
 			let offerResult: Offer;
 			try {
 				offerResult = await this.getOfferById(offerId);
