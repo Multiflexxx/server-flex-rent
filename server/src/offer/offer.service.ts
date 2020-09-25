@@ -9,6 +9,7 @@ import * as Moment from 'moment';
 import { extendMoment } from 'moment-range';
 const moment = extendMoment(Moment);
 import { UserService } from 'src/user/user.service';
+import { off } from 'process';
 
 const BASE_OFFER_LINK = require('../../file-handler-config.json').image_base_link;
 
@@ -138,6 +139,55 @@ export class OfferService {
 	}
 
 	/**
+	 * Returns all offers for a given user id
+	 * @param reqBody User data to validate the user
+	 */
+	public async getOffersByUserId(reqBody: {
+		session_id?: string,
+		user_id?: string
+	}): Promise<Array<Offer>> {
+
+		// Validate session and user
+		let user = await this.userService.validateUser({
+			session: {
+				session_id: reqBody.session_id,
+				user_id: reqBody.user_id
+			}
+		});
+
+		if (user === undefined || user === null) {
+			throw new BadRequestException("Not a valid user/session");
+		}
+
+		let dbOffers: Array<{
+			offer_id: string,
+			user_id: string,
+			title: string,
+			description: string,
+			rating: number,
+			price: number,
+			category_id: number,
+			category_name: string,
+			picture_link: string,
+			number_of_ratings: number
+		}> = [];
+
+		try {
+			dbOffers = await Connector.executeQuery(QueryBuilder.getOffer({ user_id: reqBody.user_id }));
+		} catch (e) {
+			throw new InternalServerErrorException("Something went wrong...");
+		}
+
+		// Outsourcing of code
+		let offers = await this.addDataToOffers(dbOffers);
+		// Method takes an array of offers an adds blocked dates
+		// only needed for offerByID and getOffersByUserId
+		offers = await this.addBlockedDatesToOffers(offers);
+
+		return offers;
+	}
+
+	/**
 	 * Returns an offer object containing the offer by ID.
 	 * @param id ID of offer to be found
 	 */
@@ -146,31 +196,7 @@ export class OfferService {
 			throw new BadRequestException("No id provided");
 		}
 
-		let offer: Offer = {
-			offer_id: "",
-			title: "",
-			description: "",
-			number_of_ratings: 0,
-			rating: 0,
-			price: 0,
-			category: {
-				name: "",
-				category_id: 0,
-				picture_link: ""
-			},
-			picture_links: [],
-			blocked_dates: [],
-			lessor: {
-				first_name: "",
-				last_name: "",
-				user_id: "",
-				post_code: "",
-				city: "",
-				verified: false,
-				lessor_rating: 0,
-				number_of_lessor_ratings: 0
-			}
-		}
+		let offers: Array<Offer> = [];
 
 		let dbOffers: Array<{
 			offer_id: string,
@@ -192,111 +218,14 @@ export class OfferService {
 		}
 
 		if (dbOffers.length > 0) {
-			offer.offer_id = dbOffers[0].offer_id;
-			offer.title = dbOffers[0].title;
-			offer.description = dbOffers[0].description;
-			offer.number_of_ratings = dbOffers[0].number_of_ratings;
-			offer.rating = dbOffers[0].rating;
-			offer.price = dbOffers[0].price;
+			// Outsourcing of code
+			offers = await this.addDataToOffers(dbOffers);
 
-			let pictureUUIDList: Array<{
-				uuid: string,
-				offer_id: string
-			}> = [];
+			// Method takes an array of offers an adds blocked dates
+			// only needed for offerByID and getOffersByUserId
+			offers = await this.addBlockedDatesToOffers(offers);
 
-			let blockedDatesList: Array<{
-				offer_blocked_id: string,
-				offer_id: string,
-				from_date: Date,
-				to_date: Date,
-				reason?: string
-			}> = [];
-
-			let lessorDataList: Array<{
-				first_name: string,
-				last_name: string,
-				user_id: string,
-				post_code: string,
-				city: string,
-				verified: number,
-				lessor_rating: number,
-				number_of_lessor_ratings: number
-			}> = [];
-
-			try {
-				pictureUUIDList = await Connector.executeQuery(QueryBuilder.getOfferPictures(id));
-			} catch (error) {
-				throw new InternalServerErrorException("Something went wrong...");
-			}
-
-			try {
-				blockedDatesList = await Connector.executeQuery(QueryBuilder.getBlockedOfferDates(id));
-			} catch (e) {
-				throw new InternalServerErrorException("Something went wrong...");
-			}
-
-			try {
-				lessorDataList = await Connector.executeQuery(QueryBuilder.getUserByOfferId(id));
-			} catch (e) {
-				throw new InternalServerErrorException("Something went wrong...");
-			}
-
-			if (pictureUUIDList.length > 0) {
-				let pictureLinks: Array<string> = [];
-
-				for (let i = 0; i < pictureUUIDList.length; i++) {
-					pictureLinks.push(BASE_OFFER_LINK + pictureUUIDList[i].uuid)
-				}
-				offer.picture_links = pictureLinks;
-			} else {
-				offer.picture_links = [];
-			}
-			if (blockedDatesList.length > 0) {
-				let blockedDates: Array<{
-					from_date: Date,
-					to_date: Date
-				}> = [];
-
-				for (let i = 0; i < blockedDatesList.length; i++) {
-					blockedDates.push({
-						from_date: blockedDatesList[i].from_date,
-						to_date: blockedDatesList[i].to_date
-					});
-				}
-
-				offer.blocked_dates = blockedDates;
-			} else {
-				offer.blocked_dates = [];
-			}
-
-			if (lessorDataList.length > 0) {
-				// SQL has no real boolean, so we need to change 0/1 to boolean
-				// to achieve this, this helper object is used
-				let lessor = {
-					first_name: lessorDataList[0].first_name,
-					last_name: lessorDataList[0].last_name,
-					user_id: lessorDataList[0].user_id,
-					post_code: lessorDataList[0].post_code,
-					city: lessorDataList[0].city,
-					verified: (lessorDataList[0].verified === 1 ? true : false),
-					lessor_rating: lessorDataList[0].lessor_rating,
-					number_of_lessor_ratings: lessorDataList[0].number_of_lessor_ratings
-				}
-
-				let category = {
-					name: dbOffers[0].category_name,
-					category_id: dbOffers[0].category_id,
-					picture_link: dbOffers[0].picture_link
-				}
-
-				offer.lessor = lessor;
-				offer.category = category;
-			} else {
-				// It is impossible to have an offer without an user
-				throw new InternalServerErrorException("Something went wrong...");
-			}
-
-			return offer;
+			return offers[0];
 		} else {
 			throw new NotFoundException("Offer not found");
 		}
@@ -1167,5 +1096,54 @@ export class OfferService {
 		} else {
 			return [];
 		}
+	}
+
+	/**
+	 * Returns a list of offers after adding data for blocked dates to it
+	 * @param offerList List of offers (after data is added to database offers)
+	 */
+	private async addBlockedDatesToOffers(offerList: Array<Offer>): Promise<Array<Offer>> {
+		let offers: Array<Offer> = []
+		if (offerList) {
+			for (let i = 0; i < offerList.length; i++) {
+				let blockedDatesList: Array<{
+					offer_blocked_id: string,
+					offer_id: string,
+					from_date: Date,
+					to_date: Date,
+					reason?: string
+				}> = [];
+
+				let o = offerList[i];
+
+				try {
+					blockedDatesList = await Connector.executeQuery(QueryBuilder.getBlockedOfferDates(offerList[i].offer_id));
+				} catch (e) {
+					throw new InternalServerErrorException("Something went wrong...");
+				}
+
+				if (blockedDatesList.length > 0) {
+					let blockedDates: Array<{
+						from_date: Date,
+						to_date: Date
+					}> = [];
+
+					for (let i = 0; i < blockedDatesList.length; i++) {
+						blockedDates.push({
+							from_date: blockedDatesList[i].from_date,
+							to_date: blockedDatesList[i].to_date
+						});
+					}
+
+					o.blocked_dates = blockedDates;
+				} else {
+					o.blocked_dates = [];
+				}
+
+				offers.push(o)
+			}
+		}
+
+		return offers;
 	}
 }

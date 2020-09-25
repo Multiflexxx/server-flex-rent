@@ -44,6 +44,17 @@ export class OfferController {
 	}
 
 	/**
+	 * Returns all offers for a user after validation of the user
+	 * @param reqBody user_id and session_id to validate user
+	 */
+	@Get('user-offers/')
+	getOffersByUserId(
+		@Body() reqBody: {}
+	) {
+		return this.offerService.getOffersByUserId(reqBody);
+	}
+
+	/**
 	 * Returns a set of offers to be shown on the Homepage
 	 */
 	@Get()
