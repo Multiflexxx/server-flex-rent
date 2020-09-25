@@ -323,7 +323,6 @@ export class QueryBuilder {
 				offer.number_of_ratings
 			]
 		}
-		return null
 	}
 
 	/**
@@ -388,6 +387,10 @@ export class QueryBuilder {
 		}
 	}
 
+	/**
+	 * Returns a query to delete a picture by a given id
+	 * @param id ID of the picture to be deleted
+	 */
 	public static deletePictureById(id: string): Query {
 		return {
 			query: "DELETE FROM offer_picture WHERE uuid = ?;",
