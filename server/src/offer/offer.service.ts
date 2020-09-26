@@ -897,8 +897,75 @@ export class OfferService {
 		}
 	}
 
-	public async rateOffer(id: string, reqBody: {}) {
-		throw new Error("Method not implemented.");
+	/**
+	 * Returns an offer after rating the offer
+	 * @param id ID of the offer to be rated
+	 * @param reqBody data to validate user and rating (number between 1 and 5)
+	 */
+	public async rateOffer(id: string, reqBody: {
+		session_id?: string,
+		user_id?: string,
+		rating?: string
+	}): Promise<Offer> {
+		if (id !== undefined && id !== null && id !== "" && reqBody !== undefined && reqBody !== null) {
+
+			// Validate session and user
+			let user = await this.userService.validateUser({
+				session: {
+					session_id: reqBody.session_id,
+					user_id: reqBody.user_id
+				}
+			});
+
+			if (user === undefined || user === null) {
+				throw new BadRequestException("Not a valid user/session");
+			}
+
+			// Check if offer exists
+			let validOffer = await this.isValidOfferId(id);
+			if (!validOffer) {
+				throw new BadRequestException("Not a valid offer");
+			}
+
+			// Get old offer from database (for return)
+			let offer: Offer;
+			try {
+				offer = await this.getOfferById(id);
+			} catch (e) {
+				throw new InternalServerErrorException("Something went wrong...")
+			}
+
+			// Check owner of offer
+			if (offer.lessor.user_id === user.user.user_id) {
+				throw new UnauthorizedException("Offer cannot be rated by lessor");
+			}
+
+			let userRating = 0;
+			if (reqBody.rating !== undefined && reqBody.rating !== null) {
+				// Update limit, if given
+				userRating = parseInt(reqBody.rating);
+				if (isNaN(userRating) || userRating <= 0 || userRating > 5) {
+					// Not a number
+					throw new BadRequestException("Rating is not a valid number");
+				}
+			}
+
+			let updatedRating = parseFloat(((offer.rating * offer.number_of_ratings + userRating) / (offer.number_of_ratings + 1)).toFixed(2));
+
+			try {
+				Connector.executeQuery(QueryBuilder.updateOfferRating({
+					offer_id: id,
+					rating: updatedRating,
+					number_of_ratings: (offer.number_of_ratings + 1)
+				}));
+			} catch (e) {
+				throw new InternalServerErrorException("Something went wrong...");
+			}
+
+			return await this.getOfferById(id);
+		} else {
+			throw new BadRequestException("Invalid request");
+		}
 	}
 
 	/**

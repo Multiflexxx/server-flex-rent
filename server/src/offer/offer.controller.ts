@@ -129,7 +129,7 @@ export class OfferController {
 	/**
 	 * Books offer for a specified time frame, given sufficient authorization.
 	 * @param id ID of offer to be booked
-	 * @param reqBody 
+	 * @param reqBody body of the request is used for passing authorization details
 	 */
 	@Post(':id')
 	bookOffer(
@@ -140,6 +140,11 @@ export class OfferController {
 		return this.offerService.bookOffer(id, reqBody);
 	}
 
+	/**
+	 * Rate an offer
+	 * @param id ID of the offer to be rated
+	 * @param reqBody body of the request is used for passing authorization details
+	 */
 	@Post('rate/:id')
 	rateOffer(
 		@Param('id') id: string,
