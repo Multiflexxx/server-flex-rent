@@ -207,7 +207,7 @@ export class QueryBuilder {
 					]
 				}
 			}
-		} else if (offer_info.user_id){
+		} else if (offer_info.user_id) {
 			return {
 				query: "SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id WHERE user_id = ?;",
 				args: [
@@ -352,6 +352,25 @@ export class QueryBuilder {
 				offer.price,
 				offer.category_id,
 				offer.offer_id
+			]
+		}
+	}
+
+	/**
+	 * Returns a Query to update the offer rating
+	 * @param rating Information needed to update rating for offer
+	 */
+	public static updateOfferRating(rating: {
+		offer_id: string,
+		rating: number,
+		number_of_ratings: number
+	}): Query {
+		return {
+			query: "UPDATE offer SET rating = ?, number_of_ratings = ? WHERE offer_id = ?;",
+			args: [
+				rating.rating,
+				rating.number_of_ratings,
+				rating.offer_id
 			]
 		}
 	}
