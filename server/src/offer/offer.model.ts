@@ -1,5 +1,3 @@
-import { User } from "src/user/user.model";
-
 export interface Offer {
     offer_id: string,
     title: string,
