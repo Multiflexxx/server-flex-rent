@@ -355,9 +355,12 @@ export class OfferService {
 				throw new InternalServerErrorException("Could not create offer");
 			}
 
-			// Check dates if given
+			// Check dates are given and data is an array
 			if (reqBody.blocked_dates !== undefined
 				&& reqBody.blocked_dates !== null) {
+				if (!Array.isArray(reqBody.blocked_dates)) {
+					throw new BadRequestException("Daterange is not an array");
+				}
 				reqBody.blocked_dates.forEach(dateRange => {
 					// Throw error, if no date is set
 					if (dateRange.from_date === undefined
@@ -467,6 +470,10 @@ export class OfferService {
 
 			if (offerToValidateUser.lessor.user_id !== user.user.user_id) {
 				throw new UnauthorizedException("User does not match");
+			}
+
+			if (!Array.isArray(images)) {
+				throw new BadRequestException("Images are not an array");
 			}
 
 			images.forEach(async image => {
@@ -623,6 +630,10 @@ export class OfferService {
 
 			// Delete images
 			if (reqBody.delete_images !== undefined && reqBody.delete_images !== null) {
+				if (!Array.isArray(reqBody.delete_images)) {
+					throw new BadRequestException("Images to delete are not an array");
+				}
+
 				reqBody.delete_images.forEach(imageUrl => {
 					try {
 						let image = imageUrl.replace(BASE_OFFER_LINK, '');
@@ -636,6 +647,9 @@ export class OfferService {
 
 			// upload images
 			if (images !== undefined && images !== null) {
+				if (!Array.isArray(images)) {
+					throw new BadRequestException("Images are not an array");
+				}
 
 				// Check number of images
 				let imagesFromDatabase;
@@ -679,6 +693,9 @@ export class OfferService {
 			// Check dates if given
 			if (reqBody.blocked_dates !== undefined
 				&& reqBody.blocked_dates !== null) {
+				if (!Array.isArray(reqBody.blocked_dates)) {
+					throw new BadRequestException("Daterange is not an array");
+				}
 				reqBody.blocked_dates.forEach(dateRange => {
 					// Throw error, if no date is set
 					if (dateRange.from_date === undefined
@@ -797,6 +814,10 @@ export class OfferService {
 				throw new BadRequestException("Lessee cannot be same as lessor");
 			}
 
+			if (!Array.isArray(reqBody.date_range)) {
+				throw new BadRequestException("Daterange is not an array");
+			}
+
 			// Check date range
 			if (reqBody.date_range.from_date === undefined
 				|| reqBody.date_range.from_date === null
@@ -838,8 +859,6 @@ export class OfferService {
 				new Date(reqBody.date_range.from_date),
 				new Date(reqBody.date_range.to_date)
 			);
-
-			console.log(inputRange)
 
 			blockedDatesList.forEach(blockedDateRange => {
 				let dbRange = moment.range(
