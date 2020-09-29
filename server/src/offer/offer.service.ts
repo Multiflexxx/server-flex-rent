@@ -814,16 +814,12 @@ export class OfferService {
 				throw new BadRequestException("Lessee cannot be same as lessor");
 			}
 
-			if (!Array.isArray(reqBody.date_range)) {
-				throw new BadRequestException("Daterange is not an array");
-			}
-
 			// Check date range
 			if (reqBody.date_range.from_date === undefined
 				|| reqBody.date_range.from_date === null
 				|| reqBody.date_range.to_date === undefined
 				|| reqBody.date_range.to_date == null) {
-				throw new BadRequestException("Invaild date/date range");
+				throw new BadRequestException("Invalild date/date range");
 			} else {
 				// Throw error, if a start_date, end_date
 				// or range from start to end is invalid
