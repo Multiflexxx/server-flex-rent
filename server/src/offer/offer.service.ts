@@ -958,8 +958,8 @@ export class OfferService {
 			let userRating = 0;
 			if (reqBody.rating !== undefined && reqBody.rating !== null) {
 				// Update limit, if given
-				userRating = parseInt(reqBody.rating);
-				if (isNaN(userRating) || userRating <= 0 || userRating > 5) {
+				userRating = parseFloat(reqBody.rating);
+				if (isNaN(userRating) || userRating <= 0.0 || userRating > 5.0) {
 					// Not a number
 					throw new BadRequestException("Rating is not a valid number");
 				}
