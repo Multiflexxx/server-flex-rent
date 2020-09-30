@@ -497,7 +497,7 @@ export class OfferService {
 				try {
 					await FileHandler.saveImage(images[i], imageId);
 				} catch (e) {
-					throw e;
+					throw new InternalServerErrorException("Something went wrong while processing the images");
 				}
 
 				// Write to database
