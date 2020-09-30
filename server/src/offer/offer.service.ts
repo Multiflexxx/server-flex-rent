@@ -655,7 +655,6 @@ export class OfferService {
 				let imagesFromDatabase;
 				try {
 					imagesFromDatabase = await Connector.executeQuery(QueryBuilder.getOfferPictures(offerToValidateUser.offer_id));
-
 				} catch (e) {
 					throw new InternalServerErrorException("Something went wrong...");
 				}

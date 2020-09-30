@@ -48,7 +48,6 @@ export class FileHandler {
 		try {
 			fs.unlinkSync((config.file_storage_path + image));
 		} catch (e) {
-			console.log(e)
 			throw new InternalServerErrorException("Could not delete image");
 		}
 	}
