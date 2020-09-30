@@ -476,38 +476,38 @@ export class OfferService {
 				throw new BadRequestException("Images are not an array");
 			}
 
-			images.forEach(async image => {
+			for (let i = 0; i < images.length; i++) {
 				// Generate a new uuid for each picture,
 				// save picture on disk and create database insert
 				let imageId = uuid();
 
 				// Check if images 
-				if (image.fieldname === undefined || image.fieldname === null || image.fieldname !== "images") {
+				if (images[i].fieldname === undefined || images[i].fieldname === null || images[i].fieldname !== "images") {
 					throw new BadRequestException("Invalid fields");
 				}
 
-				if (image.size === undefined
-					|| image.size === null
-					|| image.size <= 0
-					|| image.size > 5242880) {
+				if (images[i].size === undefined
+					|| images[i].size === null
+					|| images[i].size <= 0
+					|| images[i].size > 5242880) {
 					throw new BadRequestException("Invalid image size");
 				}
 
 				// Save image
 				try {
-					await FileHandler.saveImage(image, imageId);
+					await FileHandler.saveImage(images[i], imageId);
 				} catch (e) {
 					throw e;
 				}
 
 				// Write to database
-				let fileEnding = ('.' + image.originalname.replace(/^.*\./, ''));
+				let fileEnding = ('.' + images[i].originalname.replace(/^.*\./, ''));
 				try {
 					await Connector.executeQuery(QueryBuilder.insertImageByOfferId(reqBody.offer_id, (imageId + fileEnding)))
 				} catch (e) {
 					throw new InternalServerErrorException("Something went wrong...");
 				}
-			});
+			}
 
 			// Return offer
 			return await this.getOfferById(reqBody.offer_id);
