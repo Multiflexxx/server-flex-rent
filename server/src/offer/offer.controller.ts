@@ -45,6 +45,7 @@ export class OfferController {
 
 	/**
 	 * Returns all offers for a user id
+	 * @param id  ID of the user
 	 */
 	@Get('user-offers/:id')
 	getOffersByUserId(
