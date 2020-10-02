@@ -141,28 +141,11 @@ export class OfferService {
 	 * Returns all offers for a given user id
 	 * @param reqBody User data to validate the user
 	 */
-	public async getOffersByUserId(reqBody: {
-		session?: {
-			session_id?: string,
-			user_id?: string
+	public async getOffersByUserId(id: string): Promise<Array<Offer>> {
+		console.log(id)
+		if (id === undefined || id === null || id === "") {
+			throw new BadRequestException("Invalid request");
 		}
-	}): Promise<Array<Offer>> {
-		if (!reqBody || !reqBody.session) {
-			throw new BadRequestException("Not a valid request");
-		}
-
-		// Validate session and user
-		let user = await this.userService.validateUser({
-			session: {
-				session_id: reqBody.session.session_id,
-				user_id: reqBody.session.user_id
-			}
-		});
-
-		if (user === undefined || user === null) {
-			throw new BadRequestException("Not a valid user/session");
-		}
-
 		let dbOffers: Array<{
 			offer_id: string,
 			user_id: string,
@@ -177,7 +160,7 @@ export class OfferService {
 		}> = [];
 
 		try {
-			dbOffers = await Connector.executeQuery(QueryBuilder.getOffer({ user_id: reqBody.session.user_id }));
+			dbOffers = await Connector.executeQuery(QueryBuilder.getOffer({ user_id: id }));
 		} catch (e) {
 			throw new InternalServerErrorException("Something went wrong...");
 		}
