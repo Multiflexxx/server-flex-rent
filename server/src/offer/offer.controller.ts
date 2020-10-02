@@ -44,14 +44,13 @@ export class OfferController {
 	}
 
 	/**
-	 * Returns all offers for a user after validation of the user
-	 * @param reqBody user_id and session_id to validate user
+	 * Returns all offers for a user id
 	 */
-	@Get('user-offers')
+	@Get('user-offers/:id')
 	getOffersByUserId(
-		@Body() reqBody: {}
+		@Param('id') id: string
 	) {
-		return this.offerService.getOffersByUserId(reqBody);
+		return this.offerService.getOffersByUserId(id);
 	}
 
 	/**
@@ -74,7 +73,7 @@ export class OfferController {
 	}
 
 	/**
- 	 * Updates an offer given the id and parameters to be updated, given sufficient authorization. 
+	   * Updates an offer given the id and parameters to be updated, given sufficient authorization. 
 	 * @param reqBody Update parameters
 	 * @param id ID of offer to be updated
 	 */
