@@ -142,20 +142,20 @@ export class OfferService {
 	 * @param reqBody User data to validate the user
 	 */
 	public async getOffersByUserId(reqBody: {
-		auth?: {
+		session?: {
 			session_id?: string,
 			user_id?: string
 		}
 	}): Promise<Array<Offer>> {
-		if (!reqBody || !reqBody.auth) {
+		if (!reqBody || !reqBody.session) {
 			throw new BadRequestException("Not a valid request");
 		}
 
 		// Validate session and user
 		let user = await this.userService.validateUser({
 			session: {
-				session_id: reqBody.auth.session_id,
-				user_id: reqBody.auth.user_id
+				session_id: reqBody.session.session_id,
+				user_id: reqBody.session.user_id
 			}
 		});
 
@@ -177,7 +177,7 @@ export class OfferService {
 		}> = [];
 
 		try {
-			dbOffers = await Connector.executeQuery(QueryBuilder.getOffer({ user_id: reqBody.auth.user_id }));
+			dbOffers = await Connector.executeQuery(QueryBuilder.getOffer({ user_id: reqBody.session.user_id }));
 		} catch (e) {
 			throw new InternalServerErrorException("Something went wrong...");
 		}
@@ -260,7 +260,7 @@ export class OfferService {
 	 * @param reqBody Data which is needed to create an offer
 	 */
 	public async createOffer(reqBody: {
-		auth?: {
+		session?: {
 			session_id?: string,
 			user_id?: string
 		},
@@ -278,7 +278,7 @@ export class OfferService {
 		}
 	}): Promise<Offer> {
 		if (reqBody !== undefined && reqBody !== null) {
-			if (!reqBody.auth || !reqBody.offer) {
+			if (!reqBody.session || !reqBody.offer) {
 				throw new BadRequestException("Not a valid request");
 			}
 
@@ -288,8 +288,8 @@ export class OfferService {
 			// Validate session and user
 			let user = await this.userService.validateUser({
 				session: {
-					session_id: reqBody.auth.session_id,
-					user_id: reqBody.auth.user_id
+					session_id: reqBody.session.session_id,
+					user_id: reqBody.session.user_id
 				}
 			});
 
@@ -359,7 +359,7 @@ export class OfferService {
 				number_of_ratings: 0,
 				rating: 0,
 				category_id: reqBody.offer.category.category_id,
-				user_id: reqBody.auth.user_id,
+				user_id: reqBody.session.user_id,
 				price: reqBody.offer.price
 			};
 
@@ -565,7 +565,7 @@ export class OfferService {
 	 * @param reqBody Data to update the offer
 	 */
 	public async updateOffer(id: string, reqBody: {
-		auth?: {
+		session?: {
 			session_id: string,
 			user_id: string
 		},
@@ -585,7 +585,7 @@ export class OfferService {
 	}): Promise<Offer> {
 
 		if (id !== undefined && id !== null && id !== "" && reqBody !== undefined && reqBody !== null) {
-			if (!reqBody.auth || !reqBody.offer) {
+			if (!reqBody.session || !reqBody.offer) {
 				throw new BadRequestException("Not a valid request");
 			}
 
@@ -595,8 +595,8 @@ export class OfferService {
 			// Validate session and user
 			let user = await this.userService.validateUser({
 				session: {
-					session_id: reqBody.auth.session_id,
-					user_id: reqBody.auth.user_id
+					session_id: reqBody.session.session_id,
+					user_id: reqBody.session.user_id
 				}
 			});
 
@@ -769,7 +769,7 @@ export class OfferService {
 	 * @param reqBody Additional data to book an offer
 	 */
 	public async bookOffer(id: string, reqBody: {
-		auth?: {
+		session?: {
 			session_id: string,
 			user_id: string,
 		},
@@ -788,15 +788,15 @@ export class OfferService {
 		message: string
 	}> {
 		if (id !== undefined && id !== null && id !== "" && reqBody !== undefined && reqBody !== null) {
-			if (!reqBody.auth || !reqBody.date_range) {
+			if (!reqBody.session || !reqBody.date_range) {
 				throw new BadRequestException("Not a valid request");
 			}
 
 			// Validate session and user
 			let user = await this.userService.validateUser({
 				session: {
-					session_id: reqBody.auth.session_id,
-					user_id: reqBody.auth.user_id
+					session_id: reqBody.session.session_id,
+					user_id: reqBody.session.user_id
 				}
 			});
 
@@ -896,7 +896,7 @@ export class OfferService {
 				message: string
 			} = {
 				request_id: requestUuid,
-				user_id: reqBody.auth.user_id,
+				user_id: reqBody.session.user_id,
 				offer_id: id,
 				status_id: 1,
 				from_date: new Date(moment(
@@ -927,22 +927,22 @@ export class OfferService {
 	 * @param reqBody data to validate user and rating (number between 1 and 5)
 	 */
 	public async rateOffer(id: string, reqBody: {
-		auth?: {
+		session?: {
 			session_id?: string,
 			user_id?: string
 		},
 		rating?: string
 	}): Promise<Offer> {
 		if (id !== undefined && id !== null && id !== "" && reqBody !== undefined && reqBody !== null) {
-			if (!reqBody.auth) {
+			if (!reqBody.session) {
 				throw new BadRequestException("Not a valid request");
 			}
 
 			// Validate session and user
 			let user = await this.userService.validateUser({
 				session: {
-					session_id: reqBody.auth.session_id,
-					user_id: reqBody.auth.user_id
+					session_id: reqBody.session.session_id,
+					user_id: reqBody.session.user_id
 				}
 			});
 
@@ -1003,21 +1003,21 @@ export class OfferService {
 	 * @param reqBody Additional data to authenticate user and delete offer
 	 */
 	public async deleteOffer(id: string, reqBody: {
-		auth?: {
+		session?: {
 			session_id?: string,
 			user_id?: string
 		}
 	}): Promise<Offer> {
 		if (id !== undefined && id !== null && id !== "" && reqBody !== undefined && reqBody !== null) {
-			if (!reqBody.auth) {
+			if (!reqBody.session) {
 				throw new BadRequestException("Not a valid request");
 			}
 
 			// Validate session and user
 			let user = await this.userService.validateUser({
 				session: {
-					session_id: reqBody.auth.session_id,
-					user_id: reqBody.auth.user_id
+					session_id: reqBody.session.session_id,
+					user_id: reqBody.session.user_id
 				}
 			});
 
