@@ -486,45 +486,63 @@ export class OfferService {
 				throw new UnauthorizedException("User does not match");
 			}
 
-			if (!Array.isArray(images)) {
-				throw new BadRequestException("Images are not an array");
-			}
-
-			for (let i = 0; i < images.length; i++) {
-				// Generate a new uuid for each picture,
-				// save picture on disk and create database insert
-				let imageId = uuid();
-
-				// Check if images 
-				if (images[i].fieldname === undefined || images[i].fieldname === null || images[i].fieldname !== "images") {
-					throw new BadRequestException("Invalid fields");
+			// upload images
+			if (images !== undefined && images !== null) {
+				if (!Array.isArray(images)) {
+					throw new BadRequestException("Images are not an array");
 				}
 
-				if (images[i].size === undefined
-					|| images[i].size === null
-					|| images[i].size <= 0
-					|| images[i].size > 5242880) {
-					throw new BadRequestException("Invalid image size");
-				}
-
-				// Save image
+				// Check number of images
+				let imagesFromDatabase;
 				try {
-					await FileHandler.saveImage(images[i], imageId);
-				} catch (e) {
-					throw new InternalServerErrorException("Something went wrong while processing the images");
-				}
-
-				// Write to database
-				let fileEnding = ('.' + images[i].originalname.replace(/^.*\./, ''));
-				try {
-					await Connector.executeQuery(QueryBuilder.insertImageByOfferId(reqBody.offer_id, (imageId + fileEnding)))
+					imagesFromDatabase = await Connector.executeQuery(QueryBuilder.getOfferPictures(offerToValidateUser.offer_id));
 				} catch (e) {
 					throw new InternalServerErrorException("Something went wrong...");
 				}
-			}
 
-			// Return offer
-			return await this.getOfferById(reqBody.offer_id);
+				let numberOfimages = imagesFromDatabase.length + images.length;
+
+				if (numberOfimages > 10) {
+					throw new BadRequestException("Too many images");
+				} else {
+					for (let i = 0; i < images.length; i++) {
+						// Generate a new uuid for each picture,
+						// save picture on disk and create database insert
+						let imageId = uuid();
+
+						// Check if images 
+						if (images[i].fieldname === undefined || images[i].fieldname === null || images[i].fieldname !== "images") {
+							throw new BadRequestException("Invalid fields");
+						}
+
+						if (images[i].size === undefined
+							|| images[i].size === null
+							|| images[i].size <= 0
+							|| images[i].size > 5242880) {
+							throw new BadRequestException("Invalid image size");
+						}
+
+						// Save image
+						try {
+							await FileHandler.saveImage(images[i], imageId);
+						} catch (e) {
+							throw new InternalServerErrorException("Something went wrong while processing the images");
+						}
+
+						// Write to database
+						let fileEnding = ('.' + images[i].originalname.replace(/^.*\./, ''));
+						try {
+							await Connector.executeQuery(QueryBuilder.insertImageByOfferId(reqBody.offer_id, (imageId + fileEnding)))
+						} catch (e) {
+							throw new InternalServerErrorException("Something went wrong...");
+						}
+					}
+				}
+				// Return offer
+				return await this.getOfferById(reqBody.offer_id);
+			} else {
+				throw new BadRequestException("Could not upload image(s)");
+			}
 		} else {
 			throw new BadRequestException("Could not upload image(s)");
 		}
@@ -661,37 +679,6 @@ export class OfferService {
 					}
 				});
 			}
-
-			// upload images
-			/*if (images !== undefined && images !== null) {
-				if (!Array.isArray(images)) {
-					throw new BadRequestException("Images are not an array");
-				}
-
-				// Check number of images
-				let imagesFromDatabase;
-				try {
-					imagesFromDatabase = await Connector.executeQuery(QueryBuilder.getOfferPictures(offerToValidateUser.offer_id));
-				} catch (e) {
-					throw new InternalServerErrorException("Something went wrong...");
-				}
-
-				let numberOfimages = imagesFromDatabase.length + images.length;
-
-				if (numberOfimages > 10) {
-					throw new BadRequestException("Too many images");
-				} else {
-					try {
-						await this.uploadPicture({
-							session_id: reqBody.session_id,
-							user_id: reqBody.user_id,
-							offer_id: offerToValidateUser.offer_id
-						}, images);
-					} catch (e) {
-						throw new InternalServerErrorException("Something went wrong...");
-					}
-				}
-			}*/
 
 			// Update offer
 			try {
