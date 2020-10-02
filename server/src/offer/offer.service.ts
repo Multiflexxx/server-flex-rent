@@ -139,7 +139,7 @@ export class OfferService {
 
 	/**
 	 * Returns all offers for a given user id
-	 * @param reqBody User data to validate the user
+	 * @param id ID of the user
 	 */
 	public async getOffersByUserId(id: string): Promise<Array<Offer>> {
 		console.log(id)
