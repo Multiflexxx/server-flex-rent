@@ -77,7 +77,6 @@ export class OfferController {
  	 * Updates an offer given the id and parameters to be updated, given sufficient authorization. 
 	 * @param reqBody Update parameters
 	 * @param id ID of offer to be updated
-	 * @param images An array of images 
 	 */
 	@Patch(':id')
 	updateOffer(
