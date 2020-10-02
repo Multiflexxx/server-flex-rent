@@ -9,7 +9,6 @@ import * as Moment from 'moment';
 import { extendMoment } from 'moment-range';
 const moment = extendMoment(Moment);
 import { UserService } from 'src/user/user.service';
-import { off } from 'process';
 
 const BASE_OFFER_LINK = require('../../file-handler-config.json').image_base_link;
 
@@ -143,15 +142,20 @@ export class OfferService {
 	 * @param reqBody User data to validate the user
 	 */
 	public async getOffersByUserId(reqBody: {
-		session_id?: string,
-		user_id?: string
+		auth: {
+			session_id?: string,
+			user_id?: string
+		}
 	}): Promise<Array<Offer>> {
+		if (!reqBody || !reqBody.auth) {
+			throw new BadRequestException("Not a valid request");
+		}
 
 		// Validate session and user
 		let user = await this.userService.validateUser({
 			session: {
-				session_id: reqBody.session_id,
-				user_id: reqBody.user_id
+				session_id: reqBody.auth.session_id,
+				user_id: reqBody.auth.user_id
 			}
 		});
 
@@ -173,7 +177,7 @@ export class OfferService {
 		}> = [];
 
 		try {
-			dbOffers = await Connector.executeQuery(QueryBuilder.getOffer({ user_id: reqBody.user_id }));
+			dbOffers = await Connector.executeQuery(QueryBuilder.getOffer({ user_id: reqBody.auth.user_id }));
 		} catch (e) {
 			throw new InternalServerErrorException("Something went wrong...");
 		}
@@ -256,26 +260,36 @@ export class OfferService {
 	 * @param reqBody Data which is needed to create an offer
 	 */
 	public async createOffer(reqBody: {
-		session_id?: string,
-		user_id?: string,
-		title?: string,
-		description?: string,
-		price?: number,
-		category_id?: number,
-		blocked_dates?: Array<{
-			from_date: Date,
-			to_date: Date
-		}>
+		auth: {
+			session_id?: string,
+			user_id?: string
+		},
+		offer: {
+			title?: string,
+			description?: string,
+			price?: number,
+			category: {
+				category_id?: number
+			},
+			blocked_dates?: Array<{
+				from_date: Date,
+				to_date: Date
+			}>
+		}
 	}): Promise<Offer> {
 		if (reqBody !== undefined && reqBody !== null) {
+			if (!reqBody.auth || !reqBody.offer) {
+				throw new BadRequestException("Not a valid request");
+			}
+
 			let categoryId = 0;
 			let price = 0;
 
 			// Validate session and user
 			let user = await this.userService.validateUser({
 				session: {
-					session_id: reqBody.session_id,
-					user_id: reqBody.user_id
+					session_id: reqBody.auth.session_id,
+					user_id: reqBody.auth.user_id
 				}
 			});
 
@@ -284,13 +298,13 @@ export class OfferService {
 			}
 
 			// Convert category_id to number if not a number
-			if (isNaN(reqBody.category_id)) {
-				categoryId = parseInt(reqBody.category_id.toString());
+			if (isNaN(reqBody.offer.category.category_id)) {
+				categoryId = parseInt(reqBody.offer.category.category_id.toString());
 				if (isNaN(categoryId)) {
 					throw new BadRequestException("Not a valid category");
 				}
 			} else {
-				categoryId = reqBody.category_id;
+				categoryId = reqBody.offer.category.category_id;
 			}
 
 			// Check if category is valid
@@ -301,30 +315,30 @@ export class OfferService {
 
 			// convert price to number if not a number
 			// and check if price is greater 0
-			if (isNaN(reqBody.price)) {
-				price = parseFloat(reqBody.price.toString());
+			if (isNaN(reqBody.offer.price)) {
+				price = parseFloat(reqBody.offer.price.toString());
 				if (isNaN(price) || price <= 0) {
 					throw new BadRequestException("Not a valid price");
 				}
 			} else {
-				if (reqBody.price <= 0) {
+				if (reqBody.offer.price <= 0) {
 					throw new BadRequestException("Not a valid price");
 				} else {
-					price = reqBody.price;
+					price = reqBody.offer.price;
 				}
 			}
 
 			// Check if title is empty
-			if (reqBody.title === undefined
-				|| reqBody.title === null
-				|| reqBody.title === "") {
+			if (reqBody.offer.title === undefined
+				|| reqBody.offer.title === null
+				|| reqBody.offer.title === "") {
 				throw new BadRequestException("Title is required");
 			}
 
 			// check if description is empty
-			if (reqBody.description === undefined
-				|| reqBody.description === null
-				|| reqBody.description === "") {
+			if (reqBody.offer.description === undefined
+				|| reqBody.offer.description === null
+				|| reqBody.offer.description === "") {
 				throw new BadRequestException("Description is required");
 			}
 
@@ -340,13 +354,13 @@ export class OfferService {
 			// Prepare object to write to database
 			let offer = {
 				offer_id: offerId,
-				title: reqBody.title,
-				description: reqBody.description,
+				title: reqBody.offer.title,
+				description: reqBody.offer.description,
 				number_of_ratings: 0,
 				rating: 0,
-				category_id: reqBody.category_id,
-				user_id: reqBody.user_id,
-				price: reqBody.price
+				category_id: reqBody.offer.category.category_id,
+				user_id: reqBody.auth.user_id,
+				price: reqBody.offer.price
 			};
 
 			try {
@@ -356,12 +370,12 @@ export class OfferService {
 			}
 
 			// Check dates are given and data is an array
-			if (reqBody.blocked_dates !== undefined
-				&& reqBody.blocked_dates !== null) {
-				if (!Array.isArray(reqBody.blocked_dates)) {
+			if (reqBody.offer.blocked_dates !== undefined
+				&& reqBody.offer.blocked_dates !== null) {
+				if (!Array.isArray(reqBody.offer.blocked_dates)) {
 					throw new BadRequestException("Daterange is not an array");
 				}
-				reqBody.blocked_dates.forEach(dateRange => {
+				reqBody.offer.blocked_dates.forEach(dateRange => {
 					// Throw error, if no date is set
 					if (dateRange.from_date === undefined
 						|| dateRange.from_date === null
@@ -384,7 +398,7 @@ export class OfferService {
 				});
 
 				// Insert blocked dates in database
-				await reqBody.blocked_dates.forEach(async (blockedDateRange) => {
+				await reqBody.offer.blocked_dates.forEach(async (blockedDateRange) => {
 					// Generate new uuid
 					let offerBlockedId = uuid();
 					// Insert new blocked dates
@@ -533,35 +547,38 @@ export class OfferService {
 	 * @param reqBody Data to update the offer
 	 */
 	public async updateOffer(id: string, reqBody: {
-		session_id?: string,
-		user_id?: string,
-		title?: string,
-		description?: string,
-		price?: number,
-		category_id?: number,
-		delete_images?: Array<string>,
-		blocked_dates?: Array<{
-			from_date: Date,
-			to_date: Date
-		}>
-	}, images?: Array<{
-		fieldname: string,
-		originalname: string,
-		encoding: string,
-		mimetype: string,
-		buffer: Buffer,
-		size: number
-	}>): Promise<Offer> {
+		auth: {
+			session_id: string,
+			user_id: string
+		},
+		offer: {
+			title?: string,
+			description?: string,
+			price?: number,
+			category: {
+				category_id?: number
+			},
+			blocked_dates?: Array<{
+				from_date: Date,
+				to_date: Date
+			}>
+		},
+		delete_images?: Array<string>
+	}): Promise<Offer> {
 
 		if (id !== undefined && id !== null && id !== "" && reqBody !== undefined && reqBody !== null) {
+			if (!reqBody.auth || !reqBody.offer) {
+				throw new BadRequestException("Not a valid request");
+			}
+
 			let categoryId: number = 0;
 			let price: number = 0;
 
 			// Validate session and user
 			let user = await this.userService.validateUser({
 				session: {
-					session_id: reqBody.session_id,
-					user_id: reqBody.user_id
+					session_id: reqBody.auth.session_id,
+					user_id: reqBody.auth.user_id
 				}
 			});
 
@@ -584,13 +601,13 @@ export class OfferService {
 			}
 
 			// Convert category_id to number if not a number
-			if (isNaN(reqBody.category_id)) {
-				categoryId = parseInt(reqBody.category_id.toString());
+			if (isNaN(reqBody.offer.category.category_id)) {
+				categoryId = parseInt(reqBody.offer.category.category_id.toString());
 				if (isNaN(categoryId)) {
 					throw new BadRequestException("Not a valid category");
 				}
 			} else {
-				categoryId = reqBody.category_id;
+				categoryId = reqBody.offer.category.category_id;
 			}
 
 			// Check if category is valid
@@ -601,30 +618,30 @@ export class OfferService {
 
 			// Convert price to number if not a number
 			// and check if price is greater 0
-			if (isNaN(reqBody.price)) {
-				price = parseFloat(reqBody.price.toString());
+			if (isNaN(reqBody.offer.price)) {
+				price = parseFloat(reqBody.offer.price.toString());
 				if (isNaN(price) || price <= 0) {
 					throw new BadRequestException("Not a valid price");
 				}
 			} else {
-				if (reqBody.price <= 0) {
+				if (reqBody.offer.price <= 0) {
 					throw new BadRequestException("Not a valid price");
 				} else {
-					price = reqBody.price;
+					price = reqBody.offer.price;
 				}
 			}
 
 			// Check if title is empty
-			if (reqBody.title === undefined
-				|| reqBody.title === null
-				|| reqBody.title === "") {
+			if (reqBody.offer.title === undefined
+				|| reqBody.offer.title === null
+				|| reqBody.offer.title === "") {
 				throw new BadRequestException("Title is required");
 			}
 
 			// Check if description is empty
-			if (reqBody.description === undefined
-				|| reqBody.description === null
-				|| reqBody.description === "") {
+			if (reqBody.offer.description === undefined
+				|| reqBody.offer.description === null
+				|| reqBody.offer.description === "") {
 				throw new BadRequestException("Description is required");
 			}
 
@@ -646,7 +663,7 @@ export class OfferService {
 			}
 
 			// upload images
-			if (images !== undefined && images !== null) {
+			/*if (images !== undefined && images !== null) {
 				if (!Array.isArray(images)) {
 					throw new BadRequestException("Images are not an array");
 				}
@@ -674,14 +691,14 @@ export class OfferService {
 						throw new InternalServerErrorException("Something went wrong...");
 					}
 				}
-			}
+			}*/
 
 			// Update offer
 			try {
 				await Connector.executeQuery(QueryBuilder.updateOffer({
 					offer_id: id,
-					title: reqBody.title,
-					description: reqBody.description,
+					title: reqBody.offer.title,
+					description: reqBody.offer.description,
 					price: price,
 					category_id: categoryId
 				}));
@@ -690,12 +707,12 @@ export class OfferService {
 			}
 
 			// Check dates if given
-			if (reqBody.blocked_dates !== undefined
-				&& reqBody.blocked_dates !== null) {
-				if (!Array.isArray(reqBody.blocked_dates)) {
+			if (reqBody.offer.blocked_dates !== undefined
+				&& reqBody.offer.blocked_dates !== null) {
+				if (!Array.isArray(reqBody.offer.blocked_dates)) {
 					throw new BadRequestException("Daterange is not an array");
 				}
-				reqBody.blocked_dates.forEach(dateRange => {
+				reqBody.offer.blocked_dates.forEach(dateRange => {
 					// Throw error, if no date is set
 					if (dateRange.from_date === undefined
 						|| dateRange.from_date === null
@@ -725,7 +742,7 @@ export class OfferService {
 				}
 
 				// Insert blocked dates in database
-				reqBody.blocked_dates.forEach(async (blockedDateRange) => {
+				reqBody.offer.blocked_dates.forEach(async (blockedDateRange) => {
 					// Generate new uuid
 					let offerBlockedId = uuid();
 					// Insert new blocked dates
@@ -765,8 +782,10 @@ export class OfferService {
 	 * @param reqBody Additional data to book an offer
 	 */
 	public async bookOffer(id: string, reqBody: {
-		session_id?: string,
-		user_id?: string,
+		auth: {
+			session_id: string,
+			user_id: string,
+		},
 		message?: string,
 		date_range?: {
 			from_date: Date,
@@ -782,11 +801,15 @@ export class OfferService {
 		message: string
 	}> {
 		if (id !== undefined && id !== null && id !== "" && reqBody !== undefined && reqBody !== null) {
+			if (!reqBody.auth || !reqBody.date_range) {
+				throw new BadRequestException("Not a valid request");
+			}
+
 			// Validate session and user
 			let user = await this.userService.validateUser({
 				session: {
-					session_id: reqBody.session_id,
-					user_id: reqBody.user_id
+					session_id: reqBody.auth.session_id,
+					user_id: reqBody.auth.user_id
 				}
 			});
 
@@ -886,7 +909,7 @@ export class OfferService {
 				message: string
 			} = {
 				request_id: requestUuid,
-				user_id: reqBody.user_id,
+				user_id: reqBody.auth.user_id,
 				offer_id: id,
 				status_id: 1,
 				from_date: new Date(moment(
@@ -917,17 +940,22 @@ export class OfferService {
 	 * @param reqBody data to validate user and rating (number between 1 and 5)
 	 */
 	public async rateOffer(id: string, reqBody: {
-		session_id?: string,
-		user_id?: string,
+		auth: {
+			session_id?: string,
+			user_id?: string
+		},
 		rating?: string
 	}): Promise<Offer> {
 		if (id !== undefined && id !== null && id !== "" && reqBody !== undefined && reqBody !== null) {
+			if (!reqBody.auth) {
+				throw new BadRequestException("Not a valid request");
+			}
 
 			// Validate session and user
 			let user = await this.userService.validateUser({
 				session: {
-					session_id: reqBody.session_id,
-					user_id: reqBody.user_id
+					session_id: reqBody.auth.session_id,
+					user_id: reqBody.auth.user_id
 				}
 			});
 
@@ -988,16 +1016,21 @@ export class OfferService {
 	 * @param reqBody Additional data to authenticate user and delete offer
 	 */
 	public async deleteOffer(id: string, reqBody: {
-		session_id?: string,
-		user_id?: string
+		auth: {
+			session_id?: string,
+			user_id?: string
+		}
 	}): Promise<Offer> {
 		if (id !== undefined && id !== null && id !== "" && reqBody !== undefined && reqBody !== null) {
+			if (!reqBody.auth) {
+				throw new BadRequestException("Not a valid request");
+			}
 
 			// Validate session and user
 			let user = await this.userService.validateUser({
 				session: {
-					session_id: reqBody.session_id,
-					user_id: reqBody.user_id
+					session_id: reqBody.auth.session_id,
+					user_id: reqBody.auth.user_id
 				}
 			});
 
