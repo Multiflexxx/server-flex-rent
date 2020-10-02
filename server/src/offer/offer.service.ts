@@ -142,7 +142,7 @@ export class OfferService {
 	 * @param reqBody User data to validate the user
 	 */
 	public async getOffersByUserId(reqBody: {
-		auth: {
+		auth?: {
 			session_id?: string,
 			user_id?: string
 		}
@@ -260,11 +260,11 @@ export class OfferService {
 	 * @param reqBody Data which is needed to create an offer
 	 */
 	public async createOffer(reqBody: {
-		auth: {
+		auth?: {
 			session_id?: string,
 			user_id?: string
 		},
-		offer: {
+		offer?: {
 			title?: string,
 			description?: string,
 			price?: number,
@@ -565,11 +565,11 @@ export class OfferService {
 	 * @param reqBody Data to update the offer
 	 */
 	public async updateOffer(id: string, reqBody: {
-		auth: {
+		auth?: {
 			session_id: string,
 			user_id: string
 		},
-		offer: {
+		offer?: {
 			title?: string,
 			description?: string,
 			price?: number,
@@ -769,7 +769,7 @@ export class OfferService {
 	 * @param reqBody Additional data to book an offer
 	 */
 	public async bookOffer(id: string, reqBody: {
-		auth: {
+		auth?: {
 			session_id: string,
 			user_id: string,
 		},
@@ -927,7 +927,7 @@ export class OfferService {
 	 * @param reqBody data to validate user and rating (number between 1 and 5)
 	 */
 	public async rateOffer(id: string, reqBody: {
-		auth: {
+		auth?: {
 			session_id?: string,
 			user_id?: string
 		},
@@ -1003,7 +1003,7 @@ export class OfferService {
 	 * @param reqBody Additional data to authenticate user and delete offer
 	 */
 	public async deleteOffer(id: string, reqBody: {
-		auth: {
+		auth?: {
 			session_id?: string,
 			user_id?: string
 		}
