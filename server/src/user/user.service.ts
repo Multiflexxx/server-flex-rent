@@ -4,6 +4,7 @@ import { Connector } from 'src/util/database/connector';
 import * as EmailValidator from 'email-validator';
 import { QueryBuilder } from 'src/util/database/query-builder';
 import { v4 as uuidv4 } from 'uuid';
+const moment = require('moment');
 
 @Injectable()
 export class UserService {
@@ -25,7 +26,7 @@ export class UserService {
 			user_id: result.user_id,
 			first_name: result.first_name,
 			last_name: result.last_name,
-			verified: result.verified,
+			verified: (result.verified === 1 ? true : false),
 			place_id: result.place_id,
 			lessee_rating: result.lessee_rating,
 			number_of_lessee_ratings: result.number_of_lessee_ratings,
@@ -76,23 +77,117 @@ export class UserService {
 		});
 	}
 
+	/**
+	 * Updates an user given sufficient authorization 
+	 * @param auth 
+	 * @param user 
+	 */
 	public async updateUser(
 		auth: {
-			session_id: string,
-			user_id: string
+			session: {
+				session_id: string,
+				user_id: string
+			}
 		},
-		user: User
+		user: User,
+		password?: {
+			old_password_hash: string,
+			new_password_hash: string
+		}
 	): Promise<User> {
 		// Authenticate request
-		const validatedUser = await this.validateUser({ session: auth });
-
-		if (!(validatedUser && validatedUser.user.user_id === auth.user_id)) {
-			throw new Error("Method not implemented.");
+		if (!(auth && auth.session.session_id && auth.session.user_id && user)) {
+			throw new BadRequestException("Insufficient Arguments");
 		}
-		
+
+		const validatedUser = await this.validateUser(auth);
+
+		if (!(validatedUser && validatedUser.user.user_id === auth.session.user_id)) {
+			throw new UnauthorizedException("Invalid Session");
+		}
+
+		// Check old password
+		if (validatedUser.user.password_hash != password.old_password_hash) {
+			throw new UnauthorizedException("Incorrect Password");
+		}
+
+		// Validate new Email
+		if (!EmailValidator.validate(user.email)) {
+			throw new BadRequestException("Invalid Email");
+		}
+
+		// Check if Email is already registered
+		let result = (await Connector.executeQuery(QueryBuilder.getUser({ email: user.email })))[0];
+		if (result) {
+			throw new BadRequestException("Email address already registered");
+		}
+
+
+		// Check if phone is already registered
+		result = (await Connector.executeQuery(QueryBuilder.getUser({ phone: user.phone_number })))[0];
+		if (result) {
+			throw new BadRequestException("Phone number address already registered");
+		}
+
+		// Get new place_id
+		const newPlace = (await Connector.executeQuery(QueryBuilder.getPlace({ post_code: user.post_code })))[0];
+		if (!newPlace) {
+			throw new BadRequestException("Invalid post Code");
+		}
+		user.city = newPlace.name;
+
 		// Update User information
-		
-		return null;
+		await Connector.executeQuery(QueryBuilder.updateUser(user));
+
+		return await Connector.executeQuery(QueryBuilder.getUser({ user_id: user.user_id }));
+	}
+
+	public async rateUser(
+		auth: {
+			session: {
+				session_id: string,
+				user_id: string
+			}
+		},
+		rating: {
+			user_id: string,
+			rating_type: string,
+			rating: number,
+			headline: string,
+			text: string
+		}
+	) {
+		// Check auth input
+		if (!auth || !auth.session || !auth.session.session_id || !auth.session.user_id) {
+			throw new BadRequestException("Invalid auth arguments");
+		}
+
+		// Check rating input
+		if (!rating || !rating.user_id || !rating.rating_type || !rating.rating || !rating.headline || !rating.text) {
+			throw new BadRequestException("Invalid rating arguments");
+		}
+
+		// Validate auth
+		const validatedUser = await this.validateUser(auth);
+		if (!validatedUser || validatedUser.user.user_id !== auth.session.user_id) {
+			throw new UnauthorizedException("Invalid Session");
+		}
+
+		// Make sure user doesn't rate themselves
+		if (auth.session.user_id === rating.user_id) {
+			throw new BadRequestException("Users can't rate themselves");
+		}
+
+		// user#1 = user who rates
+		// user#2 = user who is rated
+		// Check if user#1 already rated user#2
+		const userPairRating = await Connector.executeQuery(QueryBuilder.getRating({ 
+			user_pair: { 
+				rating_user_id: auth.session.user_id, 
+				rated_user_id: rating.user_id 
+			} 
+		}));
+
 	}
 
 	public deleteUser(
@@ -102,7 +197,7 @@ export class UserService {
 		}
 	): Promise<{}> {
 		// How do we delete users?
-		throw new Error("Method not implemented.");
+		throw new Error("Method not implemented. (And will never be implemented");
 	}
 
 	/**
@@ -186,50 +281,34 @@ export class UserService {
 		}
 
 		// Check if Email is already registered
-		try {
-			let result = (await Connector.executeQuery(QueryBuilder.getUser({ email: user.email })))[0];
-			if (result) {
-				throw new BadRequestException("Email address already registered");
-			}
-		} catch (e) {
-			if (e instanceof BadRequestException) {
-				throw e;
-			}
-			throw new InternalServerErrorException("Something went wrong...")
+		let result = (await Connector.executeQuery(QueryBuilder.getUser({ email: user.email })))[0];
+		if (result) {
+			throw new BadRequestException("Email address already registered");
 		}
 
+
 		// Check if phone is already registered
-		try {
-			let result = (await Connector.executeQuery(QueryBuilder.getUser({ phone: user.phone_number })))[0];
-			if (result) {
-				throw new BadRequestException("Phone number address already registered");
-			}
-		} catch (e) {
-			if (e instanceof BadRequestException) {
-				throw e;
-			}
-			throw new InternalServerErrorException("Something went wrong...")
+
+		result = (await Connector.executeQuery(QueryBuilder.getUser({ phone: user.phone_number })))[0];
+		if (result) {
+			throw new BadRequestException("Phone number address already registered");
 		}
+
 
 		// Validate date of birth
 		// Check if Birthdate is valid and in acceptable time range
-		const presentDate: Date = new Date(); // Format:2020-03-24T14:30:42.836Z
-		const date_of_birth: Date = new Date(user.date_of_birth); // Format: 2000-06-05T22:00:00.000Z
+		const presentDate = moment(); // Format:2020-03-24T14:30:42.836Z
+		const date_of_birth = moment(user.date_of_birth); // Format: 2000-06-05T22:00:00.000Z
 		// it is a date
-		if (isNaN(date_of_birth.getTime())) {
+		if (!(date_of_birth.isValid() && !date_of_birth.isAfter(presentDate))) {
 			// date is not valid
 			throw new BadRequestException("Invalid date of birth");
-		} else {
-			// date is valid
-			if (date_of_birth > presentDate) {
-				throw new BadRequestException("Invalid date of birth");
-			}
 		}
-
+		user.date_of_birth = new Date(date_of_birth.format("YYYY-MM-DD"));
 
 		// Check region/place
 		// TODO
-		let result = (await Connector.executeQuery(QueryBuilder.getPlace({ post_code: user.post_code })))[0];
+		result = (await Connector.executeQuery(QueryBuilder.getPlace({ post_code: user.post_code })))[0];
 		if (result) {
 			user.city = result.name;
 			user.place_id = result.place_id;

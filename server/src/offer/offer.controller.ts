@@ -44,13 +44,23 @@ export class OfferController {
 	}
 
 	/**
+	 * Returns all offers for a user id
+	 * @param id  ID of the user
+	 */
+	@Get('user-offers/:id')
+	getOffersByUserId(
+		@Param('id') id: string
+	) {
+		return this.offerService.getOffersByUserId(id);
+	}
+
+	/**
 	 * Returns a set of offers to be shown on the Homepage
 	 */
 	@Get()
 	getHomePageOffers() {
 		return this.offerService.getHomePageOffers();
 	}
-
 
 	/**
 	 * Returns an offer object containing the offer by ID.
@@ -64,14 +74,14 @@ export class OfferController {
 	}
 
 	/**
-	 * Updates an offer given the id and parameters to be updated, given sufficient authorization. 
+	   * Updates an offer given the id and parameters to be updated, given sufficient authorization. 
 	 * @param reqBody Update parameters
 	 * @param id ID of offer to be updated
 	 */
 	@Patch(':id')
 	updateOffer(
 		@Body() reqBody: {},
-		@Param('id') id: number
+		@Param('id') id: string,
 	) {
 		return this.offerService.updateOffer(id, reqBody);
 	}
@@ -91,7 +101,7 @@ export class OfferController {
 	 * Accepts up to ten files to upload images
 	 * @param images field key for files array
 	 */
-	@Put('images')
+	@Post('images')
 	@UseInterceptors(FilesInterceptor('images', 10))
 	uploadOfferPicture(
 		@UploadedFiles() images,
@@ -116,13 +126,27 @@ export class OfferController {
 	/**
 	 * Books offer for a specified time frame, given sufficient authorization.
 	 * @param id ID of offer to be booked
-	 * @param reqBody 
+	 * @param reqBody body of the request is used for passing authorization details
 	 */
 	@Post(':id')
 	bookOffer(
-		@Param('id') id: number,
+		@Param('id') id: string,
 		@Body() reqBody: {}
 	) {
+		// User-ID, offer-ID, date-range, message, (payment?)
 		return this.offerService.bookOffer(id, reqBody);
+	}
+
+	/**
+	 * Rate an offer
+	 * @param id ID of the offer to be rated
+	 * @param reqBody body of the request is used for passing authorization details
+	 */
+	@Post('rate/:id')
+	rateOffer(
+		@Param('id') id: string,
+		@Body() reqBody: {}
+	) {
+		return this.offerService.rateOffer(id, reqBody);
 	}
 }

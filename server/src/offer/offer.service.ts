@@ -1,11 +1,13 @@
-import { Injectable, NotFoundException, InternalServerErrorException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, InternalServerErrorException, BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { Connector } from 'src/util/database/connector';
 import { QueryBuilder } from 'src/util/database/query-builder';
 import { FileHandler } from 'src/util/file-handler/file-handler'
 import { Offer } from './offer.model';
 import { Category } from './category.model';
 import { uuid } from 'uuidv4';
-import moment = require('moment');
+import * as Moment from 'moment';
+import { extendMoment } from 'moment-range';
+const moment = extendMoment(Moment);
 import { UserService } from 'src/user/user.service';
 
 const BASE_OFFER_LINK = require('../../file-handler-config.json').image_base_link;
@@ -14,8 +16,48 @@ const BASE_OFFER_LINK = require('../../file-handler-config.json').image_base_lin
 export class OfferService {
 	constructor(private readonly userService: UserService) { }
 
-	public async getHomePageOffers() {
-		throw new Error("Method not implemented.");
+	/**
+	 * Returns five best offers, best lessors, and latest offers
+	 * If the code would run faster more offers would be great
+	 */
+	public async getHomePageOffers(): Promise<{
+		best_offers: Array<Offer>,
+		best_lessors: Array<Offer>,
+		latest_offers: Array<Offer>
+	}> {
+		let homePageOffers = {
+			"best_offers": [],
+			"best_lessors": [],
+			"latest_offers": []
+		};
+
+		let dbOffers: Array<{
+			offer_id: string,
+			user_id: string,
+			title: string,
+			description: string,
+			rating: number,
+			price: number,
+			category_id: number,
+			category_name: string,
+			picture_link: string,
+			number_of_ratings: number
+		}> = [];
+
+		try {
+			dbOffers = await Connector.executeQuery(QueryBuilder.getHomepageOffers({ best_offers: true }));
+			homePageOffers.best_offers = await this.addDataToOffers(dbOffers);
+
+			dbOffers = await Connector.executeQuery(QueryBuilder.getHomepageOffers({ best_lessors: true }));
+			homePageOffers.best_lessors = await this.addDataToOffers(dbOffers);
+
+			dbOffers = await Connector.executeQuery(QueryBuilder.getHomepageOffers({ latest_offers: true }));
+			homePageOffers.latest_offers = await this.addDataToOffers(dbOffers);
+		} catch (e) {
+			throw new InternalServerErrorException("Something went wrong...");
+		}
+
+		return homePageOffers;
 	}
 
 	/**
@@ -25,7 +67,7 @@ export class OfferService {
 	 * the limit is used for the return
 	 * If a parameter called 'category' with a numeric value > 0 is provided,
 	 * the result is filtered by category
-	 * If a parameter called 'search' is provided wit a non empty string,
+	 * If a parameter called 'search' is provided with a non empty string,
 	 * the result is filtered by the given search keyword
 	 */
 	public async getAll(query: {
@@ -66,9 +108,21 @@ export class OfferService {
 			}
 		}
 
-		let offers: Array<Offer>;
+		let dbOffers: Array<{
+			offer_id: string,
+			user_id: string,
+			title: string,
+			description: string,
+			rating: number,
+			price: number,
+			category_id: number,
+			category_name: string,
+			picture_link: string,
+			number_of_ratings: number
+		}> = [];
+
 		try {
-			offers = await Connector.executeQuery(
+			dbOffers = await Connector.executeQuery(
 				QueryBuilder.getOffer({
 					query: {
 						limit: limit,
@@ -80,34 +134,44 @@ export class OfferService {
 			throw new InternalServerErrorException("Something went wrong...")
 		}
 
-		if (offers.length > 0) {
-			for (let i = 0; i < offers.length; i++) {
-				let pictureUUIDList: Array<{
-					uuid: string,
-					offer_id: string
-				}> = [];
+		return await this.addDataToOffers(dbOffers);
+	}
 
-				try {
-					pictureUUIDList = await Connector.executeQuery(QueryBuilder.getOfferPictures(offers[i].offer_id));
-				} catch (e) {
-					throw new InternalServerErrorException("Something went wrong...");
-				}
-
-				if (pictureUUIDList.length > 0) {
-					let pictureLinks: Array<string> = [];
-
-					for (let j = 0; j < pictureUUIDList.length; j++) {
-						pictureLinks.push(BASE_OFFER_LINK + pictureUUIDList[j].uuid)
-					}
-					offers[i].picture_links = pictureLinks;
-				} else {
-					offers[i].picture_links = [];
-				}
-			}
-			return offers;
-		} else {
-			return [];
+	/**
+	 * Returns all offers for a given user id
+	 * @param id ID of the user
+	 */
+	public async getOffersByUserId(id: string): Promise<Array<Offer>> {
+		console.log(id)
+		if (id === undefined || id === null || id === "") {
+			throw new BadRequestException("Invalid request");
 		}
+		let dbOffers: Array<{
+			offer_id: string,
+			user_id: string,
+			title: string,
+			description: string,
+			rating: number,
+			price: number,
+			category_id: number,
+			category_name: string,
+			picture_link: string,
+			number_of_ratings: number
+		}> = [];
+
+		try {
+			dbOffers = await Connector.executeQuery(QueryBuilder.getOffer({ user_id: id }));
+		} catch (e) {
+			throw new InternalServerErrorException("Something went wrong...");
+		}
+
+		// Outsourcing of code
+		let offers = await this.addDataToOffers(dbOffers);
+		// Method takes an array of offers an adds blocked dates
+		// only needed for offerByID and getOffersByUserId
+		offers = await this.addBlockedDatesToOffers(offers);
+
+		return offers;
 	}
 
 	/**
@@ -119,99 +183,34 @@ export class OfferService {
 			throw new BadRequestException("No id provided");
 		}
 
-		let offers: Array<Offer>
+		let offers: Array<Offer> = [];
+
+		let dbOffers: Array<{
+			offer_id: string,
+			user_id: string,
+			title: string,
+			description: string,
+			rating: number,
+			price: number,
+			category_id: number,
+			category_name: string,
+			picture_link: string,
+			number_of_ratings: number
+		}> = [];
+
 		try {
-			offers = await Connector.executeQuery(QueryBuilder.getOffer({ offer_id: id }));
+			dbOffers = await Connector.executeQuery(QueryBuilder.getOffer({ offer_id: id }));
 		} catch (e) {
 			throw new InternalServerErrorException("Something went wrong...");
 		}
 
-		if (offers.length > 0) {
-			let pictureUUIDList: Array<{
-				uuid: string,
-				offer_id: string
-			}> = [];
+		if (dbOffers.length > 0) {
+			// Outsourcing of code
+			offers = await this.addDataToOffers(dbOffers);
 
-			let blockedDatesList: Array<{
-				offer_blocked_id: string,
-				offer_id: string,
-				from_date: Date,
-				to_date: Date,
-				reason?: string
-			}> = [];
-
-			let userDataList: Array<{
-				first_name: string,
-				last_name: string,
-				post_code: string,
-				city: string,
-				verified: number,
-				rating: number
-			}>;
-
-			try {
-				pictureUUIDList = await Connector.executeQuery(QueryBuilder.getOfferPictures(id));
-			} catch (error) {
-				throw new InternalServerErrorException("Something went wrong...");
-			}
-
-			try {
-				blockedDatesList = await Connector.executeQuery(QueryBuilder.getBlockedOfferDates(id));
-			} catch (e) {
-				throw new InternalServerErrorException("Something went wrong...");
-			}
-
-			try {
-				userDataList = await Connector.executeQuery(QueryBuilder.getUserByOfferId(id));
-			} catch (e) {
-				throw new InternalServerErrorException("Something went wrong...");
-			}
-
-			if (pictureUUIDList.length > 0) {
-				let pictureLinks: Array<string> = [];
-
-				for (let i = 0; i < pictureUUIDList.length; i++) {
-					pictureLinks.push(BASE_OFFER_LINK + pictureUUIDList[i].uuid)
-				}
-				offers[0].picture_links = pictureLinks;
-			} else {
-				offers[0].picture_links = [];
-			}
-			if (blockedDatesList.length > 0) {
-				let blockedDates: Array<{
-					from_date: Date,
-					to_date: Date
-				}> = [];
-
-				for (let i = 0; i < blockedDatesList.length; i++) {
-					blockedDates.push({
-						from_date: blockedDatesList[i].from_date,
-						to_date: blockedDatesList[i].to_date
-					});
-				}
-
-				offers[0].blocked_dates = blockedDates;
-			} else {
-				offers[0].blocked_dates = [];
-			}
-
-			if (userDataList.length > 0) {
-				// SQL has no real boolean, so we need to change 0/1 to boolean
-				// to achieve this, this helper object is used
-				let o = {
-					first_name: userDataList[0].first_name,
-					last_name: userDataList[0].last_name,
-					post_code: userDataList[0].post_code,
-					city: userDataList[0].city,
-					verified: (userDataList[0].verified === 1 ? true : false),
-					rating: userDataList[0].rating
-				}
-
-				offers[0].user = o;
-			} else {
-				// It is impossible to have an offer without an user
-				throw new InternalServerErrorException("Something went wrong...");
-			}
+			// Method takes an array of offers an adds blocked dates
+			// only needed for offerByID and getOffersByUserId
+			offers = await this.addBlockedDatesToOffers(offers);
 
 			return offers[0];
 		} else {
@@ -244,27 +243,36 @@ export class OfferService {
 	 * @param reqBody Data which is needed to create an offer
 	 */
 	public async createOffer(reqBody: {
-		session_id?: string,
-		user_id?: string,
-		title?: string,
-		description?: string,
-		price?: number,
-		category_id?: number,
-		picture_links?: Array<string>,
-		blocked_dates?: Array<{
-			from_date: Date,
-			to_date: Date
-		}>
+		session?: {
+			session_id?: string,
+			user_id?: string
+		},
+		offer?: {
+			title?: string,
+			description?: string,
+			price?: number,
+			category: {
+				category_id?: number
+			},
+			blocked_dates?: Array<{
+				from_date: Date,
+				to_date: Date
+			}>
+		}
 	}): Promise<Offer> {
 		if (reqBody !== undefined && reqBody !== null) {
+			if (!reqBody.session || !reqBody.offer) {
+				throw new BadRequestException("Not a valid request");
+			}
+
 			let categoryId = 0;
 			let price = 0;
 
 			// Validate session and user
 			let user = await this.userService.validateUser({
 				session: {
-					session_id: reqBody.session_id,
-					user_id: reqBody.user_id
+					session_id: reqBody.session.session_id,
+					user_id: reqBody.session.user_id
 				}
 			});
 
@@ -273,13 +281,13 @@ export class OfferService {
 			}
 
 			// Convert category_id to number if not a number
-			if (isNaN(reqBody.category_id)) {
-				categoryId = parseInt(reqBody.category_id.toString());
+			if (isNaN(reqBody.offer.category.category_id)) {
+				categoryId = parseInt(reqBody.offer.category.category_id.toString());
 				if (isNaN(categoryId)) {
 					throw new BadRequestException("Not a valid category");
 				}
 			} else {
-				categoryId = reqBody.category_id;
+				categoryId = reqBody.offer.category.category_id;
 			}
 
 			// Check if category is valid
@@ -290,30 +298,30 @@ export class OfferService {
 
 			// convert price to number if not a number
 			// and check if price is greater 0
-			if (isNaN(reqBody.price)) {
-				price = parseFloat(reqBody.price.toString());
+			if (isNaN(reqBody.offer.price)) {
+				price = parseFloat(reqBody.offer.price.toString());
 				if (isNaN(price) || price <= 0) {
 					throw new BadRequestException("Not a valid price");
 				}
 			} else {
-				if (reqBody.price <= 0) {
+				if (reqBody.offer.price <= 0) {
 					throw new BadRequestException("Not a valid price");
 				} else {
-					price = reqBody.price;
+					price = reqBody.offer.price;
 				}
 			}
 
 			// Check if title is empty
-			if (reqBody.title === undefined
-				|| reqBody.title === null
-				|| reqBody.title === "") {
+			if (reqBody.offer.title === undefined
+				|| reqBody.offer.title === null
+				|| reqBody.offer.title === "") {
 				throw new BadRequestException("Title is required");
 			}
 
 			// check if description is empty
-			if (reqBody.description === undefined
-				|| reqBody.description === null
-				|| reqBody.description === "") {
+			if (reqBody.offer.description === undefined
+				|| reqBody.offer.description === null
+				|| reqBody.offer.description === "") {
 				throw new BadRequestException("Description is required");
 			}
 
@@ -326,24 +334,72 @@ export class OfferService {
 				isValid = await this.isValidOfferId(offerId);
 			} while (isValid === true);
 
-			//TODO: validate picturelinks
-
-
-			let offer: Offer = {
+			// Prepare object to write to database
+			let offer = {
 				offer_id: offerId,
-				title: reqBody.title,
-				description: reqBody.description,
+				title: reqBody.offer.title,
+				description: reqBody.offer.description,
 				number_of_ratings: 0,
 				rating: 0,
-				category_id: reqBody.category_id,
-				user_id: reqBody.user_id,
-				price: reqBody.price
+				category_id: reqBody.offer.category.category_id,
+				user_id: reqBody.session.user_id,
+				price: reqBody.offer.price
 			};
 
 			try {
 				await Connector.executeQuery(QueryBuilder.createOffer(offer));
 			} catch (e) {
 				throw new InternalServerErrorException("Could not create offer");
+			}
+
+			// Check dates are given and data is an array
+			if (reqBody.offer.blocked_dates !== undefined
+				&& reqBody.offer.blocked_dates !== null) {
+				if (!Array.isArray(reqBody.offer.blocked_dates)) {
+					throw new BadRequestException("Daterange is not an array");
+				}
+				reqBody.offer.blocked_dates.forEach(dateRange => {
+					// Throw error, if no date is set
+					if (dateRange.from_date === undefined
+						|| dateRange.from_date === null
+						|| dateRange.to_date === undefined
+						|| dateRange.to_date == null) {
+						throw new BadRequestException("Invaild date for unavailablity of product");
+					} else {
+						// Throw error, if a start_date, end_date
+						// or range from start to end is invalid
+						if (!moment(dateRange.from_date.toString()).isValid()
+							|| !moment(dateRange.to_date.toString()).isValid()
+							|| moment(dateRange.to_date.toString()).diff(dateRange.from_date.toString()) < 0) {
+							throw new BadRequestException("Invalid date range for unavailablity of product");
+						} else if (moment(dateRange.from_date.toString()).diff(moment()) < 0
+							|| moment(dateRange.to_date.toString()).diff(moment()) < 0) {
+							// Throw error, if from_date or to_date is in past
+							throw new BadRequestException("Blocked dates cannot be set in past")
+						}
+					}
+				});
+
+				// Insert blocked dates in database
+				await reqBody.offer.blocked_dates.forEach(async (blockedDateRange) => {
+					// Generate new uuid
+					let offerBlockedId = uuid();
+					// Insert new blocked dates
+					try {
+						await Connector.executeQuery(QueryBuilder.insertBlockedDateForOfferId({
+							offer_blocked_id: offerBlockedId,
+							offer_id: offerId,
+							from_date: new Date(moment(
+								blockedDateRange.from_date.toString()
+							).format("YYYY-MM-DD")),
+							to_date: new Date(moment(
+								blockedDateRange.to_date.toString()
+							).format("YYYY-MM-DD"))
+						}));
+					} catch (e) {
+						throw new BadRequestException("Could not set new unavailable dates for product");
+					}
+				});
 			}
 
 			let offerResult: Offer;
@@ -401,41 +457,75 @@ export class OfferService {
 				throw new BadRequestException("Not a valid offer");
 			}
 
-			images.forEach(async image => {
-				// Generate a new uuid for each picture,
-				// save picture on disk and create database insert
-				let imageId = uuid();
+			// Check owner of offer
+			let offerToValidateUser: Offer;
+			try {
+				offerToValidateUser = await this.getOfferById(reqBody.offer_id);
+			} catch (e) {
+				throw new InternalServerErrorException("Something went wrong...");
+			}
 
-				// Check if images 
-				if (image.fieldname === undefined || image.fieldname === null || image.fieldname !== "images") {
-					throw new BadRequestException("Invalid fields");
+			if (offerToValidateUser.lessor.user_id !== user.user.user_id) {
+				throw new UnauthorizedException("User does not match");
+			}
+
+			// upload images
+			if (images !== undefined && images !== null) {
+				if (!Array.isArray(images)) {
+					throw new BadRequestException("Images are not an array");
 				}
 
-				if (image.size === undefined
-					|| image.size === null
-					|| image.size <= 0
-					|| image.size > 5242880) {
-					throw new BadRequestException("Invalid image size");
-				}
-
-				// Save image
+				// Check number of images
+				let imagesFromDatabase;
 				try {
-					await FileHandler.saveImage(image, imageId);
-				} catch (e) {
-					throw e;
-				}
-
-				// Write to database
-				let fileEnding = ('.' + image.originalname.replace(/^.*\./, ''));
-				try {
-					await Connector.executeQuery(QueryBuilder.insertImageByOfferId(reqBody.offer_id, (imageId + fileEnding)))
+					imagesFromDatabase = await Connector.executeQuery(QueryBuilder.getOfferPictures(offerToValidateUser.offer_id));
 				} catch (e) {
 					throw new InternalServerErrorException("Something went wrong...");
 				}
-			});
 
-			// Return offer
-			return await this.getOfferById(reqBody.offer_id);
+				let numberOfimages = imagesFromDatabase.length + images.length;
+
+				if (numberOfimages > 10) {
+					throw new BadRequestException("Too many images");
+				} else {
+					for (let i = 0; i < images.length; i++) {
+						// Generate a new uuid for each picture,
+						// save picture on disk and create database insert
+						let imageId = uuid();
+
+						// Check if images 
+						if (images[i].fieldname === undefined || images[i].fieldname === null || images[i].fieldname !== "images") {
+							throw new BadRequestException("Invalid fields");
+						}
+
+						if (images[i].size === undefined
+							|| images[i].size === null
+							|| images[i].size <= 0
+							|| images[i].size > 5242880) {
+							throw new BadRequestException("Invalid image size");
+						}
+
+						// Save image
+						try {
+							await FileHandler.saveImage(images[i], imageId);
+						} catch (e) {
+							throw new InternalServerErrorException("Something went wrong while processing the images");
+						}
+
+						// Write to database
+						let fileEnding = ('.' + images[i].originalname.replace(/^.*\./, ''));
+						try {
+							await Connector.executeQuery(QueryBuilder.insertImageByOfferId(reqBody.offer_id, (imageId + fileEnding)))
+						} catch (e) {
+							throw new InternalServerErrorException("Something went wrong...");
+						}
+					}
+				}
+				// Return offer
+				return await this.getOfferById(reqBody.offer_id);
+			} else {
+				throw new BadRequestException("Could not upload image(s)");
+			}
 		} else {
 			throw new BadRequestException("Could not upload image(s)");
 		}
@@ -457,29 +547,39 @@ export class OfferService {
 	 * @param id ID of the offer which shall be updated
 	 * @param reqBody Data to update the offer
 	 */
-	public async updateOffer(id: any, reqBody: {
-		session_id?: string,
-		user_id?: string,
-		title?: string,
-		description?: string,
-		price?: number,
-		category_id?: number,
-		picture_links?: Array<string>,
-		blocked_dates?: Array<{
-			from_date: Date,
-			to_date: Date
-		}>
+	public async updateOffer(id: string, reqBody: {
+		session?: {
+			session_id: string,
+			user_id: string
+		},
+		offer?: {
+			title?: string,
+			description?: string,
+			price?: number,
+			category: {
+				category_id?: number
+			},
+			blocked_dates?: Array<{
+				from_date: Date,
+				to_date: Date
+			}>
+		},
+		delete_images?: Array<string>
 	}): Promise<Offer> {
 
 		if (id !== undefined && id !== null && id !== "" && reqBody !== undefined && reqBody !== null) {
+			if (!reqBody.session || !reqBody.offer) {
+				throw new BadRequestException("Not a valid request");
+			}
+
 			let categoryId: number = 0;
 			let price: number = 0;
 
 			// Validate session and user
 			let user = await this.userService.validateUser({
 				session: {
-					session_id: reqBody.session_id,
-					user_id: reqBody.user_id
+					session_id: reqBody.session.session_id,
+					user_id: reqBody.session.user_id
 				}
 			});
 
@@ -487,21 +587,28 @@ export class OfferService {
 				throw new BadRequestException("Not a valid user/session");
 			}
 
-
 			// Check if offer exists
 			let validOffer = await this.isValidOfferId(id);
 			if (!validOffer) {
 				throw new BadRequestException("Not a valid offer");
 			}
 
+			// Check owner of offer
+			let offerToValidateUser: Offer;
+			try {
+				offerToValidateUser = await this.getOfferById(id);
+			} catch (e) {
+				throw new InternalServerErrorException("Something went wrong...");
+			}
+
 			// Convert category_id to number if not a number
-			if (isNaN(reqBody.category_id)) {
-				categoryId = parseInt(reqBody.category_id.toString());
+			if (isNaN(reqBody.offer.category.category_id)) {
+				categoryId = parseInt(reqBody.offer.category.category_id.toString());
 				if (isNaN(categoryId)) {
 					throw new BadRequestException("Not a valid category");
 				}
 			} else {
-				categoryId = reqBody.category_id;
+				categoryId = reqBody.offer.category.category_id;
 			}
 
 			// Check if category is valid
@@ -512,41 +619,56 @@ export class OfferService {
 
 			// Convert price to number if not a number
 			// and check if price is greater 0
-			if (isNaN(reqBody.price)) {
-				price = parseFloat(reqBody.price.toString());
+			if (isNaN(reqBody.offer.price)) {
+				price = parseFloat(reqBody.offer.price.toString());
 				if (isNaN(price) || price <= 0) {
 					throw new BadRequestException("Not a valid price");
 				}
 			} else {
-				if (reqBody.price <= 0) {
+				if (reqBody.offer.price <= 0) {
 					throw new BadRequestException("Not a valid price");
 				} else {
-					price = reqBody.price;
+					price = reqBody.offer.price;
 				}
 			}
 
 			// Check if title is empty
-			if (reqBody.title === undefined
-				|| reqBody.title === null
-				|| reqBody.title === "") {
+			if (reqBody.offer.title === undefined
+				|| reqBody.offer.title === null
+				|| reqBody.offer.title === "") {
 				throw new BadRequestException("Title is required");
 			}
 
 			// Check if description is empty
-			if (reqBody.description === undefined
-				|| reqBody.description === null
-				|| reqBody.description === "") {
+			if (reqBody.offer.description === undefined
+				|| reqBody.offer.description === null
+				|| reqBody.offer.description === "") {
 				throw new BadRequestException("Description is required");
 			}
 
-			//TODO: Check picture links
+			// Delete images
+			if (reqBody.delete_images !== undefined && reqBody.delete_images !== null) {
+				if (!Array.isArray(reqBody.delete_images)) {
+					throw new BadRequestException("Images to delete are not an array");
+				}
+
+				reqBody.delete_images.forEach(imageUrl => {
+					try {
+						let image = imageUrl.replace(BASE_OFFER_LINK, '');
+						Connector.executeQuery(QueryBuilder.deletePictureById(image));
+						FileHandler.deleteImage(imageUrl);
+					} catch (e) {
+						throw new InternalServerErrorException("Could not delete image");
+					}
+				});
+			}
 
 			// Update offer
 			try {
 				await Connector.executeQuery(QueryBuilder.updateOffer({
 					offer_id: id,
-					title: reqBody.title,
-					description: reqBody.description,
+					title: reqBody.offer.title,
+					description: reqBody.offer.description,
 					price: price,
 					category_id: categoryId
 				}));
@@ -555,9 +677,12 @@ export class OfferService {
 			}
 
 			// Check dates if given
-			if (reqBody.blocked_dates !== undefined
-				&& reqBody.blocked_dates !== null) {
-				reqBody.blocked_dates.forEach(dateRange => {
+			if (reqBody.offer.blocked_dates !== undefined
+				&& reqBody.offer.blocked_dates !== null) {
+				if (!Array.isArray(reqBody.offer.blocked_dates)) {
+					throw new BadRequestException("Daterange is not an array");
+				}
+				reqBody.offer.blocked_dates.forEach(dateRange => {
 					// Throw error, if no date is set
 					if (dateRange.from_date === undefined
 						|| dateRange.from_date === null
@@ -587,7 +712,7 @@ export class OfferService {
 				}
 
 				// Insert blocked dates in database
-				reqBody.blocked_dates.forEach(async (blockedDateRange) => {
+				reqBody.offer.blocked_dates.forEach(async (blockedDateRange) => {
 					// Generate new uuid
 					let offerBlockedId = uuid();
 					// Insert new blocked dates
@@ -621,21 +746,186 @@ export class OfferService {
 		}
 	}
 
-	public async bookOffer(id: number, reqBody: {}) {
-		throw new Error("Method not implemented.");
-	}
-
-	public async deleteOffer(id: string, reqBody: {
-		session_id?: string,
-		user_id?: string
-	}): Promise<Offer> {
+	/**
+	 * Method is used to book an offer
+	 * @param id ID of the offer to be booked
+	 * @param reqBody Additional data to book an offer
+	 */
+	public async bookOffer(id: string, reqBody: {
+		session?: {
+			session_id: string,
+			user_id: string,
+		},
+		message?: string,
+		date_range?: {
+			from_date: Date,
+			to_date: Date
+		}
+	}): Promise<{
+		request_id: string,
+		user_id: string,
+		offer_id: string,
+		status_id: number,
+		from_date: Date,
+		to_date: Date,
+		message: string
+	}> {
 		if (id !== undefined && id !== null && id !== "" && reqBody !== undefined && reqBody !== null) {
+			if (!reqBody.session || !reqBody.date_range) {
+				throw new BadRequestException("Not a valid request");
+			}
 
 			// Validate session and user
 			let user = await this.userService.validateUser({
 				session: {
-					session_id: reqBody.session_id,
-					user_id: reqBody.user_id
+					session_id: reqBody.session.session_id,
+					user_id: reqBody.session.user_id
+				}
+			});
+
+			if (user === undefined || user === null) {
+				throw new BadRequestException("Not a valid user/session");
+			}
+
+			// Check if offer exists
+			let validOffer = await this.isValidOfferId(id);
+			if (!validOffer) {
+				throw new BadRequestException("Not a valid offer");
+			}
+
+			// Check if lessee is not lessor
+			let offer: Offer;
+			try {
+				offer = await this.getOfferById(id);
+			} catch (e) {
+				throw new InternalServerErrorException("Something went wrong...")
+			}
+
+			// Check owner of offer
+			if (offer.lessor.user_id === user.user.user_id) {
+				throw new BadRequestException("Lessee cannot be same as lessor");
+			}
+
+			// Check date range
+			if (reqBody.date_range.from_date === undefined
+				|| reqBody.date_range.from_date === null
+				|| reqBody.date_range.to_date === undefined
+				|| reqBody.date_range.to_date == null) {
+				throw new BadRequestException("Invalild date/date range");
+			} else {
+				// Throw error, if a start_date, end_date
+				// or range from start to end is invalid
+				if (!moment(reqBody.date_range.from_date.toString()).isValid()
+					|| !moment(reqBody.date_range.to_date.toString()).isValid()
+					|| moment(reqBody.date_range.to_date.toString()).diff(reqBody.date_range.from_date.toString()) < 0) {
+					throw new BadRequestException("Invalid date range for request");
+				} else if (moment(reqBody.date_range.from_date.toString()).diff(moment()) < 0
+					|| moment(reqBody.date_range.to_date.toString()).diff(moment()) < 0) {
+					// Throw error, if from_date or to_date is in past
+					throw new BadRequestException("Requested dates cannot be set in past")
+				}
+			}
+
+			let blockedDatesList: Array<{
+				offer_blocked_id: string,
+				offer_id: string,
+				from_date: Date,
+				to_date: Date,
+				reason?: string
+			}> = [];
+
+			try {
+				blockedDatesList = await Connector.executeQuery(QueryBuilder.getBlockedOfferDates(id));
+			} catch (e) {
+				throw new InternalServerErrorException("Something went wrong...");
+			}
+
+			// Use extension of moment for daterange
+			// See https://www.thetopsites.net/article/53065781.shtml
+			// and https://github.com/rotaready/moment-range
+			let inputRange = moment.range(
+				new Date(reqBody.date_range.from_date),
+				new Date(reqBody.date_range.to_date)
+			);
+
+			blockedDatesList.forEach(blockedDateRange => {
+				let dbRange = moment.range(
+					new Date(blockedDateRange.from_date),
+					new Date(blockedDateRange.to_date));
+
+				// Maybe using overlaps() could shorten the if statement
+				// but is '{ adjacent: true }' needed as second parameter?
+				if (dbRange.contains(reqBody.date_range.from_date)
+					|| dbRange.contains(reqBody.date_range.to_date)
+					|| inputRange.contains(blockedDateRange.from_date)
+					|| inputRange.contains(blockedDateRange.to_date)) {
+					throw new BadRequestException("Cannot book an offer if the offer is already blocked");
+				}
+			});
+
+			// Generate uuid for request
+			//(it should not happen that two request have the same id 
+			//also it should be almost impossible to guess the id [security])
+			let requestUuid = uuid();
+
+			// TODO: Create concept for status
+			let request: {
+				request_id: string,
+				user_id: string,
+				offer_id: string,
+				status_id: number,
+				from_date: Date,
+				to_date: Date,
+				message: string
+			} = {
+				request_id: requestUuid,
+				user_id: reqBody.session.user_id,
+				offer_id: id,
+				status_id: 1,
+				from_date: new Date(moment(
+					reqBody.date_range.from_date.toString()
+				).format("YYYY-MM-DD")),
+				to_date: new Date(moment(
+					reqBody.date_range.to_date.toString()
+				).format("YYYY-MM-DD")),
+				message: (reqBody.message === undefined || reqBody.message === null) ? "" : reqBody.message
+			}
+
+			try {
+				await Connector.executeQuery(QueryBuilder.createRequest(request));
+			} catch (e) {
+				throw new InternalServerErrorException("Something went wrong...");
+			}
+
+			return request;
+
+		} else {
+			throw new BadRequestException("Could not book offer");
+		}
+	}
+
+	/**
+	 * Returns an offer after rating the offer
+	 * @param id ID of the offer to be rated
+	 * @param reqBody data to validate user and rating (number between 1 and 5)
+	 */
+	public async rateOffer(id: string, reqBody: {
+		session?: {
+			session_id?: string,
+			user_id?: string
+		},
+		rating?: string
+	}): Promise<Offer> {
+		if (id !== undefined && id !== null && id !== "" && reqBody !== undefined && reqBody !== null) {
+			if (!reqBody.session) {
+				throw new BadRequestException("Not a valid request");
+			}
+
+			// Validate session and user
+			let user = await this.userService.validateUser({
+				session: {
+					session_id: reqBody.session.session_id,
+					user_id: reqBody.session.user_id
 				}
 			});
 
@@ -657,11 +947,107 @@ export class OfferService {
 				throw new InternalServerErrorException("Something went wrong...")
 			}
 
+			// Check owner of offer
+			if (offer.lessor.user_id === user.user.user_id) {
+				throw new UnauthorizedException("Offer cannot be rated by lessor");
+			}
+
+			let userRating = 0;
+			if (reqBody.rating !== undefined && reqBody.rating !== null) {
+				// Update limit, if given
+				userRating = parseFloat(reqBody.rating);
+				if (isNaN(userRating) || userRating <= 0.0 || userRating > 5.0) {
+					// Not a number
+					throw new BadRequestException("Rating is not a valid number");
+				}
+			}
+
+			let updatedRating = parseFloat(((offer.rating * offer.number_of_ratings + userRating) / (offer.number_of_ratings + 1)).toFixed(2));
+
+			try {
+				Connector.executeQuery(QueryBuilder.updateOfferRating({
+					offer_id: id,
+					rating: updatedRating,
+					number_of_ratings: (offer.number_of_ratings + 1)
+				}));
+			} catch (e) {
+				throw new InternalServerErrorException("Something went wrong...");
+			}
+
+			return await this.getOfferById(id);
+		} else {
+			throw new BadRequestException("Invalid request");
+		}
+	}
+
+	/**
+	 * Deletes a given offer after user is authenticated
+	 * @param id ID of the offer to be deleted
+	 * @param reqBody Additional data to authenticate user and delete offer
+	 */
+	public async deleteOffer(id: string, reqBody: {
+		session?: {
+			session_id?: string,
+			user_id?: string
+		}
+	}): Promise<Offer> {
+		if (id !== undefined && id !== null && id !== "" && reqBody !== undefined && reqBody !== null) {
+			if (!reqBody.session) {
+				throw new BadRequestException("Not a valid request");
+			}
+
+			// Validate session and user
+			let user = await this.userService.validateUser({
+				session: {
+					session_id: reqBody.session.session_id,
+					user_id: reqBody.session.user_id
+				}
+			});
+
+			if (user === undefined || user === null) {
+				throw new BadRequestException("Not a valid user/session");
+			}
+
+			// Check if offer exists
+			let validOffer = await this.isValidOfferId(id);
+			if (!validOffer) {
+				throw new BadRequestException("Not a valid offer");
+			}
+
+			// Get old offer from database (for return)
+			let offer: Offer;
+			try {
+				offer = await this.getOfferById(id);
+			} catch (e) {
+				throw new InternalServerErrorException("Something went wrong...")
+			}
+
+			// Check owner of offer
+			if (offer.lessor.user_id !== user.user.user_id) {
+				throw new UnauthorizedException("User does not match");
+			}
+
 			// Delete all blocked dates
 			try {
 				await Connector.executeQuery(QueryBuilder.deleteBlockedDatesForOfferId(id));
 			} catch (e) {
-				throw new BadRequestException("Could not delete old unavailable dates of product");
+				throw new InternalServerErrorException("Something went wrong...");
+			}
+
+			// Delete images from disk
+			offer.picture_links.forEach(imageUrl => {
+				try {
+					FileHandler.deleteImage(imageUrl);
+				} catch (e) {
+					throw new InternalServerErrorException("Something went wrong...");
+				}
+			});
+
+			// Delete images from database
+			try {
+				await Connector.executeQuery(QueryBuilder.deletePicturesByOfferId(id));
+			} catch (e) {
+				throw new InternalServerErrorException("Something went wrong...");
 			}
 
 			// Delete offer from database
@@ -719,5 +1105,176 @@ export class OfferService {
 		} else {
 			return false;
 		}
+	}
+
+	/**
+	 * Returns either an empty array or an array with offer objects after
+	 * adding additional information like user data and picture links
+	 * 
+	 * This method does NOT add the blocked dates to the offer list!
+	 * Therefore a similar code is used in getOfferById method
+	 * 
+	 * @param offerList offer list with data from database
+	 */
+	private async addDataToOffers(offerList: Array<{
+		offer_id: string,
+		user_id: string,
+		title: string,
+		description: string,
+		rating: number,
+		price: number,
+		category_id: number,
+		category_name: string,
+		picture_link: string,
+		number_of_ratings: number
+	}>): Promise<Array<Offer>> {
+		let offers: Array<Offer> = [];
+
+		if (offerList.length > 0) {
+			for (let i = 0; i < offerList.length; i++) {
+				let pictureUUIDList: Array<{
+					uuid: string,
+					offer_id: string
+				}> = [];
+
+				let lessorDataList: Array<{
+					first_name: string,
+					last_name: string,
+					user_id: string,
+					post_code: string,
+					city: string,
+					verified: number,
+					lessor_rating: number,
+					number_of_lessor_ratings: number
+				}> = [];
+
+				try {
+					pictureUUIDList = await Connector.executeQuery(QueryBuilder.getOfferPictures(offerList[i].offer_id));
+				} catch (e) {
+					throw new InternalServerErrorException("Something went wrong...");
+				}
+
+				try {
+					lessorDataList = await Connector.executeQuery(QueryBuilder.getUserByOfferId(offerList[i].offer_id));
+				} catch (e) {
+					throw new InternalServerErrorException("Something went wrong...");
+				}
+
+				if (lessorDataList === undefined || lessorDataList === null || lessorDataList.length !== 1) {
+					throw new InternalServerErrorException("Something went wrong...");
+				}
+
+				if (pictureUUIDList.length > 0) {
+					let pictureLinks: Array<string> = [];
+
+					for (let j = 0; j < pictureUUIDList.length; j++) {
+						pictureLinks.push(BASE_OFFER_LINK + pictureUUIDList[j].uuid);
+					}
+
+					offers.push({
+						offer_id: offerList[i].offer_id,
+						title: offerList[i].title,
+						description: offerList[i].description,
+						number_of_ratings: offerList[i].number_of_ratings,
+						rating: offerList[i].rating,
+						price: offerList[i].price,
+						category: {
+							name: offerList[i].category_name,
+							category_id: offerList[i].category_id,
+							picture_link: offerList[i].picture_link
+						},
+						picture_links: pictureLinks,
+						lessor: {
+							first_name: lessorDataList[0].first_name,
+							last_name: lessorDataList[0].last_name,
+							user_id: offerList[i].user_id,
+							post_code: lessorDataList[0].post_code,
+							city: lessorDataList[0].city,
+							verified: (lessorDataList[0].verified === 1 ? true : false),
+							lessor_rating: lessorDataList[0].lessor_rating,
+							number_of_lessor_ratings: lessorDataList[0].number_of_lessor_ratings
+						}
+					});
+
+				} else {
+					offers.push({
+						offer_id: offerList[i].offer_id,
+						title: offerList[i].title,
+						description: offerList[i].description,
+						number_of_ratings: offerList[i].number_of_ratings,
+						rating: offerList[i].rating,
+						price: offerList[i].price,
+						category: {
+							name: offerList[i].category_name,
+							category_id: offerList[i].category_id,
+							picture_link: offerList[i].picture_link
+						},
+						picture_links: [],
+						lessor: {
+							first_name: lessorDataList[0].first_name,
+							last_name: lessorDataList[0].last_name,
+							user_id: offerList[i].user_id,
+							post_code: lessorDataList[0].post_code,
+							city: lessorDataList[0].city,
+							verified: (lessorDataList[0].verified === 1 ? true : false),
+							lessor_rating: lessorDataList[0].lessor_rating,
+							number_of_lessor_ratings: lessorDataList[0].number_of_lessor_ratings
+						}
+					});
+				}
+			}
+			return offers;
+		} else {
+			return [];
+		}
+	}
+
+	/**
+	 * Returns a list of offers after adding data for blocked dates to it
+	 * @param offerList List of offers (after data is added to database offers)
+	 */
+	private async addBlockedDatesToOffers(offerList: Array<Offer>): Promise<Array<Offer>> {
+		let offers: Array<Offer> = []
+		if (offerList) {
+			for (let i = 0; i < offerList.length; i++) {
+				let blockedDatesList: Array<{
+					offer_blocked_id: string,
+					offer_id: string,
+					from_date: Date,
+					to_date: Date,
+					reason?: string
+				}> = [];
+
+				let o = offerList[i];
+
+				try {
+					blockedDatesList = await Connector.executeQuery(QueryBuilder.getBlockedOfferDates(offerList[i].offer_id));
+				} catch (e) {
+					throw new InternalServerErrorException("Something went wrong...");
+				}
+
+				if (blockedDatesList.length > 0) {
+					let blockedDates: Array<{
+						from_date: Date,
+						to_date: Date
+					}> = [];
+
+					for (let i = 0; i < blockedDatesList.length; i++) {
+						blockedDates.push({
+							from_date: blockedDatesList[i].from_date,
+							to_date: blockedDatesList[i].to_date
+						});
+					}
+
+					o.blocked_dates = blockedDates;
+				} else {
+					o.blocked_dates = [];
+				}
+
+				offers.push(o)
+			}
+		}
+
+		return offers;
 	}
 }

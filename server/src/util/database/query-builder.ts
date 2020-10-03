@@ -1,6 +1,5 @@
 import { User } from "src/user/user.model";
 import { Query } from "./query.model";
-import { Offer } from "src/offer/offer.model";
 
 export class QueryBuilder {
 
@@ -31,11 +30,23 @@ export class QueryBuilder {
 		}
 	}
 
+	/**
+	 * Updates the following fields for a user: email, phone_number, password_hash, verified, place_id, street, house_number
+	 * @param user user object containing the user_id and all fields to be updated
+	 */
 	public static updateUser(user: User): Query {
 		return {
-			query: "UPDATE user SET ",
+			query: "UPDATE user SET first_name = ?, last_name = ?, email = ?, phone_number = ?, verified = ?, place_id = ?, street = ?, house_number = ? WHERE user_id = ?;",
 			args: [
-
+				user.first_name,
+				user.last_name,
+				user.email,
+				user.phone_number,
+				user.verified,
+				user.place_id,
+				user.street,
+				user.house_number,
+				user.user_id
 			]
 		}
 	}
@@ -93,7 +104,7 @@ export class QueryBuilder {
 	 */
 	public static getUserByOfferId(id: string): Query {
 		return {
-			query: "SELECT first_name, last_name, place.post_code, place.name AS city, verified, rating FROM user INNER JOIN offer ON offer.user_id = user.user_id INNER JOIN place ON user.place_id = place.place_id WHERE offer.offer_id = ?",
+			query: "SELECT first_name, last_name,user.user_id, user.lessor_rating, user.number_of_lessor_ratings, place.post_code, place.name AS city, verified FROM user INNER JOIN offer ON offer.user_id = user.user_id INNER JOIN place ON user.place_id = place.place_id WHERE offer.offer_id = ?",
 			args: [
 				id
 			]
@@ -128,7 +139,7 @@ export class QueryBuilder {
 	}
 
 	/**
-	 * Looks up an offer given an offer_id OR all offers within a limit, category or search
+	 * Looks up an offer given an offer_id OR all offers within a limit, category or search OR all offers for a user
 	 * @param offer_info object containing offer information: offer_info.offer_id OR offer_info.query
 	 */
 	public static getOffer(
@@ -138,19 +149,20 @@ export class QueryBuilder {
 				limit: number,
 				search?: string,
 				category?: number
-			}
+			},
+			user_id?: string
 		}
 	): Query {
 		if (offer_info.offer_id) {
 			return {
-				query: "SELECT * FROM offer WHERE offer_id = ?;",
+				query: "SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id WHERE offer_id = ?;",
 				args: [
 					offer_info.offer_id
 				]
 			}
 		} else if (offer_info.query) {
 			if (offer_info.query.category && offer_info.query.category > 0) {
-				let query = "SELECT * FROM offer WHERE category_id = ?";
+				let query = "SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id WHERE offer.category_id = ?";
 				let args = [];
 
 				args.push(offer_info.query.category);
@@ -169,7 +181,7 @@ export class QueryBuilder {
 					args: args
 				}
 			} else if (offer_info.query.search && offer_info.query.search !== "") {
-				let query = "SELECT * FROM offer WHERE title LIKE ?";
+				let query = "SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id WHERE title LIKE ?";
 				let args = [];
 
 				let search = "%" + offer_info.query.search + "%";
@@ -189,15 +201,55 @@ export class QueryBuilder {
 				}
 			} else {
 				return {
-					query: "SELECT * FROM offer LIMIT ?;",
+					query: "SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id LIMIT ?;",
 					args: [
 						offer_info.query.limit
 					]
 				}
 			}
+		} else if (offer_info.user_id) {
+			return {
+				query: "SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id WHERE user_id = ?;",
+				args: [
+					offer_info.user_id
+				]
+			}
 		} else {
 			return {
-				query: "SELECT * FROM offer LIMIT 15;",
+				query: "SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id LIMIT 15;",
+				args: []
+			}
+		}
+	}
+	/**
+	 * Returns a Query to get either nine of the best offers by offer rating, by lessor rating or the latest offers
+	 * @param offer_info different params to get different queries
+	 */
+	public static getHomepageOffers(offer_info: {
+		best_offers?: boolean,
+		latest_offers?: boolean,
+		best_lessors?: boolean
+	}): Query {
+		if (offer_info) {
+			if (offer_info && offer_info.best_offers) {
+				return {
+					query: "SELECT offer_id, user_id, title, description, offer.rating, price, offer.category_id, category.name AS category_name, category.picture_link, offer.number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id ORDER BY offer.rating DESC, offer.number_of_ratings DESC LIMIT 5;",
+					args: []
+				}
+			} else if (offer_info && offer_info.latest_offers) {
+				return {
+					query: "SELECT offer_id, user_id, title, description, offer.rating, price, offer.category_id, category.name AS category_name, category.picture_link, offer.number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id ORDER BY offer.created_at DESC LIMIT 5;",
+					args: []
+				}
+			} else if (offer_info && offer_info.best_lessors) {
+				return {
+					query: "SELECT offer_id, offer.user_id, title, description, offer.rating, price, offer.category_id, category.name AS category_name, category.picture_link, offer.number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id ORDER BY user.lessor_rating DESC, user.number_of_lessor_ratings DESC LIMIT 5;",
+					args: []
+				}
+			}
+		} else {
+			return {
+				query: "SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id LIMIT 5;",
 				args: []
 			}
 		}
@@ -210,7 +262,7 @@ export class QueryBuilder {
 	public static getCategories(category_info: {
 		category_id?: number
 	}): Query {
-		if(category_info.category_id) {
+		if (category_info.category_id) {
 			return {
 				query: "SELECT * FROM category WHERE category_id = ?;",
 				args: [
@@ -223,7 +275,7 @@ export class QueryBuilder {
 				args: []
 			}
 		}
-		
+
 	}
 
 	/**
@@ -256,9 +308,18 @@ export class QueryBuilder {
 	 * Returns a Query to create a new offer with the given values
 	 * @param offer Offer object containing the data to create a new offer
 	 */
-	public static createOffer(offer: Offer) : Query {
+	public static createOffer(offer: {
+		offer_id: string,
+		user_id: string,
+		title: string,
+		description: string,
+		rating: number,
+		number_of_ratings: number,
+		price: number,
+		category_id: number,
+	}): Query {
 		return {
-			query: "INSERT INTO offer (offer_id, user_id, title, description, rating, price, category_id, number_of_ratings) VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
+			query: "INSERT INTO offer (offer_id, user_id, title, description, rating, price, category_id, number_of_ratings, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW());",
 			args: [
 				offer.offer_id,
 				offer.user_id,
@@ -296,6 +357,25 @@ export class QueryBuilder {
 	}
 
 	/**
+	 * Returns a Query to update the offer rating
+	 * @param rating Information needed to update rating for offer
+	 */
+	public static updateOfferRating(rating: {
+		offer_id: string,
+		rating: number,
+		number_of_ratings: number
+	}): Query {
+		return {
+			query: "UPDATE offer SET rating = ?, number_of_ratings = ? WHERE offer_id = ?;",
+			args: [
+				rating.rating,
+				rating.number_of_ratings,
+				rating.offer_id
+			]
+		}
+	}
+
+	/**
 	 * Returns a Query to delete an offer with a given ID
 	 * @param id ID of the offer to be deleted
 	 */
@@ -314,7 +394,33 @@ export class QueryBuilder {
 	 */
 	public static deleteBlockedDatesForOfferId(id: string): Query {
 		return {
-			query: "DELETE FROM offer_blocked WHERE offer_id = ?",
+			query: "DELETE FROM offer_blocked WHERE offer_id = ?;",
+			args: [
+				id
+			]
+		}
+	}
+
+	/**
+	 * Returns a query to delete all picture uuid's for a given offer ID
+	 * @param id ID of the offer
+	 */
+	public static deletePicturesByOfferId(id: string): Query {
+		return {
+			query: "DELETE FROM offer_picture WHERE offer_id = ?;",
+			args: [
+				id
+			]
+		}
+	}
+
+	/**
+	 * Returns a query to delete a picture by a given id
+	 * @param id ID of the picture to be deleted
+	 */
+	public static deletePictureById(id: string): Query {
+		return {
+			query: "DELETE FROM offer_picture WHERE uuid = ?;",
 			args: [
 				id
 			]
@@ -333,30 +439,30 @@ export class QueryBuilder {
 		to_date: Date,
 		reason?: string
 	}): Query {
-		if(blocked_date.reason !== undefined
+		if (blocked_date.reason !== undefined
 			&& blocked_date.reason !== null
 			&& blocked_date.reason !== "") {
-				return {
-					query: "INSERT INTO offer_blocked (offer_blocked_id, offer_id, from_date, to_date, reason) VALUES (?, ?, ?, ?, ?)",
-					args: [
-						blocked_date.offer_blocked_id,
-						blocked_date.offer_id,
-						blocked_date.from_date,
-						blocked_date.to_date,
-						blocked_date.reason
-					]
-				}
-			} else {
-				return {
-					query: "INSERT INTO offer_blocked (offer_blocked_id, offer_id, from_date, to_date) VALUES (?, ?, ?, ?)",
-					args: [
-						blocked_date.offer_blocked_id,
-						blocked_date.offer_id,
-						blocked_date.from_date,
-						blocked_date.to_date
-					]
-				}
+			return {
+				query: "INSERT INTO offer_blocked (offer_blocked_id, offer_id, from_date, to_date, reason) VALUES (?, ?, ?, ?, ?)",
+				args: [
+					blocked_date.offer_blocked_id,
+					blocked_date.offer_id,
+					blocked_date.from_date,
+					blocked_date.to_date,
+					blocked_date.reason
+				]
 			}
+		} else {
+			return {
+				query: "INSERT INTO offer_blocked (offer_blocked_id, offer_id, from_date, to_date) VALUES (?, ?, ?, ?)",
+				args: [
+					blocked_date.offer_blocked_id,
+					blocked_date.offer_id,
+					blocked_date.from_date,
+					blocked_date.to_date
+				]
+			}
+		}
 	}
 
 	/**
@@ -400,13 +506,13 @@ export class QueryBuilder {
 		}
 	}
 
-	
+
 	/** 
 	 * Returns a Query to insert an image ID and offer ID  in the pictures table
 	 * @param offer_id ID of the offer
 	 * @param image_id ID of the image
 	 */
-	public static insertImageByOfferId(offer_id:string, image_id: string): Query {
+	public static insertImageByOfferId(offer_id: string, image_id: string): Query {
 		return {
 			query: "INSERT INTO offer_picture (offer_id, uuid) VALUES (?, ?);",
 			args: [
@@ -416,11 +522,73 @@ export class QueryBuilder {
 		}
 	}
 
+	/**
+	 * Returns a query to create a request on database
+	 * @param request Data to fill the request table
+	 */
+	public static createRequest(request: {
+		request_id: string,
+		user_id: string,
+		offer_id: string,
+		status_id: number,
+		from_date: Date,
+		to_date: Date,
+		message: string
+	}): Query {
+		return {
+			query: "INSERT INTO request (request_id, user_id, offer_id, status_id, from_date, to_date, message) VALUES (?, ?, ?, ?, ?, ?, ?);",
+			args: [
+				request.request_id,
+				request.user_id,
+				request.offer_id,
+				request.status_id,
+				request.from_date,
+				request.to_date,
+				request.message
+			]
+		}
+	}
+
+	public static getRating(
+		offer: {
+			rating_id?: number,
+			user_pair?: {
+				rating_user_id: string,
+				rated_user_id: string
+			},
+			rated_user_id?: string
+		}
+	): Query {
+		if (offer.rating_id) {
+			return {
+				query: "SELECT * FROM rating WHERE rating_id = ?;",
+				args: [
+					offer.rating_id
+				]
+			}
+		} else if (offer.user_pair) {
+			return {
+				query: "SELECT * FROM rating WHERE rating_user_id = ? AND rated_user_id = ?;",
+				args: [
+					offer.user_pair.rating_user_id,
+					offer.user_pair.rated_user_id
+				]
+			}
+		} else if (offer.rated_user_id) {
+			return {
+				query: "SELECT * FROM rating WHERE rated_user_id = ?",
+				args: [
+					offer.rated_user_id
+				]
+			}
+		}
+	}
+
 	public static testQuery() {
 		return {
 			query: "SELECT * FROM place WHERE place_id < 4;",
-				args: [
-				]
+			args: [
+			]
 		}
 	}
 }
