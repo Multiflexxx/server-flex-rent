@@ -101,7 +101,7 @@ export class OfferController {
 	 * Accepts up to ten files to upload images
 	 * @param images field key for files array
 	 */
-	@Put('images')
+	@Post('images')
 	@UseInterceptors(FilesInterceptor('images', 10))
 	uploadOfferPicture(
 		@UploadedFiles() images,
