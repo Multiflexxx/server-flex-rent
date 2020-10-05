@@ -102,7 +102,7 @@ export class OfferController {
 	 * @param images field key for files array
 	 */
 	@Post('images')
-	@UseInterceptors(FilesInterceptor('files', 10))
+	@UseInterceptors(FilesInterceptor('images', 10))
 	uploadOfferPicture(
 		@UploadedFiles() images,
 		@Body() reqBody
