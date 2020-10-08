@@ -16,4 +16,5 @@ export interface User {
     lessor_rating: number,
     number_of_lessor_ratings: number,
     date_of_birth?: Date,
+    profile_picture: string
 }

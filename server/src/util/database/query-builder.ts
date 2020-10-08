@@ -4,6 +4,7 @@ import { Query } from "./query.model";
 
 export class QueryBuilder {
 
+
 	/**
 	 * Creates a user given an user object containing ALL information that will be saved to the database
 	 * @param user User with data to be kept
@@ -551,39 +552,110 @@ export class QueryBuilder {
 	}
 
 	public static getRating(
-		offer: {
+		search: {
 			rating_id?: number,
 			user_pair?: {
 				rating_user_id: string,
-				rated_user_id: string
+				rated_user_id: string,
+				rating_typ: string
 			},
 			rated_user_id?: string
 		}
 	): Query {
-		if (offer.rating_id) {
+		if (search.rating_id) {
 			return {
 				query: "SELECT * FROM rating WHERE rating_id = ?;",
 				args: [
-					offer.rating_id
+					search.rating_id
 				]
 			}
-		} else if (offer.user_pair) {
+		} else if (search.user_pair) {
 			return {
-				query: "SELECT * FROM rating WHERE rating_user_id = ? AND rated_user_id = ?;",
+				query: "SELECT * FROM rating WHERE rating_user_id = ? AND rated_user_id = ? AND rating_type = ?;",
 				args: [
-					offer.user_pair.rating_user_id,
-					offer.user_pair.rated_user_id
+					search.user_pair.rating_user_id,
+					search.user_pair.rated_user_id,
+					search.user_pair.rating_typ
 				]
 			}
-		} else if (offer.rated_user_id) {
+		} else if (search.rated_user_id) {
 			return {
 				query: "SELECT * FROM rating WHERE rated_user_id = ?",
 				args: [
-					offer.rated_user_id
+					search.rated_user_id
 				]
 			}
 		}
 	}
+
+	public static createUserRating(
+		rating_user_id: string,
+		rating: {
+			user_id: string,
+			rating_type: string,
+			rating: number,
+			headline: string,
+			text: string
+		}
+	): Query {
+		return {
+			query: "INSERT INTO rating (rating_user_id, rated_user_id, rating_type, rating, headline, rating_text, created_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_DATE);",
+			args: [
+				rating_user_id,
+				rating.user_id,
+				rating.rating_type,
+				rating.rating,
+				rating.headline,
+				rating.text
+			]
+		}
+	}
+
+	public static calculateUserRating(user_id: string): Query {
+		return {
+			query: "SELECT rated_user_id, rating_type, count(rating_type) as rating_count, sum(rating) as rating_sum, ROUND((sum(rating) / count(rating_type)), 1) as average FROM rating WHERE rated_user_id = ? GROUP BY rating_type;",
+			args: [
+				user_id
+			]
+		}
+	}
+
+	public static setNewUserRating(user_id: string, lessor_rating: number, number_of_lessor_ratings: number, lessee_rating: number, number_of_lessee_ratings: number): Query {
+		return {
+			query: "UPDATE user SET lessor_rating = ?, number_of_lessor_ratings = ?, lessee_rating = ?, number_of_lessee_ratings = ? WHERE user_id = ?;",
+			args: [
+				lessor_rating,
+				number_of_lessor_ratings,
+				lessee_rating,
+				number_of_lessee_ratings
+			]
+		}
+	}
+
+	public static getUserRatings(user_id: string, rating_type?: string, rating?: string): Query {
+		let query = "SELECT * FROM rating WHERE rated_user_id = ?";
+		let args = [user_id];
+
+		if(rating_type) {
+			query += " AND rating_type = ?";
+			args.push(rating_type);
+		}
+
+		if(rating) {
+			query += " AND rating = ?";
+			args.push(rating);
+		}
+
+		query += ";";
+
+		console.log(query);
+
+		return {
+			query: query,
+			args: args
+		}
+	}
+
 
 	public static testQuery() {
 		return {
