@@ -9,6 +9,7 @@ import * as Moment from 'moment';
 import { extendMoment } from 'moment-range';
 const moment = extendMoment(Moment);
 import { UserService } from 'src/user/user.service';
+import { User } from 'src/user/user.model';
 
 const BASE_OFFER_LINK = require('../../file-handler-config.json').image_base_link;
 
@@ -763,8 +764,8 @@ export class OfferService {
 		}
 	}): Promise<{
 		request_id: string,
-		user_id: string,
-		offer_id: string,
+		user: User,
+		offer: Offer,
 		status_id: number,
 		from_date: Date,
 		to_date: Date,
@@ -871,16 +872,16 @@ export class OfferService {
 			// TODO: Create concept for status
 			let request: {
 				request_id: string,
-				user_id: string,
-				offer_id: string,
+				user: User,
+				offer: Offer,
 				status_id: number,
 				from_date: Date,
 				to_date: Date,
 				message: string
 			} = {
 				request_id: requestUuid,
-				user_id: reqBody.session.user_id,
-				offer_id: id,
+				user: user.user,
+				offer: offer,
 				status_id: 1,
 				from_date: new Date(moment(
 					reqBody.date_range.from_date.toString()
