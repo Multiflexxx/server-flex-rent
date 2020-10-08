@@ -1,3 +1,4 @@
+import { Offer } from "src/offer/offer.model";
 import { User } from "src/user/user.model";
 import { Query } from "./query.model";
 
@@ -528,8 +529,8 @@ export class QueryBuilder {
 	 */
 	public static createRequest(request: {
 		request_id: string,
-		user_id: string,
-		offer_id: string,
+		user: User,
+		offer: Offer,
 		status_id: number,
 		from_date: Date,
 		to_date: Date,
@@ -539,8 +540,8 @@ export class QueryBuilder {
 			query: "INSERT INTO request (request_id, user_id, offer_id, status_id, from_date, to_date, message) VALUES (?, ?, ?, ?, ?, ?, ?);",
 			args: [
 				request.request_id,
-				request.user_id,
-				request.offer_id,
+				request.user.user_id,
+				request.offer.offer_id,
 				request.status_id,
 				request.from_date,
 				request.to_date,
