@@ -27,6 +27,7 @@ CREATE TABLE user (
 	number_of_lessee_ratings int,
 	number_of_lessor_ratings int,
 	date_of_birth DATE,
+	profile_picture varchar(255),
 	PRIMARY KEY (user_id),
 	FOREIGN KEY (place_id) REFERENCES place (place_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
