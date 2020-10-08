@@ -39,12 +39,23 @@ export class FileHandler {
 	}
 
 	/**
-	 * Deletes a given image
+	 * Deletes a given image (default: offer, options: "user")
 	 * @param imageUrl URL of the image from database
 	 */
-	public static deleteImage(imageUrl: string) {
+	public static deleteImage(imageUrl: string, type?: string) {
+		let image;
+
 		//remove url part, which is stored together with the image in the database
-		let image = imageUrl.replace(config.image_base_link, '');
+		switch(type) {
+			case "user":
+				image = imageUrl.replace(config.user_image_base_url, '');
+				break;
+			// Default case: offer
+			default:
+				image = imageUrl.replace(config.offer_image_base_url, '');
+		}
+
+		// Delete file from system
 		try {
 			fs.unlinkSync((config.file_storage_path + image));
 		} catch (e) {
