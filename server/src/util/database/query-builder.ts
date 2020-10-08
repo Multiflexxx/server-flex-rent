@@ -631,12 +631,27 @@ export class QueryBuilder {
 		}
 	}
 
-	public static getUserRatings(user_id, rating_type, query): Query {
-		return {
-			query: "",
-			args: [
+	public static getUserRatings(user_id: string, rating_type?: string, rating?: string): Query {
+		let query = "SELECT * FROM rating WHERE rated_user_id = ?";
+		let args = [user_id];
 
-			]
+		if(rating_type) {
+			query += " AND rating_type = ?";
+			args.push(rating_type);
+		}
+
+		if(rating) {
+			query += " AND rating = ?";
+			args.push(rating);
+		}
+
+		query += ";";
+
+		console.log(query);
+
+		return {
+			query: query,
+			args: args
 		}
 	}
 

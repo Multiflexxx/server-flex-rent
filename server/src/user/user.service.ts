@@ -13,7 +13,6 @@ const rating_types: string[] = [
 
 @Injectable()
 export class UserService {
-
 	/**
 	 * Returns a User Object containing publicly visible user information
 	 * @param id ID of user
@@ -36,7 +35,8 @@ export class UserService {
 			lessee_rating: result.lessee_rating,
 			number_of_lessee_ratings: result.number_of_lessee_ratings,
 			lessor_rating: result.lessor_rating,
-			number_of_lessor_ratings: result.number_of_lessor_ratings
+			number_of_lessor_ratings: result.number_of_lessor_ratings,
+			profile_picture: result.profile_picture
 		}
 
 		if (isAuthenticated) {
@@ -330,7 +330,6 @@ export class UserService {
 		user.date_of_birth = new Date(date_of_birth.format("YYYY-MM-DD"));
 
 		// Check region/place
-		// TODO
 		result = (await Connector.executeQuery(QueryBuilder.getPlace({ post_code: user.post_code })))[0];
 		if (result) {
 			user.city = result.name;
@@ -344,9 +343,22 @@ export class UserService {
 	/**
 	 * async getUserRatings
 	 */
-	public async getUserRatings(query): Promise<any> {
-		
+	public async getUserRatings(user_id: string, query: any): Promise<any> {
+		/* Possible query params:
+			type = "lessee" / "lessor"
+			rating = 1...5
+		*/
+		return await Connector.executeQuery(QueryBuilder.getUserRatings(user_id, query.rating_type, query.rating));
 	}
+
+	public async getProfilePicture(user_id: string, response: any) {
+		const user = (await Connector.executeQuery(QueryBuilder.getUser({ user_id: user_id })))[0]
+		if(!user) {
+			throw new NotFoundException("User not found");
+		}
+
+
+    }
 
 	/**
 	 * Updates a user's rating and rating counts using ratings created for a user

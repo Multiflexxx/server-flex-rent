@@ -1,6 +1,7 @@
 import { Controller, Get, Param, Put, Body, Patch, Delete, Req, Post, Res, Query } from '@nestjs/common';
 import { UserService } from './user.service';
 import { User } from './user.model';
+import { response } from 'express';
 
 @Controller('user')
 export class UserController {
@@ -111,10 +112,19 @@ export class UserController {
         res.status(201).send();
     }
 
-    @Get('rating')
+    @Get('rating/:id')
     async getUserRatings(
+        @Param('id') user_id,
         @Query() query
     ): Promise<void> {
-        
+        return await this.userService.getUserRatings(user_id, query);
+    }
+
+    @Get('images/:id')
+    async getProfilePicture(
+        @Param('id') user_id,
+        @Res() response
+    ): Promise<any> {
+        this.userService.getProfilePicture(user_id, response);
     }
 }
