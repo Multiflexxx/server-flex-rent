@@ -11,7 +11,7 @@ const moment = extendMoment(Moment);
 import { UserService } from 'src/user/user.service';
 import { User } from 'src/user/user.model';
 
-const BASE_OFFER_LINK = require('../../file-handler-config.json').image_base_link;
+const BASE_OFFER_LINK = require('../../file-handler-config.json').offer_image_base_url;
 
 @Injectable()
 export class OfferService {
