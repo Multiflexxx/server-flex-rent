@@ -44,14 +44,14 @@ export class OfferController {
 	}
 
 	/**
-	 * Returns all offers for a user after validation of the user
-	 * @param reqBody user_id and session_id to validate user
+	 * Returns all offers for a user id
+	 * @param id  ID of the user
 	 */
-	@Get('user-offers/')
+	@Get('user-offers/:id')
 	getOffersByUserId(
-		@Body() reqBody: {}
+		@Param('id') id: string
 	) {
-		return this.offerService.getOffersByUserId(reqBody);
+		return this.offerService.getOffersByUserId(id);
 	}
 
 	/**
@@ -74,19 +74,16 @@ export class OfferController {
 	}
 
 	/**
- 	 * Updates an offer given the id and parameters to be updated, given sufficient authorization. 
+	   * Updates an offer given the id and parameters to be updated, given sufficient authorization. 
 	 * @param reqBody Update parameters
 	 * @param id ID of offer to be updated
-	 * @param images An array of images 
 	 */
 	@Patch(':id')
-	@UseInterceptors(FilesInterceptor('images', 10))
 	updateOffer(
 		@Body() reqBody: {},
 		@Param('id') id: string,
-		@UploadedFiles() images
 	) {
-		return this.offerService.updateOffer(id, reqBody, images);
+		return this.offerService.updateOffer(id, reqBody);
 	}
 
 	/**
@@ -104,7 +101,7 @@ export class OfferController {
 	 * Accepts up to ten files to upload images
 	 * @param images field key for files array
 	 */
-	@Put('images')
+	@Post('images')
 	@UseInterceptors(FilesInterceptor('images', 10))
 	uploadOfferPicture(
 		@UploadedFiles() images,
