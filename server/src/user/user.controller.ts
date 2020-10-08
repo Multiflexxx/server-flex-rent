@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Put, Body, Patch, Delete, Req, Post, Res } from '@nestjs/common';
+import { Controller, Get, Param, Put, Body, Patch, Delete, Req, Post, Res, Query } from '@nestjs/common';
 import { UserService } from './user.service';
 import { User } from './user.model';
 
@@ -90,7 +90,7 @@ export class UserController {
         return await this.userService.validateUser(auth);
     }
 
-    @Post('rate')
+    @Post('rating')
     async rateUser(
         @Body('auth') auth: {
             session: {
@@ -108,6 +108,13 @@ export class UserController {
         @Res() res: any
     ) {
         await this.userService.rateUser(auth, rating);
-        res.status(201).send("Hello World")
+        res.status(201).send();
+    }
+
+    @Get('rating')
+    async getUserRatings(
+        @Query() query
+    ): Promise<void> {
+        
     }
 }

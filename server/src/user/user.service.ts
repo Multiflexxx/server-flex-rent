@@ -1,10 +1,15 @@
-import { Injectable, BadRequestException, NotFoundException, InternalServerErrorException, Put, Patch, Inject, forwardRef, UnauthorizedException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, InternalServerErrorException, Put, Patch, Inject, forwardRef, UnauthorizedException, Query } from '@nestjs/common';
 import { User } from './user.model';
 import { Connector } from 'src/util/database/connector';
 import * as EmailValidator from 'email-validator';
 import { QueryBuilder } from 'src/util/database/query-builder';
 import { v4 as uuidv4 } from 'uuid';
+import { stringify } from 'querystring';
 const moment = require('moment');
+const rating_types: string[] = [
+	"lessor",
+	"lessee"
+];
 
 @Injectable()
 export class UserService {
@@ -159,12 +164,19 @@ export class UserService {
 	) {
 		// Check auth input
 		if (!auth || !auth.session || !auth.session.session_id || !auth.session.user_id) {
-			throw new BadRequestException("Invalid auth arguments");
+			throw new UnauthorizedException("Unauthorized");
 		}
 
+
 		// Check rating input
-		if (!rating || !rating.user_id || !rating.rating_type || !rating.rating || !rating.headline || !rating.text) {
+		if (!rating || !rating.user_id || !rating.rating_type || !rating.rating || !rating.headline || !rating.text || rating.rating > 5 || rating.rating < 1 || !rating_types.includes(rating.rating_type)) {
 			throw new BadRequestException("Invalid rating arguments");
+		}
+
+		// Check if user to be rated exists
+		const ratedUser = (await Connector.executeQuery(QueryBuilder.getUser({ user_id: rating.user_id })))[0];
+		if(!ratedUser) {
+			throw new BadRequestException("User does not exist.");
 		}
 
 		// Validate auth
@@ -181,12 +193,24 @@ export class UserService {
 		// user#1 = user who rates
 		// user#2 = user who is rated
 		// Check if user#1 already rated user#2
-		const userPairRating = await Connector.executeQuery(QueryBuilder.getRating({ 
-			user_pair: { 
-				rating_user_id: auth.session.user_id, 
-				rated_user_id: rating.user_id 
-			} 
-		}));
+		const userPairRating = (await Connector.executeQuery(QueryBuilder.getRating({
+			user_pair: {
+				rating_user_id: auth.session.user_id,
+				rated_user_id: rating.user_id,
+				rating_typ: rating.rating_type
+			}
+		})))[0];
+
+		if (userPairRating) {
+			throw new BadRequestException("Already rated user");
+		}
+
+		// User can be rated
+		// Create new rating 
+		await Connector.executeQuery(QueryBuilder.createUserRating(auth.session.user_id, rating));
+
+		// and calculate new user rating
+		this.updateUserRating(rating.user_id);
 
 	}
 
@@ -288,7 +312,6 @@ export class UserService {
 
 
 		// Check if phone is already registered
-
 		result = (await Connector.executeQuery(QueryBuilder.getUser({ phone: user.phone_number })))[0];
 		if (result) {
 			throw new BadRequestException("Phone number address already registered");
@@ -317,4 +340,26 @@ export class UserService {
 		}
 
 	}
+
+	/**
+	 * async getUserRatings
+	 */
+	public async getUserRatings(query): Promise<any> {
+		
+	}
+
+	/**
+	 * Updates a user's rating and rating counts using ratings created for a user
+	 * @param user_id ID of user to be updated
+	 */
+	private async updateUserRating(user_id: string): Promise<void> {
+		// Calculate new user ratings
+		const newUserRating = (await Connector.executeQuery(QueryBuilder.calculateUserRating(user_id)));
+		const lessor_info = newUserRating.filter(x => x.rating_type == "lessor")[0];
+		const lessee_info = newUserRating.filter(x => x.rating_type == "lessee")[0];
+
+		// Update Rating for user
+		await Connector.executeQuery(QueryBuilder.setNewUserRating(lessor_info.user_id, lessor_info.average, lessor_info.rating_count, lessee_info.average , lessee_info.rating_count));
+	}
 }
+
