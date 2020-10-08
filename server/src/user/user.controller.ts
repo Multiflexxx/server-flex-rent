@@ -1,7 +1,8 @@
-import { Controller, Get, Param, Put, Body, Patch, Delete, Req, Post, Res, Query } from '@nestjs/common';
+import { Controller, Get, Param, Put, Body, Patch, Delete, Req, Post, Res, Query, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { UserService } from './user.service';
 import { User } from './user.model';
 import { response } from 'express';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('user')
 export class UserController {
@@ -107,7 +108,7 @@ export class UserController {
             text: string
         },
         @Res() res: any
-    ) {
+    ): Promise<void> {
         await this.userService.rateUser(auth, rating);
         res.status(201).send();
     }
@@ -126,5 +127,18 @@ export class UserController {
         @Res() response
     ): Promise<any> {
         this.userService.getProfilePicture(user_id, response);
+    }
+
+    @Post('images/:id')
+    @UseInterceptors(FileInterceptor('image'))
+    async uploadProfilePicture(
+        @Param('id') user_id,
+        @UploadedFile() image,
+        @Body('auth') auth: {
+            session_id: string,
+            user_id: string
+        }
+    ): Promise<any> {
+        
     }
 }

@@ -5,6 +5,7 @@ import * as EmailValidator from 'email-validator';
 import { QueryBuilder } from 'src/util/database/query-builder';
 import { v4 as uuidv4 } from 'uuid';
 import { stringify } from 'querystring';
+import { FileHandler } from 'src/util/file-handler/file-handler';
 const moment = require('moment');
 const rating_types: string[] = [
 	"lessor",
@@ -123,14 +124,14 @@ export class UserService {
 
 		// Check if Email is already registered
 		let result = (await Connector.executeQuery(QueryBuilder.getUser({ email: user.email })))[0];
-		if (result) {
+		if (result && result.user_id != user.user_id) {
 			throw new BadRequestException("Email address already registered");
 		}
 
 
 		// Check if phone is already registered
 		result = (await Connector.executeQuery(QueryBuilder.getUser({ phone: user.phone_number })))[0];
-		if (result) {
+		if (result && result.user_id != user.user_id) {
 			throw new BadRequestException("Phone number address already registered");
 		}
 
@@ -164,7 +165,7 @@ export class UserService {
 	) {
 		// Check auth input
 		if (!auth || !auth.session || !auth.session.session_id || !auth.session.user_id) {
-			throw new UnauthorizedException("Unauthorized");
+			throw new BadRequestException("Insufficient arguments");
 		}
 
 
@@ -357,8 +358,34 @@ export class UserService {
 			throw new NotFoundException("User not found");
 		}
 
+		if(!user.profile_picture) {
+			throw new NotFoundException("No Profile picture")
+		}
 
-    }
+		response.sendFile(require('../../file-handler-config.json').file_storage_path + user.profile_picture.split("/").slice(-1)[0])
+	}
+	
+	public async uploadProfilePicture(
+		user_id: string, 
+		auth: {
+			session_id: string,
+			user_id: string
+		},
+		image: any		
+	): Promise<void> {
+		// Check auth
+		if(!auth || !auth.session_id || !auth.user_id || !user_id || !image) {
+			throw new BadRequestException("Insufficient arguments");
+		}
+
+		const validatedUser = await this.validateUser({session: auth});
+		if(auth.user_id != user_id || validatedUser.user.user_id != auth.user_id) {
+			throw new UnauthorizedException("Unauthorized");
+		}
+
+		// FileHandler.saveImage(image, );
+
+	}
 
 	/**
 	 * Updates a user's rating and rating counts using ratings created for a user

@@ -55,7 +55,7 @@ export class FileHandler {
 				image = imageUrl.replace(config.offer_image_base_url, '');
 		}
 
-		// Delete file from system
+		// Delete file from system 
 		try {
 			fs.unlinkSync((config.file_storage_path + image));
 		} catch (e) {
