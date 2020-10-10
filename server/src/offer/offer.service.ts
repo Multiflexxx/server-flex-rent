@@ -1139,15 +1139,15 @@ export class OfferService {
 				let response: Array<Request> = [];
 
 				// TODO: change number
-				if(reqBody.status_code !== undefined && reqBody.status_code === 100) {
+				if (reqBody.status_code !== undefined && reqBody.status_code === 100) {
 					try {
-					dbRequests = await Connector.executeQuery(QueryBuilder.getRequest({ 
-						user_id: reqBody.session.user_id,
-						status_code: reqBody.status_code 
-					}));
-				} catch (error) {
-					throw new InternalServerErrorException("Something went wrong...");
-				}
+						dbRequests = await Connector.executeQuery(QueryBuilder.getRequest({
+							user_id: reqBody.session.user_id,
+							status_code: reqBody.status_code
+						}));
+					} catch (error) {
+						throw new InternalServerErrorException("Something went wrong...");
+					}
 				} else {
 					try {
 						dbRequests = await Connector.executeQuery(QueryBuilder.getRequest({ user_id: reqBody.session.user_id }));
@@ -1155,7 +1155,7 @@ export class OfferService {
 						throw new InternalServerErrorException("Something went wrong...");
 					}
 				}
-				
+
 				for (let i = 0; i < dbRequests.length; i++) {
 					let offer: Offer;
 
