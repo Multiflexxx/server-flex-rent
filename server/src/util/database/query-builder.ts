@@ -1,10 +1,9 @@
-import { Offer } from "src/offer/offer.model";
 import { User } from "src/user/user.model";
 import { Query } from "./query.model";
+import { Request } from "src/offer/request.model";
+import { request } from "express";
 
 export class QueryBuilder {
-
-
 	/**
 	 * Creates a user given an user object containing ALL information that will be saved to the database
 	 * @param user User with data to be kept
@@ -528,17 +527,9 @@ export class QueryBuilder {
 	 * Returns a query to create a request on database
 	 * @param request Data to fill the request table
 	 */
-	public static createRequest(request: {
-		request_id: string,
-		user: User,
-		offer: Offer,
-		status_id: number,
-		from_date: Date,
-		to_date: Date,
-		message: string
-	}): Query {
+	public static createRequest(request: Request): Query {
 		return {
-			query: "INSERT INTO request (request_id, user_id, offer_id, status_id, from_date, to_date, message) VALUES (?, ?, ?, ?, ?, ?, ?);",
+			query: "INSERT INTO request (request_id, user_id, offer_id, status_id, from_date, to_date, message, qr_code_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
 			args: [
 				request.request_id,
 				request.user.user_id,
@@ -546,8 +537,48 @@ export class QueryBuilder {
 				request.status_id,
 				request.from_date,
 				request.to_date,
-				request.message
+				request.message,
+				request.qr_code_id
 			]
+		}
+	}
+
+	/**
+	 * Returns a Query to get all requests for a given user_id OR a specific request by it's ID
+	 * @param request_info ID of request OR ID of user
+	 */
+	public static getRequest(request_info: {
+		request_id?: string,
+		user_id?: string,
+		status_code?: number
+	}): Query {
+		if (request_info.request_id) {
+			return {
+				query: "SELECT request_id, user_id, offer_id, status_id, from_date, to_date, message, qr_code_id FROM request WHERE request_id = ?;",
+				args: [
+					request_info.request_id
+				]
+			}
+		} else if (request_info.user_id) {
+			//TODO: Add check for status code
+			if(request_info.status_code) {
+				return {
+					query: "SELECT request_id, user_id, offer_id, status_id, from_date, to_date, message, qr_code_id FROM request WHERE user_id = ? AND status_id = ?;",
+					args: [
+						request_info.user_id,
+						request_info.status_code
+					]
+				}
+			} else {
+				// TODO: Change number
+				return {
+					query: "SELECT request_id, user_id, offer_id, status_id, from_date, to_date, message, qr_code_id FROM request WHERE user_id = ? AND status_id != ?;",
+					args: [
+						request_info.user_id,
+						100
+					]
+				}
+			}
 		}
 	}
 
@@ -636,12 +667,12 @@ export class QueryBuilder {
 		let query = "SELECT * FROM rating WHERE rated_user_id = ?";
 		let args = [user_id];
 
-		if(rating_type) {
+		if (rating_type) {
 			query += " AND rating_type = ?";
 			args.push(rating_type);
 		}
 
-		if(rating) {
+		if (rating) {
 			query += " AND rating = ?";
 			args.push(rating);
 		}
