@@ -535,8 +535,8 @@ export class QueryBuilder {
 				request.user.user_id,
 				request.offer.offer_id,
 				request.status_id,
-				request.from_date,
-				request.to_date,
+				request.date_range.from_date,
+				request.date_range.to_date,
 				request.message,
 				request.qr_code_id
 			]
@@ -561,7 +561,7 @@ export class QueryBuilder {
 			}
 		} else if (request_info.user_id) {
 			//TODO: Add check for status code
-			if(request_info.status_code) {
+			if (request_info.status_code) {
 				return {
 					query: "SELECT request_id, user_id, offer_id, status_id, from_date, to_date, message, qr_code_id FROM request WHERE user_id = ? AND status_id = ?;",
 					args: [

@@ -869,12 +869,14 @@ export class OfferService {
 				user: user.user,
 				offer: offer,
 				status_id: 1,
-				from_date: new Date(moment(
-					reqBody.date_range.from_date.toString()
-				).format("YYYY-MM-DD")),
-				to_date: new Date(moment(
-					reqBody.date_range.to_date.toString()
-				).format("YYYY-MM-DD")),
+				date_range: {
+					from_date: new Date(moment(
+						reqBody.date_range.from_date.toString()
+					).format("YYYY-MM-DD")),
+					to_date: new Date(moment(
+						reqBody.date_range.to_date.toString()
+					).format("YYYY-MM-DD"))
+				},
 				message: (reqBody.message === undefined || reqBody.message === null) ? "" : reqBody.message,
 				qr_code_id: ""
 			}
@@ -1112,8 +1114,10 @@ export class OfferService {
 						user: user.user,
 						offer: offer,
 						status_id: dbRequests[0].status_id,
-						from_date: dbRequests[0].from_date,
-						to_date: dbRequests[0].to_date,
+						date_range: {
+							from_date: dbRequests[0].from_date,
+							to_date: dbRequests[0].to_date
+						},
 						message: dbRequests[0].message,
 						qr_code_id: (dbRequests[0].qr_code_id === null) ? "" : dbRequests[0].qr_code_id
 					}
@@ -1139,15 +1143,15 @@ export class OfferService {
 				let response: Array<Request> = [];
 
 				// TODO: change number
-				if(reqBody.status_code !== undefined && reqBody.status_code === 100) {
+				if (reqBody.status_code !== undefined && reqBody.status_code === 100) {
 					try {
-					dbRequests = await Connector.executeQuery(QueryBuilder.getRequest({ 
-						user_id: reqBody.session.user_id,
-						status_code: reqBody.status_code 
-					}));
-				} catch (error) {
-					throw new InternalServerErrorException("Something went wrong...");
-				}
+						dbRequests = await Connector.executeQuery(QueryBuilder.getRequest({
+							user_id: reqBody.session.user_id,
+							status_code: reqBody.status_code
+						}));
+					} catch (error) {
+						throw new InternalServerErrorException("Something went wrong...");
+					}
 				} else {
 					try {
 						dbRequests = await Connector.executeQuery(QueryBuilder.getRequest({ user_id: reqBody.session.user_id }));
@@ -1155,7 +1159,7 @@ export class OfferService {
 						throw new InternalServerErrorException("Something went wrong...");
 					}
 				}
-				
+
 				for (let i = 0; i < dbRequests.length; i++) {
 					let offer: Offer;
 
@@ -1170,8 +1174,10 @@ export class OfferService {
 						user: user.user,
 						offer: offer,
 						status_id: dbRequests[i].status_id,
-						from_date: dbRequests[i].from_date,
-						to_date: dbRequests[i].to_date,
+						date_range: {
+							from_date: dbRequests[i].from_date,
+							to_date: dbRequests[i].to_date
+						},
 						message: dbRequests[i].message,
 						qr_code_id: (dbRequests[i].qr_code_id === null) ? "" : dbRequests[0].qr_code_id
 					}
