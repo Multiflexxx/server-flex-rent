@@ -6,8 +6,10 @@ export interface Request {
     user?: User,
     offer?: Offer,
     status_id?: number,
-    from_date?: Date,
-    to_date?: Date,
+    date_range?: {
+        from_date?: Date,
+        to_date?: Date
+    },
     message?: string,
     qr_code_id?: string
 }

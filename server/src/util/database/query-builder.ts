@@ -535,8 +535,8 @@ export class QueryBuilder {
 				request.user.user_id,
 				request.offer.offer_id,
 				request.status_id,
-				request.from_date,
-				request.to_date,
+				request.date_range.from_date,
+				request.date_range.to_date,
 				request.message,
 				request.qr_code_id
 			]
