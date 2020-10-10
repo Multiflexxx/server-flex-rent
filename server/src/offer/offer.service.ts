@@ -10,6 +10,8 @@ import { extendMoment } from 'moment-range';
 const moment = extendMoment(Moment);
 import { UserService } from 'src/user/user.service';
 import { User } from 'src/user/user.model';
+import { Request } from './request.model';
+import { request } from 'express';
 
 const BASE_OFFER_LINK = require('../../file-handler-config.json').offer_image_base_url;
 
@@ -762,15 +764,7 @@ export class OfferService {
 			from_date: Date,
 			to_date: Date
 		}
-	}): Promise<{
-		request_id: string,
-		user: User,
-		offer: Offer,
-		status_id: number,
-		from_date: Date,
-		to_date: Date,
-		message: string
-	}> {
+	}): Promise<Request> {
 		if (id !== undefined && id !== null && id !== "" && reqBody !== undefined && reqBody !== null) {
 			if (!reqBody.session || !reqBody.date_range) {
 				throw new BadRequestException("Not a valid request");
@@ -870,15 +864,7 @@ export class OfferService {
 			let requestUuid = uuid();
 
 			// TODO: Create concept for status
-			let request: {
-				request_id: string,
-				user: User,
-				offer: Offer,
-				status_id: number,
-				from_date: Date,
-				to_date: Date,
-				message: string
-			} = {
+			let request: Request = {
 				request_id: requestUuid,
 				user: user.user,
 				offer: offer,
@@ -889,7 +875,8 @@ export class OfferService {
 				to_date: new Date(moment(
 					reqBody.date_range.to_date.toString()
 				).format("YYYY-MM-DD")),
-				message: (reqBody.message === undefined || reqBody.message === null) ? "" : reqBody.message
+				message: (reqBody.message === undefined || reqBody.message === null) ? "" : reqBody.message,
+				qr_code_id: ""
 			}
 
 			try {
@@ -1061,6 +1048,140 @@ export class OfferService {
 			return offer;
 		} else {
 			throw new BadRequestException("Could not delete offer");
+		}
+	}
+
+	/**
+	 * Returns a single request for a given request OR all request for a user
+	 * @param reqBody Data to authenticate user + statuscode to filter AND/OR request, if needed
+	 */
+	public async getRequests(reqBody: {
+		session?: {
+			session_id?: string,
+			user_id?: string
+		},
+		request?: Request,
+		status_code?: number
+	}): Promise<Request | Array<Request>> {
+		if (reqBody !== undefined && reqBody !== null && reqBody.session !== undefined && reqBody.session !== null) {
+			// Validate session and user
+			let user = await this.userService.validateUser({
+				session: {
+					session_id: reqBody.session.session_id,
+					user_id: reqBody.session.user_id
+				}
+			});
+
+			if (user === undefined || user === null) {
+				throw new BadRequestException("Not a valid user/session");
+			}
+
+			// If request is sent, lookup the sent request(id)
+			// else return all requests for the user
+			if (reqBody.request) {
+				let dbRequests: Array<{
+					request_id: string,
+					user_id: string,
+					offer_id: string,
+					status_id: number,
+					from_date: Date,
+					to_date: Date,
+					message: string,
+					qr_code_id: string
+				}>;
+
+				try {
+					dbRequests = await Connector.executeQuery(QueryBuilder.getRequest({ request_id: reqBody.request.request_id }));
+				} catch (error) {
+					throw new InternalServerErrorException("Something went wrong...");
+				}
+
+				if (dbRequests.length < 1) {
+					throw new BadRequestException("Request does not exist");
+				} else if (dbRequests.length === 1) {
+					let offer: Offer;
+
+					try {
+						offer = await this.getOfferById(dbRequests[0].offer_id);
+					} catch (error) {
+						throw new InternalServerErrorException("Something went wrong...");
+					}
+
+					let o: Request = {
+						request_id: dbRequests[0].request_id,
+						user: user.user,
+						offer: offer,
+						status_id: dbRequests[0].status_id,
+						from_date: dbRequests[0].from_date,
+						to_date: dbRequests[0].to_date,
+						message: dbRequests[0].message,
+						qr_code_id: (dbRequests[0].qr_code_id === null) ? "" : dbRequests[0].qr_code_id
+					}
+
+					return o;
+				} else {
+					throw new InternalServerErrorException("Something went wrong...");
+				}
+			} else {
+				//TODO:
+				// check for status code to separate open/pending offers and closed(done) offers
+				let dbRequests: Array<{
+					request_id: string,
+					user_id: string,
+					offer_id: string,
+					status_id: number,
+					from_date: Date,
+					to_date: Date,
+					message: string,
+					qr_code_id: string
+				}>;
+
+				let response: Array<Request> = [];
+
+				// TODO: change number
+				if(reqBody.status_code !== undefined && reqBody.status_code === 100) {
+					try {
+					dbRequests = await Connector.executeQuery(QueryBuilder.getRequest({ 
+						user_id: reqBody.session.user_id,
+						status_code: reqBody.status_code 
+					}));
+				} catch (error) {
+					throw new InternalServerErrorException("Something went wrong...");
+				}
+				} else {
+					try {
+						dbRequests = await Connector.executeQuery(QueryBuilder.getRequest({ user_id: reqBody.session.user_id }));
+					} catch (error) {
+						throw new InternalServerErrorException("Something went wrong...");
+					}
+				}
+				
+				for (let i = 0; i < dbRequests.length; i++) {
+					let offer: Offer;
+
+					try {
+						offer = await this.getOfferById(dbRequests[i].offer_id);
+					} catch (error) {
+						throw new InternalServerErrorException("Something went wrong...");
+					}
+
+					let o: Request = {
+						request_id: dbRequests[i].request_id,
+						user: user.user,
+						offer: offer,
+						status_id: dbRequests[i].status_id,
+						from_date: dbRequests[i].from_date,
+						to_date: dbRequests[i].to_date,
+						message: dbRequests[i].message,
+						qr_code_id: (dbRequests[i].qr_code_id === null) ? "" : dbRequests[0].qr_code_id
+					}
+
+					response.push(o);
+				}
+				return response;
+			}
+		} else {
+			throw new BadRequestException("Not a valid request");
 		}
 	}
 
