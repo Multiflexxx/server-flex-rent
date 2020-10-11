@@ -1301,6 +1301,12 @@ export class OfferService {
 			case 5:
 				// Returned to lessor
 				break;
+			case 6:
+				// Request canceled by lessor
+				break;
+			case 7:
+				// Request canceled by lessee
+				break;
 			default: throw new BadRequestException("Not a valid status code");
 		}
 
