@@ -121,24 +121,30 @@ export class UserController {
         return await this.userService.getUserRatings(user_id, query);
     }
 
+
     @Get('images/:id')
     async getProfilePicture(
         @Param('id') user_id,
         @Res() response
     ): Promise<any> {
-        this.userService.getProfilePicture(user_id, response);
+        response.sendFile(await this.userService.getProfilePicture(user_id, response));
     }
 
-    @Post('images/:id')
+
+    @Post('images')
     @UseInterceptors(FileInterceptor('image'))
     async uploadProfilePicture(
-        @Param('id') user_id,
-        @UploadedFile() image,
-        @Body('auth') auth: {
-            session_id: string,
-            user_id: string
-        }
+        @UploadedFile() image: {
+			fieldname: string,
+			originalname: string,
+			encoding: string,
+			mimetype: string,
+			buffer: Buffer,
+			size: number
+		},
+        @Body('user_id') user_id: string,
+        @Body('session_id') session_id: string
     ): Promise<any> {
-        
+        return await this.userService.uploadProfilePicture(user_id, session_id, image);
     }
 }

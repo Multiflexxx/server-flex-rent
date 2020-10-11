@@ -6,6 +6,8 @@ import { QueryBuilder } from 'src/util/database/query-builder';
 import { v4 as uuidv4 } from 'uuid';
 import { stringify } from 'querystring';
 import { FileHandler } from 'src/util/file-handler/file-handler';
+
+const fileConfig = require('../../file-handler-config.json');
 const moment = require('moment');
 const rating_types: string[] = [
 	"lessor",
@@ -37,7 +39,7 @@ export class UserService {
 			number_of_lessee_ratings: result.number_of_lessee_ratings,
 			lessor_rating: result.lessor_rating,
 			number_of_lessor_ratings: result.number_of_lessor_ratings,
-			profile_picture: result.profile_picture
+			profile_picture: fileConfig.user_image_base_url + result.profile_picture.split(".")[0]
 		}
 
 		if (isAuthenticated) {
@@ -339,6 +341,10 @@ export class UserService {
 			throw new BadRequestException("Invalid post code");
 		}
 
+		// Check if the other fields are filled
+		if(!user.first_name || !user.last_name || !user.password_hash) {
+			throw new BadRequestException("Missing arguments");
+		}
 	}
 
 	/**
@@ -362,29 +368,59 @@ export class UserService {
 			throw new NotFoundException("No Profile picture")
 		}
 
-		response.sendFile(require('../../file-handler-config.json').file_storage_path + user.profile_picture.split("/").slice(-1)[0])
+		// response.sendFile(fileConfig.file_storage_path + user.profile_picture);
+		return fileConfig.file_storage_path + user.profile_picture;
 	}
 	
+	/**
+	 * Uploads a given image to the server and sets its path as the profile_picture attribute of a user
+	 * @param user_id 
+	 * @param auth 
+	 * @param image 
+	 */
 	public async uploadProfilePicture(
 		user_id: string, 
-		auth: {
-			session_id: string,
-			user_id: string
-		},
-		image: any		
-	): Promise<void> {
+		session_id: string,
+		image: {
+			fieldname: string,
+			originalname: string,
+			encoding: string,
+			mimetype: string,
+			buffer: Buffer,
+			size: number
+		}
+	): Promise<User> {
 		// Check auth
-		if(!auth || !auth.session_id || !auth.user_id || !user_id || !image) {
+		if(!session_id 
+			|| !user_id 
+			|| !image
+			|| !image.fieldname
+			|| !image.originalname
+			|| !image.encoding
+			|| !image.mimetype
+			|| !image.buffer
+			|| !image.size) {
 			throw new BadRequestException("Insufficient arguments");
 		}
 
-		const validatedUser = await this.validateUser({session: auth});
-		if(auth.user_id != user_id || validatedUser.user.user_id != auth.user_id) {
+		const validatedUser = await this.validateUser({
+			session: {
+				user_id: user_id, 
+				session_id: session_id
+			}
+		});
+		
+		if(user_id != user_id || validatedUser.user.user_id != user_id) {
 			throw new UnauthorizedException("Unauthorized");
 		}
 
-		// FileHandler.saveImage(image, );
+		// Upload file
+		const fileName = (await FileHandler.saveImage(image, user_id)).split("/").slice(-1)[0];
 
+		// Update User with new path
+		await Connector.executeQuery(QueryBuilder.changeProfilePicture(user_id, fileName));
+
+		return await this.getUser(user_id);
 	}
 
 	/**

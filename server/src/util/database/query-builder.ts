@@ -53,6 +53,16 @@ export class QueryBuilder {
 		}
 	}
 
+	public static changeProfilePicture(user_id: string, url: string): Query {
+		return {
+			query: "UPDATE user SET profile_picture = ? WHERE user_id = ?;",
+			args: [
+				url,
+				user_id
+			]
+		}
+	}
+
 	/**
 	 * Looks up a user given either a user_id OR login information
 	 * @param user_info object containing user information: either user_info.user_id OR user_info.login
