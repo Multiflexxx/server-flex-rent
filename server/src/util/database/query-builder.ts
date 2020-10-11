@@ -544,6 +544,32 @@ export class QueryBuilder {
 	}
 
 	/**
+	 * Returns a query to update the request on database
+	 * @param request Request-object which is needed to update database
+	 */
+	public static updateRequest(request: Request): Query {
+		if (request.qr_code_id) {
+			return {
+				query: "UPDATE request SET status_id = ?, qr_code_id = ? WHERE request_id = ?;",
+				args: [
+					request.status_id,
+					request.qr_code_id,
+					request.request_id
+				]
+			}
+		} else {
+			return {
+				query: "UPDATE request SET status_id = ? WHERE request_id = ?;",
+				args: [
+					request.status_id,
+					request.request_id
+				]
+			}
+		}
+
+	}
+
+	/**
 	 * Returns a Query to get all requests for a given user_id OR a specific request by it's ID
 	 * @param request_info ID of request OR ID of user
 	 */
@@ -575,7 +601,7 @@ export class QueryBuilder {
 					query: "SELECT request_id, user_id, offer_id, status_id, from_date, to_date, message, qr_code_id FROM request WHERE user_id = ? AND status_id != ?;",
 					args: [
 						request_info.user_id,
-						100
+						5
 					]
 				}
 			}

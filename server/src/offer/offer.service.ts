@@ -1192,6 +1192,127 @@ export class OfferService {
 	}
 
 	/**
+	 * Handles everything which is needed to make the whole lend/borrow process possible
+	 * Returns an update request
+	 * @param reqBody TODO
+	 */
+	public async handleRequests(reqBody: {
+		session?: {
+			session_id?: string,
+			user_id?: string
+		},
+		request?: Request
+	}): Promise<Request> {
+		if (!reqBody || !reqBody.session || !reqBody.request) {
+			throw new BadRequestException("Not a valid request");
+		}
+
+		let userResponse = await this.userService.validateUser({
+			session: {
+				session_id: reqBody.session.session_id,
+				user_id: reqBody.session.user_id
+			}
+		});
+
+		// check if user exists
+		if (userResponse === undefined || userResponse === null) {
+			throw new BadRequestException("Not a valid user/session");
+		}
+
+		// Check if request exists
+		// If an error occurs it crashes in getRequest (I guess/ I hope)
+		let requests = await this.getRequests({
+			session: reqBody.session,
+			request: reqBody.request
+		});
+	
+		// Check if offer exists
+		let validOffer = await this.isValidOfferId(reqBody.request.offer.offer_id);
+		if (!validOffer) {
+			throw new BadRequestException("Not a valid offer");
+		}
+
+		let dbOffers: Array<{
+			first_name: string,
+			last_name: string,
+			user_id: string,
+			post_code: string,
+			city: string,
+			verified: number,
+			lessor_rating: number,
+			number_of_lessor_ratings: number
+		}> = [];
+
+		try {
+			dbOffers = await Connector.executeQuery(QueryBuilder.getUserByOfferId(reqBody.request.offer.offer_id));
+		} catch (e) {
+			throw new InternalServerErrorException("Something went wrong...");
+		}
+
+		if (dbOffers === undefined || dbOffers === null || dbOffers.length !== 1) {
+			throw new InternalServerErrorException("Something went wrong...");
+		}
+
+		if(dbOffers[0].user_id !== userResponse.user.user_id) {
+			throw new BadRequestException("You are not the owner of the offer!");
+		}
+
+		// TODO: Check codes range
+		// check statuscode
+		if (reqBody.request.status_id === undefined || 
+			reqBody.request.status_id === null ||
+			isNaN(reqBody.request.status_id) ||
+			reqBody.request.status_id <= 0 ||
+			reqBody.request.status_id > 5) {
+			throw new BadRequestException("Invalid status code");
+		}
+
+		let returnResponse = null;
+
+		switch(reqBody.request.status_id) {
+			case 2:
+				// Accepted by lessor
+				let a: Request = reqBody.request;
+				a.status_id = 2;
+				a.qr_code_id = uuid();
+				// TODO: 
+				// Check if qr_code_id is already set, to avoid overwriting
+				Connector.executeQuery(QueryBuilder.updateRequest(a));
+
+				returnResponse = await this.getRequests({
+					session: reqBody.session,
+					request: reqBody.request
+				});
+
+				// Remove QR-Code string from response to avoid that the lessor can scan it
+				(returnResponse as Request).qr_code_id = '';
+				break;
+			case 3:
+				// Rejected by lessor
+				// Update object to write reject to database
+				let b: Request = reqBody.request;
+				b.status_id = 3;
+				b.qr_code_id = undefined;
+				Connector.executeQuery(QueryBuilder.updateRequest(b));
+				break;
+			case 4:
+				// Lend by lessor
+				break;
+			case 5:
+				// Returned to lessor
+				break;
+			default: throw new BadRequestException("Not a valid status code");
+		}
+
+		// Return updated request object
+		if(returnResponse !== null) {
+			return returnResponse;
+		} else {
+			throw new InternalServerErrorException("Something went wrong...");
+		}	
+	}
+
+	/**
 	 * returns true if an offer is valid
 	 * @param id ID of the offer which shall be validated
 	 */
