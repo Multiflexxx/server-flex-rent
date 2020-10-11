@@ -126,7 +126,6 @@ export class OfferController {
 	handleRequests(
 		@Body() reqBody: {}
 	) {
-		console.log(reqBody)
 		return this.offerService.handleRequests(reqBody);
 	}
 
