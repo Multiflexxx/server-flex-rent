@@ -1143,7 +1143,7 @@ export class OfferService {
 				let response: Array<Request> = [];
 
 				// TODO: change number
-				if (reqBody.status_code !== undefined && reqBody.status_code === 100) {
+				if (reqBody.status_code !== undefined && reqBody.status_code === 5) {
 					try {
 						dbRequests = await Connector.executeQuery(QueryBuilder.getRequest({
 							user_id: reqBody.session.user_id,
@@ -1225,7 +1225,7 @@ export class OfferService {
 			session: reqBody.session,
 			request: reqBody.request
 		});
-	
+
 		// Check if offer exists
 		let validOffer = await this.isValidOfferId(reqBody.request.offer.offer_id);
 		if (!validOffer) {
@@ -1253,13 +1253,13 @@ export class OfferService {
 			throw new InternalServerErrorException("Something went wrong...");
 		}
 
-		if(dbOffers[0].user_id !== userResponse.user.user_id) {
+		if (dbOffers[0].user_id !== userResponse.user.user_id) {
 			throw new BadRequestException("You are not the owner of the offer!");
 		}
 
 		// TODO: Check codes range
 		// check statuscode
-		if (reqBody.request.status_id === undefined || 
+		if (reqBody.request.status_id === undefined ||
 			reqBody.request.status_id === null ||
 			isNaN(reqBody.request.status_id) ||
 			reqBody.request.status_id <= 0 ||
@@ -1268,15 +1268,40 @@ export class OfferService {
 		}
 
 		let returnResponse = null;
+		let dbRequests: Array<{
+			request_id: string,
+			user_id: string,
+			offer_id: string,
+			status_id: number,
+			from_date: Date,
+			to_date: Date,
+			message: string,
+			qr_code_id: string
+		}> = [];
 
-		switch(reqBody.request.status_id) {
+		switch (reqBody.request.status_id) {
 			case 2:
 				// Accepted by lessor
 				let a: Request = reqBody.request;
 				a.status_id = 2;
 				a.qr_code_id = uuid();
-				// TODO: 
-				// Check if qr_code_id is already set, to avoid overwriting
+
+				try {
+					dbRequests = await Connector.executeQuery(QueryBuilder.getRequest({ request_id: reqBody.request.request_id }));
+				} catch (error) {
+					throw new InternalServerErrorException("Something went wrong...");
+				}
+
+				// Disallow overwriting of existing status codes
+				if (dbRequests[0].qr_code_id !== null || dbRequests[0].qr_code_id !== '') {
+					throw new BadRequestException("Cannot update already set status");
+				}
+
+				if (dbRequests[0].status_id !== 1) {
+					throw new BadRequestException("Cannot update already set status");
+				}
+
+				// Update request
 				Connector.executeQuery(QueryBuilder.updateRequest(a));
 
 				returnResponse = await this.getRequests({
@@ -1293,6 +1318,22 @@ export class OfferService {
 				let b: Request = reqBody.request;
 				b.status_id = 3;
 				b.qr_code_id = undefined;
+
+				try {
+					dbRequests = await Connector.executeQuery(QueryBuilder.getRequest({ request_id: reqBody.request.request_id }));
+				} catch (error) {
+					throw new InternalServerErrorException("Something went wrong...");
+				}
+
+				// Disallow overwriting of existing status codes
+				if (dbRequests[0].qr_code_id !== null || dbRequests[0].qr_code_id !== '') {
+					throw new BadRequestException("Cannot update already set status");
+				}
+
+				if (dbRequests[0].status_id !== 1) {
+					throw new BadRequestException("Cannot update already set status");
+				}
+
 				Connector.executeQuery(QueryBuilder.updateRequest(b));
 				break;
 			case 4:
@@ -1311,11 +1352,11 @@ export class OfferService {
 		}
 
 		// Return updated request object
-		if(returnResponse !== null) {
+		if (returnResponse !== null) {
 			return returnResponse;
 		} else {
 			throw new InternalServerErrorException("Something went wrong...");
-		}	
+		}
 	}
 
 	/**
