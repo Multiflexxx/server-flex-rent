@@ -348,17 +348,31 @@ export class UserService {
 	}
 
 	/**
-	 * async getUserRatings
+	 * Returns a list of user ratings
+	 * @param user_id
+	 * @param query object (optionally) containing a rating_type and a rating 
 	 */
 	public async getUserRatings(user_id: string, query: any): Promise<any> {
 		/* Possible query params:
 			type = "lessee" / "lessor"
 			rating = 1...5
 		*/
+		if(!(!query.rating_type || (query.rating_type && rating_types.includes(query.rating_type)))) {
+			throw new BadRequestException("Invalid rating_type parameter in request");
+		}
+
+		if(!(!query.rating || (query.rating <= 5 && query.rating >= 1))) {
+			throw new BadRequestException("Invalid rating parameter in request");
+		}
+
 		return await Connector.executeQuery(QueryBuilder.getUserRatings(user_id, query.rating_type, query.rating));
 	}
 
-	public async getProfilePicture(user_id: string, response: any) {
+	/**
+	 * Returns the local storage path of a requested user's profile picture
+	 * @param user_id 
+	 */
+	public async getProfilePicture(user_id: string): Promise<string> {
 		const user = (await Connector.executeQuery(QueryBuilder.getUser({ user_id: user_id })))[0]
 		if(!user) {
 			throw new NotFoundException("User not found");

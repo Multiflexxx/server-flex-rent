@@ -618,6 +618,10 @@ export class QueryBuilder {
 		}
 	}
 
+	/**
+	 * Returns User ratings given either a rating_id, a user_id (to later check whether a user has already rated another user), or ratings for a single user
+	 * @param search 
+	 */
 	public static getRating(
 		search: {
 			rating_id?: number,
@@ -655,6 +659,11 @@ export class QueryBuilder {
 		}
 	}
 
+	/**
+	 * Creates a new entry on the DB containing given rating information for a user
+	 * @param rating_user_id 
+	 * @param rating 
+	 */
 	public static createUserRating(
 		rating_user_id: string,
 		rating: {
@@ -678,6 +687,10 @@ export class QueryBuilder {
 		}
 	}
 
+	/**
+	 * Calculates a user's lessor and lessee rating, can be used together with setNewUserRating
+	 * @param user_id 
+	 */
 	public static calculateUserRating(user_id: string): Query {
 		return {
 			query: "SELECT rated_user_id, rating_type, count(rating_type) as rating_count, sum(rating) as rating_sum, ROUND((sum(rating) / count(rating_type)), 1) as average FROM rating WHERE rated_user_id = ? GROUP BY rating_type;",
@@ -687,6 +700,14 @@ export class QueryBuilder {
 		}
 	}
 
+	/**
+	 * Updates a user's rating fields using precomputed rating results
+	 * @param user_id 
+	 * @param lessor_rating 
+	 * @param number_of_lessor_ratings 
+	 * @param lessee_rating 
+	 * @param number_of_lessee_ratings 
+	 */
 	public static setNewUserRating(user_id: string, lessor_rating: number, number_of_lessor_ratings: number, lessee_rating: number, number_of_lessee_ratings: number): Query {
 		return {
 			query: "UPDATE user SET lessor_rating = ?, number_of_lessor_ratings = ?, lessee_rating = ?, number_of_lessee_ratings = ? WHERE user_id = ?;",
@@ -699,6 +720,12 @@ export class QueryBuilder {
 		}
 	}
 
+	/**
+	 * Dynamically builds a query retrieving user ratings given URL query params
+	 * @param user_id 
+	 * @param rating_type 
+	 * @param rating 
+	 */
 	public static getUserRatings(user_id: string, rating_type?: string, rating?: string): Query {
 		let query = "SELECT * FROM rating WHERE rated_user_id = ?";
 		let args = [user_id];
@@ -714,8 +741,6 @@ export class QueryBuilder {
 		}
 
 		query += ";";
-
-		console.log(query);
 
 		return {
 			query: query,
