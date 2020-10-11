@@ -1337,6 +1337,7 @@ export class OfferService {
 				Connector.executeQuery(QueryBuilder.updateRequest(b));
 				break;
 			case 4:
+				// TODO:
 				// Lend by lessor
 				break;
 			case 5:
