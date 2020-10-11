@@ -118,8 +118,15 @@ export class OfferController {
 	getRequests(
 		@Body() reqBody: {}
 	) {
-		console.log(reqBody)
 		return this.offerService.getRequests(reqBody);
+	}
+
+
+	@Post('handle-requests')
+	handleRequests(
+		@Body() reqBody: {}
+	) {
+		return this.offerService.handleRequests(reqBody);
 	}
 
 	/**
