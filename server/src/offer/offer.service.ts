@@ -1337,11 +1337,71 @@ export class OfferService {
 				Connector.executeQuery(QueryBuilder.updateRequest(b));
 				break;
 			case 4:
-				// TODO:
 				// Lend by lessor
+				let c: Request = reqBody.request;
+				c.status_id = 4;
+				c.qr_code_id = uuid();
+
+				try {
+					dbRequests = await Connector.executeQuery(QueryBuilder.getRequest({ request_id: reqBody.request.request_id }));
+				} catch (error) {
+					throw new InternalServerErrorException("Something went wrong...");
+				}
+
+				// Disallow overwriting of existing status codes
+				if (dbRequests[0].qr_code_id === undefined || dbRequests[0].qr_code_id === null || dbRequests[0].qr_code_id === '') {
+					throw new InternalServerErrorException("Something went wrong...");
+				}
+
+				if (dbRequests[0].status_id !== 2) {
+					throw new BadRequestException("Cannot borrow item");
+				}
+
+				if (dbRequests[0].qr_code_id !== reqBody.request.qr_code_id) {
+					throw new BadRequestException("Invalid QR-Code");
+				}
+
+				// Update request
+				Connector.executeQuery(QueryBuilder.updateRequest(c));
+
+				returnResponse = await this.getRequests({
+					session: reqBody.session,
+					request: reqBody.request
+				});
+
+				// Remove QR-Code string from response to avoid that the lessor can scan it
+				(returnResponse as Request).qr_code_id = '';
 				break;
 			case 5:
 				// Returned to lessor
+				let d: Request = reqBody.request;
+				d.status_id = 5;
+				d.qr_code_id = '00000000'; // TODO: Decide what to do with the QR-Code....
+
+				try {
+					dbRequests = await Connector.executeQuery(QueryBuilder.getRequest({ request_id: reqBody.request.request_id }));
+				} catch (error) {
+					throw new InternalServerErrorException("Something went wrong...");
+				}
+
+				if (dbRequests[0].status_id !== 4) {
+					throw new BadRequestException("Cannot return item");
+				}
+
+				if (dbRequests[0].qr_code_id !== reqBody.request.qr_code_id) {
+					throw new BadRequestException("Invalid QR-Code");
+				}
+
+				// Update request
+				Connector.executeQuery(QueryBuilder.updateRequest(c));
+
+				returnResponse = await this.getRequests({
+					session: reqBody.session,
+					request: reqBody.request
+				});
+
+				// Remove QR-Code string from response to avoid that the lessor can scan it
+				(returnResponse as Request).qr_code_id = '';
 				break;
 			case 6:
 				// Request canceled by lessor
