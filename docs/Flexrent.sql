@@ -151,6 +151,15 @@ CREATE TABLE request (
 	FOREIGN KEY (status_id) REFERENCES status (status_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+INSERT INTO status
+	(status_id, name)
+	VALUES
+	(1, 'Request opened'),
+	(2, 'Request rejected by lessor'),
+	(3, 'Request accepted by lessor'),
+	(4, 'Item lend to lessee'),
+	(5, 'Item returned to lessor');
+
 -- Payment
 CREATE TABLE payment (
 	payment_id varchar(255) NOT NULL,
