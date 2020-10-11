@@ -158,7 +158,9 @@ INSERT INTO status
 	(2, 'Request rejected by lessor'),
 	(3, 'Request accepted by lessor'),
 	(4, 'Item lend to lessee'),
-	(5, 'Item returned to lessor');
+	(5, 'Item returned to lessor'),
+	(6, 'Request canceled by lessor'),
+	(7, 'Request canceled by lessee');
 
 -- Payment
 CREATE TABLE payment (
