@@ -144,11 +144,23 @@ CREATE TABLE request (
 	from_date DATE NOT NULL,
 	to_date DATE NOT NULL,
 	message varchar(255),
+	qr_code_id varchar(255),
 	PRIMARY KEY (request_id),
 	FOREIGN KEY (user_id) REFERENCES user (user_id),
 	FOREIGN KEY (offer_id) REFERENCES offer (offer_id),
 	FOREIGN KEY (status_id) REFERENCES status (status_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO status
+	(status_id, name)
+	VALUES
+	(1, 'Request opened'),
+	(2, 'Request rejected by lessor'),
+	(3, 'Request accepted by lessor'),
+	(4, 'Item lend to lessee'),
+	(5, 'Item returned to lessor'),
+	(6, 'Request canceled by lessor'),
+	(7, 'Request canceled by lessee');
 
 -- Payment
 CREATE TABLE payment (

@@ -111,6 +111,25 @@ export class OfferController {
 	}
 
 	/**
+	 * Returns a reuest for a given request ID OR all requests for a given user and status code
+	 * @param reqBody 
+	 */
+	@Post('user-requests')
+	getRequests(
+		@Body() reqBody: {}
+	) {
+		return this.offerService.getRequests(reqBody);
+	}
+
+
+	@Post('handle-requests')
+	handleRequests(
+		@Body() reqBody: {}
+	) {
+		return this.offerService.handleRequests(reqBody);
+	}
+
+	/**
 	 * Deletes an offer given an ID and sufficient authorization.
 	 * @param id ID of offer to be deleted
 	 * @param reqBody body of the request is used for passing authorization details
