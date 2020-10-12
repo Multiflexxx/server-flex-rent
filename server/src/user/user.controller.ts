@@ -128,7 +128,7 @@ export class UserController {
     /**
      * Used for retrieving user ratings for a single user
      * @param user_id User_id of user
-     * @param query Additional query params (rating_type and rating (numeric value))
+     * @param query Additional query params (rating_type (string), rating (numeric), page (numeric))
      */
     @Get('rating/:id')
     async getUserRatings(

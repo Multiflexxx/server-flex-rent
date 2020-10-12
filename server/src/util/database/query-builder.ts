@@ -715,7 +715,8 @@ export class QueryBuilder {
 				lessor_rating,
 				number_of_lessor_ratings,
 				lessee_rating,
-				number_of_lessee_ratings
+				number_of_lessee_ratings,
+				user_id
 			]
 		}
 	}
@@ -726,9 +727,9 @@ export class QueryBuilder {
 	 * @param rating_type 
 	 * @param rating 
 	 */
-	public static getUserRatings(user_id: string, rating_type?: string, rating?: string): Query {
+	public static getUserRatings(user_id: string, rating_type?: string, rating?: string, page_size?: number, page?: number): Query {
 		let query = "SELECT * FROM rating WHERE rated_user_id = ?";
-		let args = [user_id];
+		let args: any[] = [user_id];
 
 		if (rating_type) {
 			query += " AND rating_type = ?";
@@ -738,6 +739,14 @@ export class QueryBuilder {
 		if (rating) {
 			query += " AND rating = ?";
 			args.push(rating);
+		}
+
+		if(page_size && page) {
+			query += " LIMIT ? OFFSET ?";
+			args.push(page_size);
+			args.push(page_size * (page - 1));
+		} else {
+			query += " LIMIT 10 OFFSET 0";
 		}
 
 		query += ";";
