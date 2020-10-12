@@ -35,20 +35,31 @@ export class QueryBuilder {
 	 * Updates the following fields for a user: email, phone_number, password_hash, verified, place_id, street, house_number
 	 * @param user user object containing the user_id and all fields to be updated
 	 */
-	public static updateUser(user: User): Query {
+	public static updateUser(user: User, new_password: string): Query {
+		let query: string = "UPDATE user SET first_name = ?, last_name = ?, email = ?, phone_number = ?, verified = ?, street = ?, house_number = ?, place_id = ?";
+
+		let args: any[] = [
+			user.first_name,
+			user.last_name,
+			user.email,
+			user.phone_number,
+			user.verified,
+			user.street,
+			user.house_number,
+			user.place_id
+		];
+
+		if(new_password) {
+			query += ", password_hash = ?";
+			args.push(new_password);
+		}
+
+		query += " WHERE user_id = ?;"
+		args.push(user.user_id);
+
 		return {
-			query: "UPDATE user SET first_name = ?, last_name = ?, email = ?, phone_number = ?, verified = ?, place_id = ?, street = ?, house_number = ? WHERE user_id = ?;",
-			args: [
-				user.first_name,
-				user.last_name,
-				user.email,
-				user.phone_number,
-				user.verified,
-				user.place_id,
-				user.street,
-				user.house_number,
-				user.user_id
-			]
+			query: query,
+			args: args
 		}
 	}
 

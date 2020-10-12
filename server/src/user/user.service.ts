@@ -116,7 +116,7 @@ export class UserService {
 		}
 
 		// Check old password
-		if (validatedUser.user.password_hash != password.old_password_hash) {
+		if(password && (!password.new_password_hash || !password.old_password_hash || password.old_password_hash != validatedUser.user.password_hash)) {
 			throw new UnauthorizedException("Incorrect Password");
 		}
 
@@ -144,77 +144,12 @@ export class UserService {
 			throw new BadRequestException("Invalid post Code");
 		}
 		user.city = newPlace.name;
+		user.place_id = newPlace.place_id
 
 		// Update User information
-		await Connector.executeQuery(QueryBuilder.updateUser(user));
+		await Connector.executeQuery(QueryBuilder.updateUser(user, password ? password.new_password_hash : null));
 
-		return await Connector.executeQuery(QueryBuilder.getUser({ user_id: user.user_id }));
-	}
-
-	public async rateUser(
-		auth: {
-			session: {
-				session_id: string,
-				user_id: string
-			}
-		},
-		rating: {
-			user_id: string,
-			rating_type: string,
-			rating: number,
-			headline: string,
-			text: string
-		}
-	) {
-		// Check auth input
-		if (!auth || !auth.session || !auth.session.session_id || !auth.session.user_id) {
-			throw new BadRequestException("Insufficient arguments");
-		}
-
-
-		// Check rating input
-		if (!rating || !rating.user_id || !rating.rating_type || !rating.rating || !rating.headline || !rating.text || rating.rating > 5 || rating.rating < 1 || !rating_types.includes(rating.rating_type)) {
-			throw new BadRequestException("Invalid rating arguments");
-		}
-
-		// Check if user to be rated exists
-		const ratedUser = (await Connector.executeQuery(QueryBuilder.getUser({ user_id: rating.user_id })))[0];
-		if(!ratedUser) {
-			throw new BadRequestException("User does not exist.");
-		}
-
-		// Validate auth
-		const validatedUser = await this.validateUser(auth);
-		if (!validatedUser || validatedUser.user.user_id !== auth.session.user_id) {
-			throw new UnauthorizedException("Invalid Session");
-		}
-
-		// Make sure user doesn't rate themselves
-		if (auth.session.user_id === rating.user_id) {
-			throw new BadRequestException("Users can't rate themselves");
-		}
-
-		// user#1 = user who rates
-		// user#2 = user who is rated
-		// Check if user#1 already rated user#2
-		const userPairRating = (await Connector.executeQuery(QueryBuilder.getRating({
-			user_pair: {
-				rating_user_id: auth.session.user_id,
-				rated_user_id: rating.user_id,
-				rating_typ: rating.rating_type
-			}
-		})))[0];
-
-		if (userPairRating) {
-			throw new BadRequestException("Already rated user");
-		}
-
-		// User can be rated
-		// Create new rating 
-		await Connector.executeQuery(QueryBuilder.createUserRating(auth.session.user_id, rating));
-
-		// and calculate new user rating
-		this.updateUserRating(rating.user_id);
+		return await this.getUser(user.user_id, true);
 	}
 
 	public deleteUser(
@@ -398,6 +333,72 @@ export class UserService {
 		}
 
 		return await Connector.executeQuery(QueryBuilder.getUserRatings(user_id, query.rating_type, query.rating, default_page_size, page));
+	}
+
+	public async rateUser(
+		auth: {
+			session: {
+				session_id: string,
+				user_id: string
+			}
+		},
+		rating: {
+			user_id: string,
+			rating_type: string,
+			rating: number,
+			headline: string,
+			text: string
+		}
+	) {
+		// Check auth input
+		if (!auth || !auth.session || !auth.session.session_id || !auth.session.user_id) {
+			throw new BadRequestException("Insufficient arguments");
+		}
+
+
+		// Check rating input
+		if (!rating || !rating.user_id || !rating.rating_type || !rating.rating || !rating.headline || !rating.text || rating.rating > 5 || rating.rating < 1 || !rating_types.includes(rating.rating_type)) {
+			throw new BadRequestException("Invalid rating arguments");
+		}
+
+		// Check if user to be rated exists
+		const ratedUser = (await Connector.executeQuery(QueryBuilder.getUser({ user_id: rating.user_id })))[0];
+		if(!ratedUser) {
+			throw new BadRequestException("User does not exist.");
+		}
+
+		// Validate auth
+		const validatedUser = await this.validateUser(auth);
+		if (!validatedUser || validatedUser.user.user_id !== auth.session.user_id) {
+			throw new UnauthorizedException("Invalid Session");
+		}
+
+		// Make sure user doesn't rate themselves
+		if (auth.session.user_id === rating.user_id) {
+			throw new BadRequestException("Users can't rate themselves");
+		}
+
+		// user#1 = user who rates
+		// user#2 = user who is rated
+		// Check if user#1 already rated user#2
+		const userPairRating = (await Connector.executeQuery(QueryBuilder.getRating({
+			user_pair: {
+				rating_user_id: auth.session.user_id,
+				rated_user_id: rating.user_id,
+				rating_typ: rating.rating_type
+			}
+		})))[0];
+
+		if (userPairRating) {
+			throw new BadRequestException("Already rated user");
+		}
+
+		// User can be rated
+		// Create new rating 
+		await Connector.executeQuery(QueryBuilder.createUserRating(auth.session.user_id, rating));
+
+		// and calculate new user rating
+		this.updateUserRating(rating.user_id);
 	}
 
 	/**
