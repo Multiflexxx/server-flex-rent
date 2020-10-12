@@ -539,7 +539,7 @@ export class OfferService {
 	 * @param image image name and ending in format <name>.<ending>
 	 */
 	public checkImagePath(imagePath: string): string {
-		if (!FileHandler.isValidImagePath(imagePath)) {
+		if (!FileHandler.imageExists(imagePath)) {
 			throw new NotFoundException("Could not find requested image");
 		}
 		return imagePath;

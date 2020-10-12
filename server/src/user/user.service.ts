@@ -6,11 +6,14 @@ import { QueryBuilder } from 'src/util/database/query-builder';
 import { v4 as uuidv4 } from 'uuid';
 import { stringify } from 'querystring';
 import { FileHandler } from 'src/util/file-handler/file-handler';
+
+const fileConfig = require('../../file-handler-config.json');
 const moment = require('moment');
 const rating_types: string[] = [
 	"lessor",
 	"lessee"
 ];
+const default_page_size: number = 10;
 
 @Injectable()
 export class UserService {
@@ -37,7 +40,7 @@ export class UserService {
 			number_of_lessee_ratings: result.number_of_lessee_ratings,
 			lessor_rating: result.lessor_rating,
 			number_of_lessor_ratings: result.number_of_lessor_ratings,
-			profile_picture: result.profile_picture
+			profile_picture: result.profile_picture ? fileConfig.user_image_base_url + result.profile_picture.split(".")[0] : ""
 		}
 
 		if (isAuthenticated) {
@@ -212,7 +215,6 @@ export class UserService {
 
 		// and calculate new user rating
 		this.updateUserRating(rating.user_id);
-
 	}
 
 	public deleteUser(
@@ -222,7 +224,7 @@ export class UserService {
 		}
 	): Promise<{}> {
 		// How do we delete users?
-		throw new Error("Method not implemented. (And will never be implemented");
+		throw new Error("Method not implemented. (And will never be implemented)");
 	}
 
 	/**
@@ -339,20 +341,70 @@ export class UserService {
 			throw new BadRequestException("Invalid post code");
 		}
 
+		// Check if the other fields are filled
+		if(!user.first_name || !user.last_name || !user.password_hash) {
+			throw new BadRequestException("Missing arguments");
+		}
 	}
 
 	/**
-	 * async getUserRatings
+	 * Returns a list of user ratings
+	 * @param user_id
+	 * @param query object (optionally) containing a rating_type and a rating 
 	 */
 	public async getUserRatings(user_id: string, query: any): Promise<any> {
 		/* Possible query params:
 			type = "lessee" / "lessor"
 			rating = 1...5
 		*/
-		return await Connector.executeQuery(QueryBuilder.getUserRatings(user_id, query.rating_type, query.rating));
+		// Check if rating_type parameter is valid (if given)
+		if(!(!query.rating_type || (query.rating_type && rating_types.includes(query.rating_type)))) {
+			throw new BadRequestException("Invalid rating_type parameter in request");
+		}
+
+		// Check if rating parameter is valid (if given)
+		if(!(!query.rating || (query.rating <= 5 && query.rating >= 1))) {
+			throw new BadRequestException("Invalid rating parameter in request");
+		}
+
+		// Check if user exists
+		let user: User = await this.getUser(user_id); 
+		if(!user) {
+			throw new NotFoundException("User not found")
+		}
+
+		// Check paging
+		let numberOfRatings: number;
+		if(query.rating_type) {
+			// If rating_type = "lessor"
+			if(query.rating_type === rating_types[0]) {
+				numberOfRatings = user.number_of_lessor_ratings;
+			} else {
+				numberOfRatings = user.number_of_lessee_ratings;
+			}
+		} else {
+			numberOfRatings = user.number_of_lessor_ratings + user.number_of_lessee_ratings;
+		}
+
+		let page: number;
+		if(!query.page) {
+			page = 1;
+		} else {
+			if(query.page > Math.ceil(numberOfRatings / default_page_size)) {
+				throw new BadRequestException("Ran our of pages...");
+			} else {
+				page = query.page;
+			}
+		}
+
+		return await Connector.executeQuery(QueryBuilder.getUserRatings(user_id, query.rating_type, query.rating, default_page_size, page));
 	}
 
-	public async getProfilePicture(user_id: string, response: any) {
+	/**
+	 * Returns the local storage path of a requested user's profile picture
+	 * @param user_id 
+	 */
+	public async getProfilePicture(user_id: string): Promise<string> {
 		const user = (await Connector.executeQuery(QueryBuilder.getUser({ user_id: user_id })))[0]
 		if(!user) {
 			throw new NotFoundException("User not found");
@@ -362,29 +414,59 @@ export class UserService {
 			throw new NotFoundException("No Profile picture")
 		}
 
-		response.sendFile(require('../../file-handler-config.json').file_storage_path + user.profile_picture.split("/").slice(-1)[0])
+		// response.sendFile(fileConfig.file_storage_path + user.profile_picture);
+		return fileConfig.file_storage_path + user.profile_picture;
 	}
 	
+	/**
+	 * Uploads a given image to the server and sets its path as the profile_picture attribute of a user
+	 * @param user_id 
+	 * @param auth 
+	 * @param image 
+	 */
 	public async uploadProfilePicture(
 		user_id: string, 
-		auth: {
-			session_id: string,
-			user_id: string
-		},
-		image: any		
-	): Promise<void> {
+		session_id: string,
+		image: {
+			fieldname: string,
+			originalname: string,
+			encoding: string,
+			mimetype: string,
+			buffer: Buffer,
+			size: number
+		}
+	): Promise<User> {
 		// Check auth
-		if(!auth || !auth.session_id || !auth.user_id || !user_id || !image) {
+		if(!session_id 
+			|| !user_id 
+			|| !image
+			|| !image.fieldname
+			|| !image.originalname
+			|| !image.encoding
+			|| !image.mimetype
+			|| !image.buffer
+			|| !image.size) {
 			throw new BadRequestException("Insufficient arguments");
 		}
 
-		const validatedUser = await this.validateUser({session: auth});
-		if(auth.user_id != user_id || validatedUser.user.user_id != auth.user_id) {
+		const validatedUser = await this.validateUser({
+			session: {
+				user_id: user_id, 
+				session_id: session_id
+			}
+		});
+		
+		if(user_id != user_id || validatedUser.user.user_id != user_id) {
 			throw new UnauthorizedException("Unauthorized");
 		}
 
-		// FileHandler.saveImage(image, );
+		// Upload file
+		const fileName = (await FileHandler.saveImage(image, user_id)).split("/").slice(-1)[0];
 
+		// Update User with new path
+		await Connector.executeQuery(QueryBuilder.changeProfilePicture(user_id, fileName));
+
+		return await this.getUser(user_id);
 	}
 
 	/**
@@ -398,7 +480,7 @@ export class UserService {
 		const lessee_info = newUserRating.filter(x => x.rating_type == "lessee")[0];
 
 		// Update Rating for user
-		await Connector.executeQuery(QueryBuilder.setNewUserRating(lessor_info.user_id, lessor_info.average, lessor_info.rating_count, lessee_info.average , lessee_info.rating_count));
+		await Connector.executeQuery(QueryBuilder.setNewUserRating(lessor_info.rated_user_id, lessor_info.average, lessor_info.rating_count, lessee_info.average , lessee_info.rating_count));
 	}
 }
 

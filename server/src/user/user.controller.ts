@@ -21,6 +21,7 @@ export class UserController {
         return await this.userService.getUser(id);
     }
 
+
     /**
      * Creates a user with the Specified parameters in the request's body
      * @param reqBody Parameters of user to be created
@@ -31,6 +32,7 @@ export class UserController {
     ) {
         return await this.userService.createUser(user);
     }
+
 
     /**
      * Updates a specified user with the data passed in the request's body.
@@ -54,6 +56,7 @@ export class UserController {
         return await this.userService.updateUser(auth, user, password);
     }
 
+
     /**
      * Deletes user given a ID and sufficient authorization
      * @param id 
@@ -68,6 +71,7 @@ export class UserController {
     ) {
         return await this.userService.deleteUser(id, auth);
     }
+
 
     /**
      * Used for logging in a user, either with a session or email + password
@@ -92,6 +96,13 @@ export class UserController {
         return await this.userService.validateUser(auth);
     }
 
+
+    /**
+     * Used for creating new user ratings
+     * @param auth Auth details of the user rating someone
+     * @param rating Ratings details
+     * @param res 
+     */
     @Post('rating')
     async rateUser(
         @Body('auth') auth: {
@@ -113,6 +124,12 @@ export class UserController {
         res.status(201).send();
     }
 
+
+    /**
+     * Used for retrieving user ratings for a single user
+     * @param user_id User_id of user
+     * @param query Additional query params (rating_type (string), rating (numeric), page (numeric))
+     */
     @Get('rating/:id')
     async getUserRatings(
         @Param('id') user_id,
@@ -121,24 +138,41 @@ export class UserController {
         return await this.userService.getUserRatings(user_id, query);
     }
 
+
+    /**
+     * Send the profile picture of a user as a response
+     * @param user_id 
+     * @param response 
+     */
     @Get('images/:id')
     async getProfilePicture(
         @Param('id') user_id,
         @Res() response
     ): Promise<any> {
-        this.userService.getProfilePicture(user_id, response);
+        response.sendFile(await this.userService.getProfilePicture(user_id));
     }
 
-    @Post('images/:id')
+
+    /**
+     * Used for uploading new profile pictures for a user
+     * @param image 
+     * @param user_id 
+     * @param session_id 
+     */
+    @Post('images')
     @UseInterceptors(FileInterceptor('image'))
     async uploadProfilePicture(
-        @Param('id') user_id,
-        @UploadedFile() image,
-        @Body('auth') auth: {
-            session_id: string,
-            user_id: string
-        }
+        @UploadedFile() image: {
+			fieldname: string,
+			originalname: string,
+			encoding: string,
+			mimetype: string,
+			buffer: Buffer,
+			size: number
+		},
+        @Body('user_id') user_id: string,
+        @Body('session_id') session_id: string
     ): Promise<any> {
-        
+        return await this.userService.uploadProfilePicture(user_id, session_id, image);
     }
 }
