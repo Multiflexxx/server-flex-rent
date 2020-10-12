@@ -1067,14 +1067,14 @@ export class OfferService {
 	}): Promise<Request | Array<Request>> {
 		if (reqBody !== undefined && reqBody !== null && reqBody.session !== undefined && reqBody.session !== null) {
 			// Validate session and user
-			let user = await this.userService.validateUser({
+			let userResponse = await this.userService.validateUser({
 				session: {
 					session_id: reqBody.session.session_id,
 					user_id: reqBody.session.user_id
 				}
 			});
 
-			if (user === undefined || user === null) {
+			if (userResponse === undefined || userResponse === null) {
 				throw new BadRequestException("Not a valid user/session");
 			}
 
@@ -1102,6 +1102,7 @@ export class OfferService {
 					throw new BadRequestException("Request does not exist");
 				} else if (dbRequests.length === 1) {
 					let offer: Offer;
+					let qrCodeValue = "";
 
 					try {
 						offer = await this.getOfferById(dbRequests[0].offer_id);
@@ -1109,9 +1110,19 @@ export class OfferService {
 						throw new InternalServerErrorException("Something went wrong...");
 					}
 
+					// Lessee sent request and status code matches OR lessor sent request and status code matches
+					if (
+						(dbRequests[0].user_id === userResponse.user.user_id &&
+							dbRequests[0].status_id === 2)
+						||
+						(offer.lessor.user_id === userResponse.user.user_id &&
+							dbRequests[0].status_id === 4)) {
+						qrCodeValue = (dbRequests[0].qr_code_id === null) ? "" : dbRequests[0].qr_code_id;
+					}
+
 					let o: Request = {
 						request_id: dbRequests[0].request_id,
-						user: user.user,
+						user: userResponse.user,
 						offer: offer,
 						status_id: dbRequests[0].status_id,
 						date_range: {
@@ -1119,7 +1130,7 @@ export class OfferService {
 							to_date: dbRequests[0].to_date
 						},
 						message: dbRequests[0].message,
-						qr_code_id: (dbRequests[0].qr_code_id === null) ? "" : dbRequests[0].qr_code_id
+						qr_code_id: qrCodeValue
 					}
 
 					return o;
@@ -1127,8 +1138,6 @@ export class OfferService {
 					throw new InternalServerErrorException("Something went wrong...");
 				}
 			} else {
-				//TODO:
-				// check for status code to separate open/pending offers and closed(done) offers
 				let dbRequests: Array<{
 					request_id: string,
 					user_id: string,
@@ -1142,7 +1151,6 @@ export class OfferService {
 
 				let response: Array<Request> = [];
 
-				// TODO: change number
 				if (reqBody.status_code !== undefined && reqBody.status_code === 5) {
 					try {
 						dbRequests = await Connector.executeQuery(QueryBuilder.getRequest({
@@ -1169,9 +1177,10 @@ export class OfferService {
 						throw new InternalServerErrorException("Something went wrong...");
 					}
 
+					// Remove QR-Code from list
 					let o: Request = {
 						request_id: dbRequests[i].request_id,
-						user: user.user,
+						user: userResponse.user,
 						offer: offer,
 						status_id: dbRequests[i].status_id,
 						date_range: {
@@ -1179,7 +1188,7 @@ export class OfferService {
 							to_date: dbRequests[i].to_date
 						},
 						message: dbRequests[i].message,
-						qr_code_id: (dbRequests[i].qr_code_id === null) ? "" : dbRequests[0].qr_code_id
+						qr_code_id: ''
 					}
 
 					response.push(o);
@@ -1253,11 +1262,6 @@ export class OfferService {
 			throw new InternalServerErrorException("Something went wrong...");
 		}
 
-		if (dbOffers[0].user_id !== userResponse.user.user_id) {
-			throw new BadRequestException("You are not the owner of the offer!");
-		}
-
-		// TODO: Check codes range
 		// check statuscode
 		if (reqBody.request.status_id === undefined ||
 			reqBody.request.status_id === null ||
@@ -1282,6 +1286,11 @@ export class OfferService {
 		switch (reqBody.request.status_id) {
 			case 2:
 				// Accepted by lessor
+				// Check if owner sent request
+				if (dbOffers[0].user_id !== userResponse.user.user_id) {
+					throw new BadRequestException("You are not the owner of the offer!");
+				}
+
 				let a: Request = reqBody.request;
 				a.status_id = 2;
 				a.qr_code_id = uuid();
@@ -1314,6 +1323,11 @@ export class OfferService {
 				break;
 			case 3:
 				// Rejected by lessor
+				// Check if owner sent request
+				if (dbOffers[0].user_id !== userResponse.user.user_id) {
+					throw new BadRequestException("You are not the owner of the offer!");
+				}
+
 				// Update object to write reject to database
 				let b: Request = reqBody.request;
 				b.status_id = 3;
@@ -1338,6 +1352,11 @@ export class OfferService {
 				break;
 			case 4:
 				// Lend by lessor
+				// Check if lessor (owner of offer) sent request
+				if (dbOffers[0].user_id !== userResponse.user.user_id) {
+					throw new BadRequestException("You are not the owner of the offer!");
+				}
+
 				let c: Request = reqBody.request;
 				c.status_id = 4;
 				c.qr_code_id = uuid();
@@ -1382,6 +1401,11 @@ export class OfferService {
 					dbRequests = await Connector.executeQuery(QueryBuilder.getRequest({ request_id: reqBody.request.request_id }));
 				} catch (error) {
 					throw new InternalServerErrorException("Something went wrong...");
+				}
+
+				// Check if lessee sent request
+				if (dbRequests[0].user_id !== userResponse.user.user_id) {
+					throw new BadRequestException("You are not the lessee of the offer!");
 				}
 
 				if (dbRequests[0].status_id !== 4) {
