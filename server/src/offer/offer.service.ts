@@ -145,7 +145,6 @@ export class OfferService {
 	 * @param id ID of the user
 	 */
 	public async getOffersByUserId(id: string): Promise<Array<Offer>> {
-		console.log(id)
 		if (id === undefined || id === null || id === "") {
 			throw new BadRequestException("Invalid request");
 		}
@@ -1302,7 +1301,8 @@ export class OfferService {
 				}
 
 				// Disallow overwriting of existing status codes
-				if (dbRequests[0].qr_code_id !== null || dbRequests[0].qr_code_id !== '') {
+				if (dbRequests[0].qr_code_id !== null && dbRequests[0].qr_code_id !== '') {
+					console.log(dbRequests[0].qr_code_id)
 					throw new BadRequestException("Cannot update already set status");
 				}
 
@@ -1340,7 +1340,7 @@ export class OfferService {
 				}
 
 				// Disallow overwriting of existing status codes
-				if (dbRequests[0].qr_code_id !== null || dbRequests[0].qr_code_id !== '') {
+				if (dbRequests[0].qr_code_id !== null && dbRequests[0].qr_code_id !== '') {
 					throw new BadRequestException("Cannot update already set status");
 				}
 
