@@ -155,8 +155,8 @@ INSERT INTO status
 	(status_id, name)
 	VALUES
 	(1, 'Request opened'),
-	(2, 'Request rejected by lessor'),
-	(3, 'Request accepted by lessor'),
+	(2, 'Request accepted by lessor'),
+	(3, 'Request rejected by lessor'),
 	(4, 'Item lend to lessee'),
 	(5, 'Item returned to lessor'),
 	(6, 'Request canceled by lessor'),
