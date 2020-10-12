@@ -13,6 +13,7 @@ const rating_types: string[] = [
 	"lessor",
 	"lessee"
 ];
+const default_page_size: number = 10;
 
 @Injectable()
 export class UserService {
@@ -39,7 +40,7 @@ export class UserService {
 			number_of_lessee_ratings: result.number_of_lessee_ratings,
 			lessor_rating: result.lessor_rating,
 			number_of_lessor_ratings: result.number_of_lessor_ratings,
-			profile_picture: fileConfig.user_image_base_url + result.profile_picture.split(".")[0]
+			profile_picture: result.profile_picture ? fileConfig.user_image_base_url + result.profile_picture.split(".")[0] : ""
 		}
 
 		if (isAuthenticated) {
@@ -214,7 +215,6 @@ export class UserService {
 
 		// and calculate new user rating
 		this.updateUserRating(rating.user_id);
-
 	}
 
 	public deleteUser(
@@ -224,7 +224,7 @@ export class UserService {
 		}
 	): Promise<{}> {
 		// How do we delete users?
-		throw new Error("Method not implemented. (And will never be implemented");
+		throw new Error("Method not implemented. (And will never be implemented)");
 	}
 
 	/**
@@ -357,15 +357,47 @@ export class UserService {
 			type = "lessee" / "lessor"
 			rating = 1...5
 		*/
+		// Check if rating_type parameter is valid (if given)
 		if(!(!query.rating_type || (query.rating_type && rating_types.includes(query.rating_type)))) {
 			throw new BadRequestException("Invalid rating_type parameter in request");
 		}
 
+		// Check if rating parameter is valid (if given)
 		if(!(!query.rating || (query.rating <= 5 && query.rating >= 1))) {
 			throw new BadRequestException("Invalid rating parameter in request");
 		}
 
-		return await Connector.executeQuery(QueryBuilder.getUserRatings(user_id, query.rating_type, query.rating));
+		// Check if user exists
+		let user: User = await this.getUser(user_id); 
+		if(!user) {
+			throw new NotFoundException("User not found")
+		}
+
+		// Check paging
+		let numberOfRatings: number;
+		if(query.rating_type) {
+			// If rating_type = "lessor"
+			if(query.rating_type === rating_types[0]) {
+				numberOfRatings = user.number_of_lessor_ratings;
+			} else {
+				numberOfRatings = user.number_of_lessee_ratings;
+			}
+		} else {
+			numberOfRatings = user.number_of_lessor_ratings + user.number_of_lessee_ratings;
+		}
+
+		let page: number;
+		if(!query.page) {
+			page = 1;
+		} else {
+			if(query.page > Math.ceil(numberOfRatings / default_page_size)) {
+				throw new BadRequestException("Ran our of pages...");
+			} else {
+				page = query.page;
+			}
+		}
+
+		return await Connector.executeQuery(QueryBuilder.getUserRatings(user_id, query.rating_type, query.rating, default_page_size, page));
 	}
 
 	/**
@@ -448,7 +480,7 @@ export class UserService {
 		const lessee_info = newUserRating.filter(x => x.rating_type == "lessee")[0];
 
 		// Update Rating for user
-		await Connector.executeQuery(QueryBuilder.setNewUserRating(lessor_info.user_id, lessor_info.average, lessor_info.rating_count, lessee_info.average , lessee_info.rating_count));
+		await Connector.executeQuery(QueryBuilder.setNewUserRating(lessor_info.rated_user_id, lessor_info.average, lessor_info.rating_count, lessee_info.average , lessee_info.rating_count));
 	}
 }
 
