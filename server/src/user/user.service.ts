@@ -153,10 +153,17 @@ export class UserService {
 		// Update User information
 		await Connector.executeQuery(QueryBuilder.updateUser(user, password ? password.new_password_hash : null));
 
+		let passwordHash: string;
+		if(password && password.new_password_hash) {
+			passwordHash = password.new_password_hash;
+		} else {
+			passwordHash = validatedUser.user.password_hash;
+		}
+		
 		return await this.validateUser({
 			login: {
 				email: user.email,
-				password_hash: password && password.new_password_hash ? password.new_password_hash : user.password_hash
+				password_hash: passwordHash
 			}
 		});
 	}
@@ -221,7 +228,7 @@ export class UserService {
 			session_id = uuidv4();
 			await Connector.executeQuery(QueryBuilder.createSession(session_id, user.user_id));
 
-		} else if (auth.session && auth.session.session_id && auth.session.user_id) {
+		} else if (auth.session && auth.session.session_id && auth.session.user_id && true) {
 			// Authenticate using session data 
 			let result = (await Connector.executeQuery(QueryBuilder.getSession(auth.session.session_id)))[0];
 
@@ -232,7 +239,7 @@ export class UserService {
 			user = await this.getUser(result.user_id, true);
 
 		} else {
-			throw new BadRequestException("Invalid auth parameters");
+			throw new BadRequestException("Invalid auth parameters 2");
 		}
 
 		return {
