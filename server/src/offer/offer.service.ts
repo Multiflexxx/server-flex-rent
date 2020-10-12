@@ -1109,6 +1109,13 @@ export class OfferService {
 						throw new InternalServerErrorException("Something went wrong...");
 					}
 
+					let responseUser: User;
+					try {
+						responseUser = await this.userService.getUser(dbRequests[0].user_id);
+					} catch (e) {
+						throw new InternalServerErrorException("Something went wrong");
+					}
+					
 					// Lessee sent request and status code matches OR lessor sent request and status code matches
 					if (
 						(dbRequests[0].user_id === userResponse.user.user_id &&
@@ -1121,7 +1128,7 @@ export class OfferService {
 
 					let o: Request = {
 						request_id: dbRequests[0].request_id,
-						user: userResponse.user,
+						user: responseUser,
 						offer: offer,
 						status_id: dbRequests[0].status_id,
 						date_range: {
