@@ -1291,8 +1291,6 @@ export class OfferService {
 				}
 
 				let a: Request = reqBody.request;
-				a.status_id = 2;
-				a.qr_code_id = uuid();
 
 				try {
 					dbRequests = await Connector.executeQuery(QueryBuilder.getRequest({ request_id: reqBody.request.request_id }));
@@ -1311,6 +1309,8 @@ export class OfferService {
 				}
 
 				// Update request
+				a.status_id = 2;
+				a.qr_code_id = uuid();
 				Connector.executeQuery(QueryBuilder.updateRequest(a));
 
 				returnResponse = await this.getRequests({
@@ -1328,10 +1328,7 @@ export class OfferService {
 					throw new BadRequestException("You are not the owner of the offer!");
 				}
 
-				// Update object to write reject to database
 				let b: Request = reqBody.request;
-				b.status_id = 3;
-				b.qr_code_id = undefined;
 
 				try {
 					dbRequests = await Connector.executeQuery(QueryBuilder.getRequest({ request_id: reqBody.request.request_id }));
@@ -1348,6 +1345,10 @@ export class OfferService {
 					throw new BadRequestException("Cannot update already set status");
 				}
 
+				// Update object to write reject to database
+				b.status_id = 3;
+				b.qr_code_id = undefined;
+
 				Connector.executeQuery(QueryBuilder.updateRequest(b));
 				break;
 			case 4:
@@ -1358,8 +1359,6 @@ export class OfferService {
 				}
 
 				let c: Request = reqBody.request;
-				c.status_id = 4;
-				c.qr_code_id = uuid();
 
 				try {
 					dbRequests = await Connector.executeQuery(QueryBuilder.getRequest({ request_id: reqBody.request.request_id }));
@@ -1376,11 +1375,14 @@ export class OfferService {
 					throw new BadRequestException("Cannot borrow item");
 				}
 
+				console.log(reqBody.request.qr_code_id)
 				if (dbRequests[0].qr_code_id !== reqBody.request.qr_code_id) {
 					throw new BadRequestException("Invalid QR-Code");
 				}
 
 				// Update request
+				c.status_id = 4;
+				c.qr_code_id = uuid();
 				Connector.executeQuery(QueryBuilder.updateRequest(c));
 
 				returnResponse = await this.getRequests({
@@ -1394,8 +1396,6 @@ export class OfferService {
 			case 5:
 				// Returned to lessor
 				let d: Request = reqBody.request;
-				d.status_id = 5;
-				d.qr_code_id = '00000000'; // TODO: Decide what to do with the QR-Code....
 
 				try {
 					dbRequests = await Connector.executeQuery(QueryBuilder.getRequest({ request_id: reqBody.request.request_id }));
@@ -1417,7 +1417,9 @@ export class OfferService {
 				}
 
 				// Update request
-				Connector.executeQuery(QueryBuilder.updateRequest(c));
+				d.status_id = 5;
+				d.qr_code_id = '00000000'; // TODO: Decide what to do with the QR-Code....
+				Connector.executeQuery(QueryBuilder.updateRequest(d));
 
 				returnResponse = await this.getRequests({
 					session: reqBody.session,
