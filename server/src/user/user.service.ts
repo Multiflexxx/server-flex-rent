@@ -49,6 +49,7 @@ export class UserService {
 			user.street = result.street;
 			user.house_number = result.house_number;
 			user.date_of_birth = result.date_of_birth;
+			user.password_hash = result.password_hash;
 
 			// Get post code and city name by place_id
 			result = (await Connector.executeQuery(QueryBuilder.getPlace({ place_id: user.place_id })))[0];
@@ -103,7 +104,10 @@ export class UserService {
 			old_password_hash: string,
 			new_password_hash: string
 		}
-	): Promise<User> {
+	): Promise<{
+		user: User;
+		session_id: string;
+	}> {
 		// Authenticate request
 		if (!(auth && auth.session.session_id && auth.session.user_id && user)) {
 			throw new BadRequestException("Insufficient Arguments");
@@ -149,7 +153,12 @@ export class UserService {
 		// Update User information
 		await Connector.executeQuery(QueryBuilder.updateUser(user, password ? password.new_password_hash : null));
 
-		return await this.getUser(user.user_id, true);
+		return await this.validateUser({
+			login: {
+				email: user.email,
+				password_hash: password && password.new_password_hash ? password.new_password_hash : user.password_hash
+			}
+		});
 	}
 
 	public deleteUser(
@@ -484,4 +493,3 @@ export class UserService {
 		await Connector.executeQuery(QueryBuilder.setNewUserRating(lessor_info.rated_user_id, lessor_info.average, lessor_info.rating_count, lessee_info.average , lessee_info.rating_count));
 	}
 }
-
