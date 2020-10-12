@@ -88,7 +88,7 @@ export class UserService {
 	}
 
 	/**
-	 * Updates an user given sufficient authorization 
+	 * Updates an user given sufficient auth 
 	 * @param auth 
 	 * @param user 
 	 */
@@ -172,11 +172,11 @@ export class UserService {
 	}
 
 	/**
-	 * Returns a complete user object and session_id given proper authorization details
-	 * @param authorization 
+	 * Returns a complete user object and session_id given proper auth details
+	 * @param auth 
 	 */
 	public async validateUser(
-		authorization: {
+		auth: {
 			login?: {
 				email: string,
 				password_hash: string
@@ -191,20 +191,20 @@ export class UserService {
 		session_id: string
 	}> {
 
-		if (!authorization) {
-			throw new BadRequestException("Invalid authorization parameters");
+		if (!auth) {
+			throw new BadRequestException("Invalid auth parameters");
 		}
 
 		let user: User;
 		let session_id: string;
 
 		// Decide whether to use login or session data
-		if (authorization.login && authorization.login.email && authorization.login.password_hash) {
+		if (auth.login && auth.login.email && auth.login.password_hash) {
 			// Authenticate using login data
 			let result = (await Connector.executeQuery(QueryBuilder.getUser({
 				login: {
-					email: authorization.login.email,
-					password_hash: authorization.login.password_hash
+					email: auth.login.email,
+					password_hash: auth.login.password_hash
 				}
 			})))[0];
 
@@ -221,18 +221,18 @@ export class UserService {
 			session_id = uuidv4();
 			await Connector.executeQuery(QueryBuilder.createSession(session_id, user.user_id));
 
-		} else if (authorization.session && authorization.session.session_id && authorization.session.user_id) {
+		} else if (auth.session && auth.session.session_id && auth.session.user_id) {
 			// Authenticate using session data 
-			let result = (await Connector.executeQuery(QueryBuilder.getSession(authorization.session.session_id)))[0];
+			let result = (await Connector.executeQuery(QueryBuilder.getSession(auth.session.session_id)))[0];
 
-			if (!(result && result.user_id === authorization.session.user_id)) {
+			if (!(result && result.user_id === auth.session.user_id)) {
 				throw new UnauthorizedException("Invalid session.");
 			}
 
 			user = await this.getUser(result.user_id, true);
 
 		} else {
-			throw new BadRequestException("Invalid authorization parameters");
+			throw new BadRequestException("Invalid auth parameters");
 		}
 
 		return {
