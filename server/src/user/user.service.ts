@@ -49,6 +49,7 @@ export class UserService {
 			user.street = result.street;
 			user.house_number = result.house_number;
 			user.date_of_birth = result.date_of_birth;
+			user.password_hash = result.password_hash;
 
 			// Get post code and city name by place_id
 			result = (await Connector.executeQuery(QueryBuilder.getPlace({ place_id: user.place_id })))[0];
