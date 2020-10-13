@@ -610,19 +610,21 @@ export class QueryBuilder {
 			//TODO: Add check for status code
 			if (request_info.status_code) {
 				return {
-					query: "SELECT request_id, user_id, offer_id, status_id, from_date, to_date, message, qr_code_id FROM request WHERE user_id = ? AND status_id = ?;",
+					query: "SELECT request_id, user_id, offer_id, status_id, from_date, to_date, message, qr_code_id FROM request WHERE user_id = ? AND (status_id >= ? OR status_id = ?);",
 					args: [
 						request_info.user_id,
-						request_info.status_code
+						request_info.status_code,
+						3
 					]
 				}
 			} else {
 				// TODO: Change number
 				return {
-					query: "SELECT request_id, user_id, offer_id, status_id, from_date, to_date, message, qr_code_id FROM request WHERE user_id = ? AND status_id != ?;",
+					query: "SELECT request_id, user_id, offer_id, status_id, from_date, to_date, message, qr_code_id FROM request WHERE user_id = ? AND (status_id < ? AND status_id != ?);",
 					args: [
 						request_info.user_id,
-						5
+						5,
+						3
 					]
 				}
 			}
