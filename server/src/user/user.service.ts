@@ -49,6 +49,7 @@ export class UserService {
 			user.street = result.street;
 			user.house_number = result.house_number;
 			user.date_of_birth = result.date_of_birth;
+			user.password_hash = result.password_hash;
 
 			// Get post code and city name by place_id
 			result = (await Connector.executeQuery(QueryBuilder.getPlace({ place_id: user.place_id })))[0];
@@ -87,7 +88,7 @@ export class UserService {
 	}
 
 	/**
-	 * Updates an user given sufficient authorization 
+	 * Updates an user given sufficient auth 
 	 * @param auth 
 	 * @param user 
 	 */
@@ -103,7 +104,10 @@ export class UserService {
 			old_password_hash: string,
 			new_password_hash: string
 		}
-	): Promise<User> {
+	): Promise<{
+		user: User;
+		session_id: string;
+	}> {
 		// Authenticate request
 		if (!(auth && auth.session.session_id && auth.session.user_id && user)) {
 			throw new BadRequestException("Insufficient Arguments");
@@ -149,7 +153,19 @@ export class UserService {
 		// Update User information
 		await Connector.executeQuery(QueryBuilder.updateUser(user, password ? password.new_password_hash : null));
 
-		return await this.getUser(user.user_id, true);
+		let passwordHash: string;
+		if(password && password.new_password_hash) {
+			passwordHash = password.new_password_hash;
+		} else {
+			passwordHash = validatedUser.user.password_hash;
+		}
+		
+		return await this.validateUser({
+			login: {
+				email: user.email,
+				password_hash: passwordHash
+			}
+		});
 	}
 
 	public deleteUser(
@@ -163,11 +179,11 @@ export class UserService {
 	}
 
 	/**
-	 * Returns a complete user object and session_id given proper authorization details
-	 * @param authorization 
+	 * Returns a complete user object and session_id given proper auth details
+	 * @param auth 
 	 */
 	public async validateUser(
-		authorization: {
+		auth: {
 			login?: {
 				email: string,
 				password_hash: string
@@ -182,20 +198,20 @@ export class UserService {
 		session_id: string
 	}> {
 
-		if (!authorization) {
-			throw new BadRequestException("Invalid authorization parameters");
+		if (!auth) {
+			throw new BadRequestException("Invalid auth parameters");
 		}
 
 		let user: User;
 		let session_id: string;
 
 		// Decide whether to use login or session data
-		if (authorization.login && authorization.login.email && authorization.login.password_hash) {
+		if (auth.login && auth.login.email && auth.login.password_hash) {
 			// Authenticate using login data
 			let result = (await Connector.executeQuery(QueryBuilder.getUser({
 				login: {
-					email: authorization.login.email,
-					password_hash: authorization.login.password_hash
+					email: auth.login.email,
+					password_hash: auth.login.password_hash
 				}
 			})))[0];
 
@@ -212,18 +228,18 @@ export class UserService {
 			session_id = uuidv4();
 			await Connector.executeQuery(QueryBuilder.createSession(session_id, user.user_id));
 
-		} else if (authorization.session && authorization.session.session_id && authorization.session.user_id) {
+		} else if (auth.session && auth.session.session_id && auth.session.user_id && true) {
 			// Authenticate using session data 
-			let result = (await Connector.executeQuery(QueryBuilder.getSession(authorization.session.session_id)))[0];
+			let result = (await Connector.executeQuery(QueryBuilder.getSession(auth.session.session_id)))[0];
 
-			if (!(result && result.user_id === authorization.session.user_id)) {
+			if (!(result && result.user_id === auth.session.user_id)) {
 				throw new UnauthorizedException("Invalid session.");
 			}
 
 			user = await this.getUser(result.user_id, true);
 
 		} else {
-			throw new BadRequestException("Invalid authorization parameters");
+			throw new BadRequestException("Invalid auth parameters 2");
 		}
 
 		return {
@@ -484,4 +500,3 @@ export class UserService {
 		await Connector.executeQuery(QueryBuilder.setNewUserRating(lessor_info.rated_user_id, lessor_info.average, lessor_info.rating_count, lessee_info.average , lessee_info.rating_count));
 	}
 }
-
