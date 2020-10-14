@@ -49,7 +49,7 @@ export class QueryBuilder {
 			user.place_id
 		];
 
-		if(new_password) {
+		if (new_password) {
 			query += ", password_hash = ?";
 			args.push(new_password);
 		}
@@ -593,11 +593,14 @@ export class QueryBuilder {
 	/**
 	 * Returns a Query to get all requests for a given user_id OR a specific request by it's ID
 	 * @param request_info ID of request OR ID of user
+	 * Status code is used to filter
+	 * Lessor is used to get requests for lessor view
 	 */
 	public static getRequest(request_info: {
 		request_id?: string,
 		user_id?: string,
-		status_code?: number
+		status_code?: number,
+		lessor?: boolean
 	}): Query {
 		if (request_info.request_id) {
 			return {
@@ -607,25 +610,46 @@ export class QueryBuilder {
 				]
 			}
 		} else if (request_info.user_id) {
-			//TODO: Add check for status code
 			if (request_info.status_code) {
-				return {
-					query: "SELECT request_id, user_id, offer_id, status_id, from_date, to_date, message, qr_code_id FROM request WHERE user_id = ? AND (status_id >= ? OR status_id = ?);",
-					args: [
-						request_info.user_id,
-						request_info.status_code,
-						3
-					]
+				if (request_info.lessor) {
+					return {
+						query: "SELECT request_id, request.user_id, request.offer_id, status_id, from_date, to_date, message, qr_code_id FROM request INNER JOIN offer ON request.offer_id = offer.offer_id WHERE offer.user_id = ? AND ( status_id >= ? OR status_id = ? );",
+						args: [
+							request_info.user_id,
+							request_info.status_code,
+							3
+						]
+					}
+				} else {
+					return {
+						query: "SELECT request_id, user_id, offer_id, status_id, from_date, to_date, message, qr_code_id FROM request WHERE user_id = ? AND (status_id >= ? OR status_id = ?);",
+						args: [
+							request_info.user_id,
+							request_info.status_code,
+							3
+						]
+					}
 				}
+
 			} else {
-				// TODO: Change number
-				return {
-					query: "SELECT request_id, user_id, offer_id, status_id, from_date, to_date, message, qr_code_id FROM request WHERE user_id = ? AND (status_id < ? AND status_id != ?);",
-					args: [
-						request_info.user_id,
-						5,
-						3
-					]
+				if (request_info.lessor) {
+					return {
+						query: "SELECT request_id, request.user_id, request.offer_id, status_id, from_date, to_date, message, qr_code_id FROM request INNER JOIN offer ON request.offer_id = offer.offer_id WHERE offer.user_id = ? AND (status_id < ? AND status_id != ?);",
+						args: [
+							request_info.user_id,
+							5,
+							3
+						]
+					}
+				} else {
+					return {
+						query: "SELECT request_id, user_id, offer_id, status_id, from_date, to_date, message, qr_code_id FROM request WHERE user_id = ? AND (status_id < ? AND status_id != ?);",
+						args: [
+							request_info.user_id,
+							5,
+							3
+						]
+					}
 				}
 			}
 		}
@@ -754,7 +778,7 @@ export class QueryBuilder {
 			args.push(rating);
 		}
 
-		if(page_size && page) {
+		if (page_size && page) {
 			query += " LIMIT ? OFFSET ?";
 			args.push(page_size);
 			args.push(page_size * (page - 1));
