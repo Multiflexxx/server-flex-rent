@@ -56,7 +56,6 @@ export class OfferService {
 			throw new InternalServerErrorException("Something went wrong...");
 		}
 
-
 		let homePageOffers = {
 			"best_offers": [],
 			"best_lessors": [],
