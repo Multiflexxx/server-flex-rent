@@ -58,8 +58,10 @@ export class OfferController {
 	 * Returns a set of offers to be shown on the Homepage
 	 */
 	@Get()
-	getHomePageOffers() {
-		return this.offerService.getHomePageOffers();
+	getHomePageOffers(
+		@Body() reqBody: {}
+	) {
+		return this.offerService.getHomePageOffers(reqBody);
 	}
 
 	/**
