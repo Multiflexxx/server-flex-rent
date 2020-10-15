@@ -1062,7 +1062,8 @@ export class OfferService {
 			user_id?: string
 		},
 		request?: Request,
-		status_code?: number
+		status_code?: number,
+		lessor?: boolean
 	}): Promise<Request | Array<Request>> {
 		if (reqBody !== undefined && reqBody !== null && reqBody.session !== undefined && reqBody.session !== null) {
 			// Validate session and user
@@ -1115,7 +1116,7 @@ export class OfferService {
 					} catch (e) {
 						throw new InternalServerErrorException("Something went wrong");
 					}
-					
+
 					// Lessee sent request and status code matches OR lessor sent request and status code matches
 					if (
 						(dbRequests[0].user_id === userResponse.user.user_id &&
@@ -1158,19 +1159,42 @@ export class OfferService {
 				let response: Array<Request> = [];
 
 				if (reqBody.status_code !== undefined && reqBody.status_code === 5) {
-					try {
-						dbRequests = await Connector.executeQuery(QueryBuilder.getRequest({
-							user_id: reqBody.session.user_id,
-							status_code: reqBody.status_code
-						}));
-					} catch (error) {
-						throw new InternalServerErrorException("Something went wrong...");
+					if (reqBody.lessor !== undefined && reqBody.lessor === true) {
+						try {
+							dbRequests = await Connector.executeQuery(QueryBuilder.getRequest({
+								user_id: reqBody.session.user_id,
+								status_code: reqBody.status_code,
+								lessor: true
+							}));
+						} catch (error) {
+							throw new InternalServerErrorException("Something went wrong...");
+						}
+					} else {
+						try {
+							dbRequests = await Connector.executeQuery(QueryBuilder.getRequest({
+								user_id: reqBody.session.user_id,
+								status_code: reqBody.status_code
+							}));
+						} catch (error) {
+							throw new InternalServerErrorException("Something went wrong...");
+						}
 					}
 				} else {
-					try {
-						dbRequests = await Connector.executeQuery(QueryBuilder.getRequest({ user_id: reqBody.session.user_id }));
-					} catch (error) {
-						throw new InternalServerErrorException("Something went wrong...");
+					if (reqBody.lessor !== undefined && reqBody.lessor === true) {
+						try {
+							dbRequests = await Connector.executeQuery(QueryBuilder.getRequest({
+								user_id: reqBody.session.user_id,
+								lessor: true
+							}));
+						} catch (error) {
+							throw new InternalServerErrorException("Something went wrong...");
+						}
+					} else {
+						try {
+							dbRequests = await Connector.executeQuery(QueryBuilder.getRequest({ user_id: reqBody.session.user_id }));
+						} catch (error) {
+							throw new InternalServerErrorException("Something went wrong...");
+						}
 					}
 				}
 
@@ -1357,6 +1381,14 @@ export class OfferService {
 				b.qr_code_id = undefined;
 
 				Connector.executeQuery(QueryBuilder.updateRequest(b));
+
+				returnResponse = await this.getRequests({
+					session: reqBody.session,
+					request: reqBody.request
+				});
+
+				// Remove QR-Code string from response to avoid that the lessor can scan it
+				(returnResponse as Request).qr_code_id = '';
 				break;
 			case 4:
 				// Lend by lessor
