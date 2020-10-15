@@ -52,7 +52,6 @@ export class OfferService {
 		try {
 			placeId = (await Connector.executeQuery(QueryBuilder.getPlace({ post_code: reqBody.post_code })))[0].place_id;
 		} catch (e) {
-			console.error(e)
 			throw new InternalServerErrorException("Something went wrong...");
 		}
 
@@ -120,13 +119,39 @@ export class OfferService {
 	 * the result is filtered by the given search keyword
 	 */
 	public async getAll(query: {
+		post_code?: string,
 		limit?: string,
 		category?: string,
 		search?: string
+		distance?: number
 	}): Promise<Array<Offer>> {
 		let limit: number = 25; // Default limit
 		let category: number = 0;
 		let search: string = "";
+		// Default distance is 30km
+		let distance = 30;
+
+		if (query.post_code === undefined || query.post_code === null || query.post_code === '') {
+			throw new BadRequestException("Post code is required");
+		}
+
+		if (query.distance) {
+			if (isNaN(query.distance)) {
+				distance = parseInt(query.distance.toString());
+				if (isNaN(distance)) {
+					throw new BadRequestException("Not a valid distance");
+				}
+			} else {
+				distance = query.distance;
+			}
+		}
+
+		let placeId = 0;
+		try {
+			placeId = (await Connector.executeQuery(QueryBuilder.getPlace({ post_code: query.post_code })))[0].place_id;
+		} catch (e) {
+			throw new InternalServerErrorException("Something went wrong...");
+		}
 
 		if (query.limit !== undefined && query.limit !== null) {
 			// Update limit, if given
@@ -174,6 +199,8 @@ export class OfferService {
 			dbOffers = await Connector.executeQuery(
 				QueryBuilder.getOffer({
 					query: {
+						place_id: placeId,
+						distance: distance,
 						limit: limit,
 						category: category,
 						search: search

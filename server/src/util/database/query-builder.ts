@@ -181,9 +181,11 @@ export class QueryBuilder {
 		offer_info: {
 			offer_id?: string,
 			query?: {
+				place_id: number,
+				distance: number
 				limit: number,
 				search?: string,
-				category?: number
+				category?: number,
 			},
 			user_id?: string
 		}
@@ -197,9 +199,11 @@ export class QueryBuilder {
 			}
 		} else if (offer_info.query) {
 			if (offer_info.query.category && offer_info.query.category > 0) {
-				let query = "SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id WHERE offer.category_id = ?";
+				let query = "SELECT offer_id, offer.user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id JOIN place ON user.place_id = place.place_id JOIN distance_matrix ON user.place_id = distance_matrix.place_id_1 WHERE distance_matrix.place_id_2 = ? AND distance_matrix.distance <= ? AND offer.category_id = ?;";
 				let args = [];
 
+				args.push(offer_info.query.place_id);
+				args.push(offer_info.query.distance);
 				args.push(offer_info.query.category);
 
 				if (offer_info.query.search && offer_info.query.search !== "") {
@@ -216,10 +220,12 @@ export class QueryBuilder {
 					args: args
 				}
 			} else if (offer_info.query.search && offer_info.query.search !== "") {
-				let query = "SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id WHERE title LIKE ?";
+				let query = "SELECT offer_id, offer.user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id JOIN place ON user.place_id = place.place_id JOIN distance_matrix ON user.place_id = distance_matrix.place_id_1 WHERE distance_matrix.place_id_2 = ? AND distance_matrix.distance <= ? AND title LIKE ?";
 				let args = [];
 
 				let search = "%" + offer_info.query.search + "%";
+				args.push(offer_info.query.place_id);
+				args.push(offer_info.query.distance);
 				args.push(search);
 
 				if (offer_info.query.category && offer_info.query.category > 0) {
@@ -236,8 +242,10 @@ export class QueryBuilder {
 				}
 			} else {
 				return {
-					query: "SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id LIMIT ?;",
+					query: "SELECT offer_id, offer.user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id JOIN place ON user.place_id = place.place_id JOIN distance_matrix ON user.place_id = distance_matrix.place_id_1 WHERE distance_matrix.place_id_2 = ? AND distance_matrix.distance <= ? LIMIT ?;",
 					args: [
+						offer_info.query.place_id,
+						offer_info.query.distance,
 						offer_info.query.limit
 					]
 				}
