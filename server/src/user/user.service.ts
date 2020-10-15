@@ -168,14 +168,45 @@ export class UserService {
 		});
 	}
 
-	public deleteUser(
+	/**
+	 * Sets the deleted flag for a user and deletes active sessions as well as active requests (not yet), wouldn't recommend using this tho
+	 * @param user_id user_id of user to be deleted
+	 * @param auth session_id and user_id of user to be deleted
+	 */
+	public async deleteUser(
 		user_id: string,
 		auth: {
+			user_id: string,
 			session_id: string
 		}
-	): Promise<{}> {
-		// How do we delete users?
-		throw new Error("Method not implemented. (And will never be implemented)");
+	): Promise<void> {
+		// Validate Input
+		if(!user_id) {
+			throw new BadRequestException("No user_id");
+		}
+
+		if(!auth || !auth.user_id || !auth.session_id) {
+			throw new BadRequestException("Invalid auth parameters");
+		}
+
+		const validatedUser = await this.validateUser({ session: auth})
+
+		if(!validatedUser || !validatedUser.user || validatedUser.user.user_id != user_id) {
+			throw new UnauthorizedException("Unauthorized");
+		}
+
+		// "Delete" user
+		// 1. Set delete old user sessions
+		await Connector.executeQuery(QueryBuilder.deleteOldSessions(user_id));
+
+		// Delete user offers?
+
+		// Set user to invisible
+		// TODO: delete personal info and only keep Name?
+		await Connector.executeQuery(QueryBuilder.userSetDeletedFlag(user_id));
+
+		/* // How do we delete users?
+		throw new Error("Method not implemented. (And will never be implemented)"); */
 	}
 
 	/**
@@ -483,7 +514,7 @@ export class UserService {
 		// Update User with new path
 		await Connector.executeQuery(QueryBuilder.changeProfilePicture(user_id, fileName));
 
-		return await this.getUser(user_id);
+		return await this.getUser(user_id, true);
 	}
 
 	/**
