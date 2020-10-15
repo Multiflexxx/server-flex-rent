@@ -58,7 +58,7 @@ export class UserController {
 
 
     /**
-     * Deletes user given a ID and sufficient authorization
+     * Deletes user given a ID and sufficient authorization (Don't recommend using it tho)
      * @param id 
      * @param reqBody 
      */
@@ -66,10 +66,13 @@ export class UserController {
     async deleteUser(
         @Param('id') id: string,
         @Body('auth') auth: {
-            session_id: string
-        }
+            session_id: string,
+            user_id: string
+        },
+        @Res() response
     ) {
-        return await this.userService.deleteUser(id, auth);
+        await this.userService.deleteUser(id, auth);
+        response.send(200);
     }
 
 
