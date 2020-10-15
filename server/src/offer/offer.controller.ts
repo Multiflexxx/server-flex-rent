@@ -59,9 +59,9 @@ export class OfferController {
 	 */
 	@Get()
 	getHomePageOffers(
-		@Body() reqBody: {}
+		@Query() query: {}
 	) {
-		return this.offerService.getHomePageOffers(reqBody);
+		return this.offerService.getHomePageOffers(query);
 	}
 
 	/**
