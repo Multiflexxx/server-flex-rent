@@ -1381,6 +1381,14 @@ export class OfferService {
 				b.qr_code_id = undefined;
 
 				Connector.executeQuery(QueryBuilder.updateRequest(b));
+
+				returnResponse = await this.getRequests({
+					session: reqBody.session,
+					request: reqBody.request
+				});
+
+				// Remove QR-Code string from response to avoid that the lessor can scan it
+				(returnResponse as Request).qr_code_id = '';
 				break;
 			case 4:
 				// Lend by lessor
