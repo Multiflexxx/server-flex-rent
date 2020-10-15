@@ -28,6 +28,8 @@ CREATE TABLE user (
 	number_of_lessor_ratings int,
 	date_of_birth DATE,
 	profile_picture varchar(255),
+	is_deleted BOOLEAN DEFAULT false,
+	deleted_on TIMESTAMP DEFAULT 0,
 	PRIMARY KEY (user_id),
 	FOREIGN KEY (place_id) REFERENCES place (place_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -145,6 +147,7 @@ CREATE TABLE request (
 	to_date DATE NOT NULL,
 	message varchar(255),
 	qr_code_id varchar(255),
+	created_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP(),
 	PRIMARY KEY (request_id),
 	FOREIGN KEY (user_id) REFERENCES user (user_id),
 	FOREIGN KEY (offer_id) REFERENCES offer (offer_id),
