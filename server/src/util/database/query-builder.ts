@@ -54,7 +54,7 @@ export class QueryBuilder {
 			args.push(new_password);
 		}
 
-		query += " WHERE user_id = ?;"
+		query += " WHERE user_id = ? AND is_deleted = false;"
 		args.push(user.user_id);
 
 		return {
@@ -65,7 +65,7 @@ export class QueryBuilder {
 
 	public static changeProfilePicture(user_id: string, url: string): Query {
 		return {
-			query: "UPDATE user SET profile_picture = ? WHERE user_id = ?;",
+			query: "UPDATE user SET profile_picture = ? WHERE user_id = ? AND is_deleted = false;",
 			args: [
 				url,
 				user_id
@@ -90,33 +90,46 @@ export class QueryBuilder {
 	): Query {
 		if (user_info.user_id) {
 			return {
-				query: "SELECT * FROM user WHERE user_id = ?;",
+				query: "SELECT * FROM user WHERE user_id = ? AND is_deleted = false;",
 				args: [
 					user_info.user_id
 				]
 			}
 		} else if (user_info.email) {
 			return {
-				query: "SELECT * FROM user WHERE email = ?;",
+				query: "SELECT * FROM user WHERE email = ? AND is_deleted = false;",
 				args: [
 					user_info.email
 				]
 			}
 		} else if (user_info.phone) {
 			return {
-				query: "SELECT * FROM user WHERE phone_number = ?;",
+				query: "SELECT * FROM user WHERE phone_number = ? AND is_deleted = false;",
 				args: [
 					user_info.phone
 				]
 			}
 		} else if (user_info.login) {
 			return {
-				query: "SELECT * FROM user WHERE email = ? AND password_hash = ?",
+				query: "SELECT * FROM user WHERE email = ? AND password_hash = ? AND is_deleted = false;",
 				args: [
 					user_info.login.email,
 					user_info.login.password_hash
 				]
 			}
+		}
+	}
+
+	/**
+	 * 
+	 * @param id 
+	 */
+	public static userSetDeletedFlag(user_id: string): Query {
+		return {
+			query: "UPDATE user SET is_deleted = true, deleted_on = CURRENT_TIMESTAMP() WHERE user_id = ?;",
+			args: [
+				user_id
+			]
 		}
 	}
 
@@ -612,7 +625,7 @@ export class QueryBuilder {
 	}): Query {
 		if (request_info.request_id) {
 			return {
-				query: "SELECT request_id, user_id, offer_id, status_id, from_date, to_date, message, qr_code_id FROM request WHERE request_id = ?;",
+				query: "SELECT request_id, user_id, offer_id, status_id, from_date, to_date, message, qr_code_id FROM request WHERE request_id = ? ORDER BY created_on DESC;",
 				args: [
 					request_info.request_id
 				]
@@ -621,7 +634,7 @@ export class QueryBuilder {
 			if (request_info.status_code) {
 				if (request_info.lessor) {
 					return {
-						query: "SELECT request_id, request.user_id, request.offer_id, status_id, from_date, to_date, message, qr_code_id FROM request INNER JOIN offer ON request.offer_id = offer.offer_id WHERE offer.user_id = ? AND ( status_id >= ? OR status_id = ? );",
+						query: "SELECT request_id, request.user_id, request.offer_id, status_id, from_date, to_date, message, qr_code_id FROM request INNER JOIN offer ON request.offer_id = offer.offer_id WHERE offer.user_id = ? AND ( status_id >= ? OR status_id = ? ) ORDER BY request.created_on DESC;",
 						args: [
 							request_info.user_id,
 							request_info.status_code,
@@ -630,7 +643,7 @@ export class QueryBuilder {
 					}
 				} else {
 					return {
-						query: "SELECT request_id, user_id, offer_id, status_id, from_date, to_date, message, qr_code_id FROM request WHERE user_id = ? AND (status_id >= ? OR status_id = ?);",
+						query: "SELECT request_id, user_id, offer_id, status_id, from_date, to_date, message, qr_code_id, created_on FROM request WHERE user_id = ? AND (status_id >= ? OR status_id = ?)  ORDER BY created_on DESC;",
 						args: [
 							request_info.user_id,
 							request_info.status_code,
@@ -642,7 +655,7 @@ export class QueryBuilder {
 			} else {
 				if (request_info.lessor) {
 					return {
-						query: "SELECT request_id, request.user_id, request.offer_id, status_id, from_date, to_date, message, qr_code_id FROM request INNER JOIN offer ON request.offer_id = offer.offer_id WHERE offer.user_id = ? AND (status_id < ? AND status_id != ?);",
+						query: "SELECT request_id, request.user_id, request.offer_id, status_id, from_date, to_date, message, qr_code_id FROM request INNER JOIN offer ON request.offer_id = offer.offer_id WHERE offer.user_id = ? AND (status_id < ? AND status_id != ?) ORDER BY request.created_on DESC;",
 						args: [
 							request_info.user_id,
 							5,
@@ -651,7 +664,7 @@ export class QueryBuilder {
 					}
 				} else {
 					return {
-						query: "SELECT request_id, user_id, offer_id, status_id, from_date, to_date, message, qr_code_id FROM request WHERE user_id = ? AND (status_id < ? AND status_id != ?);",
+						query: "SELECT request_id, user_id, offer_id, status_id, from_date, to_date, message, qr_code_id FROM request WHERE user_id = ? AND (status_id < ? AND status_id != ?) ORDER BY created_on DESC;",
 						args: [
 							request_info.user_id,
 							5,
@@ -755,7 +768,7 @@ export class QueryBuilder {
 	 */
 	public static setNewUserRating(user_id: string, lessor_rating: number, number_of_lessor_ratings: number, lessee_rating: number, number_of_lessee_ratings: number): Query {
 		return {
-			query: "UPDATE user SET lessor_rating = ?, number_of_lessor_ratings = ?, lessee_rating = ?, number_of_lessee_ratings = ? WHERE user_id = ?;",
+			query: "UPDATE user SET lessor_rating = ?, number_of_lessor_ratings = ?, lessee_rating = ?, number_of_lessee_ratings = ? WHERE user_id = ? AND is_deleted = false;",
 			args: [
 				lessor_rating,
 				number_of_lessor_ratings,
