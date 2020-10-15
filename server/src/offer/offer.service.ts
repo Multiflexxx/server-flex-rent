@@ -11,7 +11,6 @@ const moment = extendMoment(Moment);
 import { UserService } from 'src/user/user.service';
 import { User } from 'src/user/user.model';
 import { Request } from './request.model';
-import { request } from 'express';
 
 const BASE_OFFER_LINK = require('../../file-handler-config.json').offer_image_base_url;
 
@@ -21,13 +20,43 @@ export class OfferService {
 
 	/**
 	 * Returns five best offers, best lessors, and latest offers
-	 * If the code would run faster more offers would be great
+	 * Results are filtered by given postcode (reqired)
 	 */
-	public async getHomePageOffers(): Promise<{
+	public async getHomePageOffers(reqBody: {
+		post_code?: string,
+		distance?: number
+	}): Promise<{
 		best_offers: Array<Offer>,
 		best_lessors: Array<Offer>,
 		latest_offers: Array<Offer>
 	}> {
+
+		if (reqBody === undefined || reqBody === null || reqBody === '' || reqBody.post_code === undefined || reqBody.post_code === '') {
+			throw new BadRequestException("Post code is required");
+		}
+
+		// Default distance is 30km
+		let distance = 30;
+		if (reqBody.distance) {
+			if (isNaN(reqBody.distance)) {
+				distance = parseInt(reqBody.distance.toString());
+				if (isNaN(distance)) {
+					throw new BadRequestException("Not a valid distance");
+				}
+			} else {
+				distance = reqBody.distance;
+			}
+		}
+
+		let placeId = 0;
+		try {
+			placeId = (await Connector.executeQuery(QueryBuilder.getPlace({ post_code: reqBody.post_code })))[0].place_id;
+		} catch (e) {
+			console.error(e)
+			throw new InternalServerErrorException("Something went wrong...");
+		}
+
+
 		let homePageOffers = {
 			"best_offers": [],
 			"best_lessors": [],
@@ -48,13 +77,31 @@ export class OfferService {
 		}> = [];
 
 		try {
-			dbOffers = await Connector.executeQuery(QueryBuilder.getHomepageOffers({ best_offers: true }));
+			dbOffers = await Connector.executeQuery(QueryBuilder.getHomepageOffers({
+				best_offers: true,
+				place: {
+					place_id: placeId,
+					distance: distance
+				}
+			}));
 			homePageOffers.best_offers = await this.addDataToOffers(dbOffers);
 
-			dbOffers = await Connector.executeQuery(QueryBuilder.getHomepageOffers({ best_lessors: true }));
+			dbOffers = await Connector.executeQuery(QueryBuilder.getHomepageOffers({
+				best_lessors: true,
+				place: {
+					place_id: placeId,
+					distance: distance
+				}
+			}));
 			homePageOffers.best_lessors = await this.addDataToOffers(dbOffers);
 
-			dbOffers = await Connector.executeQuery(QueryBuilder.getHomepageOffers({ latest_offers: true }));
+			dbOffers = await Connector.executeQuery(QueryBuilder.getHomepageOffers({
+				latest_offers: true,
+				place: {
+					place_id: placeId,
+					distance: distance
+				}
+			}));
 			homePageOffers.latest_offers = await this.addDataToOffers(dbOffers);
 		} catch (e) {
 			throw new InternalServerErrorException("Something went wrong...");
