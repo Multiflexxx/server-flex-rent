@@ -21,6 +21,8 @@ export class OfferService {
 	/**
 	 * Returns five best offers, best lessors, and latest offers
 	 * Results are filtered by given postcode (reqired)
+	 * @param post_code required postcode of user who sends request
+	 * @param distance distance from postcode of requester (default is 30km)
 	 */
 	public async getHomePageOffers(reqBody: {
 		post_code?: string,
@@ -132,6 +134,8 @@ export class OfferService {
 	 * the result is filtered by category
 	 * If a parameter called 'search' is provided with a non empty string,
 	 * the result is filtered by the given search keyword
+	 * @param post_code required postcode of user who sends request
+	 * @param distance distance from postcode of requester (default is 30km)
 	 */
 	public async getAll(query: {
 		post_code?: string,

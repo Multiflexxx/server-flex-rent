@@ -8,7 +8,8 @@ export class OfferController {
 	constructor(private readonly offerService: OfferService) { }
 
 	/**
-	 * Applies filters passed in the request and return a subset of all Offers 
+	 * Applies filters passed in the request and return a subset of all Offers
+	 * post_code is a required query parameter!
 	 */
 	@Get('all')
 	getAllOffers(
@@ -56,6 +57,8 @@ export class OfferController {
 
 	/**
 	 * Returns a set of offers to be shown on the Homepage
+	 * post_code is a required query parameter!
+	 * distance is an optional query parameter
 	 */
 	@Get()
 	getHomePageOffers(
@@ -76,7 +79,7 @@ export class OfferController {
 	}
 
 	/**
-	   * Updates an offer given the id and parameters to be updated, given sufficient authorization. 
+	* Updates an offer given the id and parameters to be updated, given sufficient authorization. 
 	 * @param reqBody Update parameters
 	 * @param id ID of offer to be updated
 	 */
@@ -123,7 +126,12 @@ export class OfferController {
 		return this.offerService.getRequests(reqBody);
 	}
 
-
+	/**
+	 * Handles accept/reject of requests to user
+	 * handles QR-Code validation and item exchange between lessor and lessee
+	 * @param reqBody needs a session + user AND a request object
+	 * (status_id is used to check which request should be handled qr_code_id is needed if exchange process is triggered)
+	 */
 	@Post('handle-requests')
 	handleRequests(
 		@Body() reqBody: {}

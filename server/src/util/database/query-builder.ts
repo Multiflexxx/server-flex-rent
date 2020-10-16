@@ -176,6 +176,7 @@ export class QueryBuilder {
 	/**
 	 * Looks up an offer given an offer_id OR all offers within a limit, category or search OR all offers for a user
 	 * @param offer_info object containing offer information: offer_info.offer_id OR offer_info.query
+	 * place_ids is a prebuild string to filter for the offer locations in a given distance
 	 */
 	public static getOffer(
 		offer_info: {
@@ -278,6 +279,7 @@ export class QueryBuilder {
 	/**
 	 * Returns a Query to get either nine of the best offers by offer rating, by lessor rating or the latest offers
 	 * @param offer_info different params to get different queries
+	 * place_ids is a prebuild string to filter for the offer locations in a given distance
 	 */
 	public static getHomepageOffers(offer_info: {
 		best_offers?: boolean,
