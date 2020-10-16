@@ -55,6 +55,30 @@ export class OfferService {
 			throw new InternalServerErrorException("Something went wrong...");
 		}
 
+		// Get a list with locations for distance
+		let possibleOfferLocations: Array<{
+			place_id_2: number
+		}> = [];
+
+		try {
+			possibleOfferLocations = await Connector.executeQuery(QueryBuilder.getLocationIdsByDistance({
+				place_id_1: placeId,
+				distance: distance
+			}));
+		} catch (e) {
+			throw new InternalServerErrorException("Something went wrong");
+		}
+
+		// Build a string that contains all places in distance to searcher
+		let possibleOfferLocationsString = "(";
+
+		possibleOfferLocations.forEach(location => {
+			possibleOfferLocationsString += `user.place_id = ${location.place_id_2} OR `
+
+		});
+
+		possibleOfferLocationsString += `user.place_id = ${placeId}) `
+
 		let homePageOffers = {
 			"best_offers": [],
 			"best_lessors": [],
@@ -77,28 +101,19 @@ export class OfferService {
 		try {
 			dbOffers = await Connector.executeQuery(QueryBuilder.getHomepageOffers({
 				best_offers: true,
-				place: {
-					place_id: placeId,
-					distance: distance
-				}
+				place_ids: possibleOfferLocationsString
 			}));
 			homePageOffers.best_offers = await this.addDataToOffers(dbOffers);
 
 			dbOffers = await Connector.executeQuery(QueryBuilder.getHomepageOffers({
 				best_lessors: true,
-				place: {
-					place_id: placeId,
-					distance: distance
-				}
+				place_ids: possibleOfferLocationsString
 			}));
 			homePageOffers.best_lessors = await this.addDataToOffers(dbOffers);
 
 			dbOffers = await Connector.executeQuery(QueryBuilder.getHomepageOffers({
 				latest_offers: true,
-				place: {
-					place_id: placeId,
-					distance: distance
-				}
+				place_ids: possibleOfferLocationsString
 			}));
 			homePageOffers.latest_offers = await this.addDataToOffers(dbOffers);
 		} catch (e) {
@@ -135,7 +150,14 @@ export class OfferService {
 			throw new BadRequestException("Post code is required");
 		}
 
-		if (query.distance) {
+		let placeId = 0;
+		try {
+			placeId = (await Connector.executeQuery(QueryBuilder.getPlace({ post_code: query.post_code })))[0].place_id;
+		} catch (e) {
+			throw new InternalServerErrorException("Something went wrong...");
+		}
+
+		if (query.distance !== undefined && query.distance !== null) {
 			if (isNaN(query.distance)) {
 				distance = parseInt(query.distance.toString());
 				if (isNaN(distance)) {
@@ -146,12 +168,29 @@ export class OfferService {
 			}
 		}
 
-		let placeId = 0;
+		// Get a list with locations for distance
+		let possibleOfferLocations: Array<{
+			place_id_2: number
+		}> = [];
+
 		try {
-			placeId = (await Connector.executeQuery(QueryBuilder.getPlace({ post_code: query.post_code })))[0].place_id;
+			possibleOfferLocations = await Connector.executeQuery(QueryBuilder.getLocationIdsByDistance({
+				place_id_1: placeId,
+				distance: distance
+			}));
 		} catch (e) {
-			throw new InternalServerErrorException("Something went wrong...");
+			throw new InternalServerErrorException("Something went wrong");
 		}
+
+		// Build a string that contains all places in distance to searcher
+		let possibleOfferLocationsString = "(";
+
+		possibleOfferLocations.forEach(location => {
+			possibleOfferLocationsString += `user.place_id = ${location.place_id_2} OR `
+
+		});
+
+		possibleOfferLocationsString += `user.place_id = ${placeId}) `
 
 		if (query.limit !== undefined && query.limit !== null) {
 			// Update limit, if given
@@ -199,7 +238,7 @@ export class OfferService {
 			dbOffers = await Connector.executeQuery(
 				QueryBuilder.getOffer({
 					query: {
-						place_id: placeId,
+						place_ids: possibleOfferLocationsString,
 						distance: distance,
 						limit: limit,
 						category: category,
