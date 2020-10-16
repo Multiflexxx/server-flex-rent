@@ -30,6 +30,7 @@ export class UserService {
 			throw new NotFoundException("User not found");
 		}
 
+		// refresh parameter is added to image path to reload image in frontend automatically
 		user = {
 			user_id: result.user_id,
 			first_name: result.first_name,
@@ -40,7 +41,7 @@ export class UserService {
 			number_of_lessee_ratings: result.number_of_lessee_ratings,
 			lessor_rating: result.lessor_rating,
 			number_of_lessor_ratings: result.number_of_lessor_ratings,
-			profile_picture: result.profile_picture ? fileConfig.user_image_base_url + result.profile_picture.split(".")[0] : ""
+			profile_picture: result.profile_picture ? fileConfig.user_image_base_url + result.profile_picture.split(".")[0] + `?refresh=${uuidv4()}` : ""
 		}
 
 		if (isAuthenticated) {
