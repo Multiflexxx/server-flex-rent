@@ -67,6 +67,22 @@ CREATE TABLE category (
 	PRIMARY KEY (category_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+INSERT INTO category (name, picture_link) VALUES
+('Gesundheit & Fitness', 'https://multiflexxx.de/Flexrent/assets/heartbeat-solid.svg'),
+('Computer & Büro', 'https://multiflexxx.de/Flexrent/assets/desktop-solid.svg'),
+('TV & Audio', 'https://multiflexxx.de/Flexrent/assets/tv-solid.svg'),
+('Smartphone & Zubehör', 'https://multiflexxx.de/Flexrent/assets/mobile-alt-solid.svg'),
+('Haushaltsgeräte', 'https://multiflexxx.de/Flexrent/assets/home-solid.svg'),
+('Foto & Drohnen', 'https://multiflexxx.de/Flexrent/assets/camera-solid.svg'),
+('Sport & Freizeit', 'https://multiflexxx.de/Flexrent/assets/dumbbell-solid.svg'),
+('Heimwerken & Garten', 'https://multiflexxx.de/Flexrent/assets/tools-solid.svg'),
+('Spielzeug', 'https://multiflexxx.de/Flexrent/assets/puzzle-piece-solid.svg'),
+('Gaming & VR', 'https://multiflexxx.de/Flexrent/assets/gamepad-solid.svg'),
+('Film', 'https://multiflexxx.de/Flexrent/assets/film-solid.svg'),
+('Musik', 'https://multiflexxx.de/Flexrent/assets/music-solid.svg'),
+('Smarthome', 'https://multiflexxx.de/Flexrent/assets/laptop-house-solid.svg'),
+('Sonstiges', 'https://multiflexxx.de/Flexrent/assets/ellipsis-h-solid');
+
 -- Offer
 CREATE TABLE offer (
 	offer_id varchar(255) NOT NULL,
