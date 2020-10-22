@@ -44,6 +44,7 @@ export class UserService {
 			profile_picture: result.profile_picture ? fileConfig.user_image_base_url + result.profile_picture.split(".")[0] + `?refresh=${uuidv4()}` : ""
 		}
 
+		// Add private parameters of user is authenticated
 		if (isAuthenticated) {
 			user.email = result.email;
 			user.phone_number = result.phone_number;
@@ -340,13 +341,14 @@ export class UserService {
 			type = "lessee" / "lessor"
 			rating = 1...5
 		*/
+
 		// Check if rating_type parameter is valid (if given)
 		if(!(!query.rating_type || (query.rating_type && rating_types.includes(query.rating_type)))) {
 			throw new BadRequestException("Invalid rating_type parameter in request");
 		}
 
 		// Check if rating parameter is valid (if given)
-		if(!(!query.rating || (query.rating <= 5 && query.rating >= 1))) {
+		if(!(!query.rating || isNaN(query.rating) || (query.rating <= 5 && query.rating >= 1))) {
 			throw new BadRequestException("Invalid rating parameter in request");
 		}
 
@@ -370,7 +372,7 @@ export class UserService {
 		}
 
 		let page: number;
-		if(!query.page) {
+		if(!query.page || isNaN(query.page)) {
 			page = 1;
 		} else {
 			if(query.page > Math.ceil(numberOfRatings / default_page_size)) {
