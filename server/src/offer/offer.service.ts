@@ -770,13 +770,13 @@ export class OfferService {
 					throw new BadRequestException("Images to delete are not an array");
 				}
 
-				reqBody.delete_images.forEach(imageUrl => {
+				reqBody.delete_images.forEach(async imageUrl => {
 					try {
 						let image = imageUrl.replace(BASE_OFFER_LINK, '');
-						Connector.executeQuery(QueryBuilder.deletePictureById(image));
+						await Connector.executeQuery(QueryBuilder.deletePictureById(image));
 						FileHandler.deleteImage(imageUrl);
 					} catch (e) {
-						throw new InternalServerErrorException("Could not delete image");
+						throw new InternalServerErrorException("Could not delete image (user service)");
 					}
 				});
 			}

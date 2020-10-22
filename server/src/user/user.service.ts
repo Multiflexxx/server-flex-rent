@@ -44,6 +44,7 @@ export class UserService {
 			profile_picture: result.profile_picture ? fileConfig.user_image_base_url + result.profile_picture.split(".")[0] + `?refresh=${uuidv4()}` : ""
 		}
 
+		// Add private parameters of user is authenticated
 		if (isAuthenticated) {
 			user.email = result.email;
 			user.phone_number = result.phone_number;

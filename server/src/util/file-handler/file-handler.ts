@@ -51,6 +51,9 @@ export class FileHandler {
 		// Get file name <name>.<type>
 		let image = imageUrl.split("/").slice(-1)[0];
 
+		if(!this.imageExists(image)) {
+			return;
+		}
 		//remove url part, which is stored together with the image in the database
 		/* switch(type) {
 			case "user":
