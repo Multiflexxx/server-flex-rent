@@ -316,7 +316,7 @@ export class QueryBuilder {
 	}): Query {
 		if (category_info.category_id) {
 			return {
-				query: "SELECT * FROM category WHERE category_id = ?;",
+				query: "SELECT * FROM category WHERE category_id = ? ORDER BY name ASC;",
 				args: [
 					category_info.category_id
 				]

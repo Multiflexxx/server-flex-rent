@@ -1447,7 +1447,6 @@ export class OfferService {
 
 				// Disallow overwriting of existing status codes
 				if (dbRequests[0].qr_code_id !== null && dbRequests[0].qr_code_id !== '') {
-					console.log(dbRequests[0].qr_code_id)
 					throw new BadRequestException("Cannot update already set status");
 				}
 
@@ -1530,7 +1529,6 @@ export class OfferService {
 					throw new BadRequestException("Cannot borrow item");
 				}
 
-				console.log(reqBody.request.qr_code_id)
 				if (dbRequests[0].qr_code_id !== reqBody.request.qr_code_id) {
 					throw new BadRequestException("Invalid QR-Code");
 				}
