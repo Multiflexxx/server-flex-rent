@@ -507,6 +507,7 @@ export class OfferService {
 						await Connector.executeQuery(QueryBuilder.insertBlockedDateForOfferId({
 							offer_blocked_id: offerBlockedId,
 							offer_id: offerId,
+							is_lessor: true,
 							from_date: new Date(moment(
 								blockedDateRange.from_date.toString()
 							).format("YYYY-MM-DD")),
@@ -824,7 +825,8 @@ export class OfferService {
 
 				// Delete all blocked dates
 				try {
-					await Connector.executeQuery(QueryBuilder.deleteBlockedDatesForOfferId(id));
+					// Delete all blocked dates from lessor (second param = true)
+					await Connector.executeQuery(QueryBuilder.deleteBlockedDatesForOfferId(id, true));
 				} catch (e) {
 					throw new BadRequestException("Could not delete old unavailable dates of product");
 				}
@@ -838,6 +840,7 @@ export class OfferService {
 						await Connector.executeQuery(QueryBuilder.insertBlockedDateForOfferId({
 							offer_blocked_id: offerBlockedId,
 							offer_id: id,
+							is_lessor: true,
 							from_date: new Date(moment(
 								blockedDateRange.from_date.toString()
 							).format("YYYY-MM-DD")),
@@ -1132,9 +1135,16 @@ export class OfferService {
 				throw new UnauthorizedException("User does not match");
 			}
 
-			// Delete all blocked dates
+			// Delete all blocked dates from lessor
 			try {
-				await Connector.executeQuery(QueryBuilder.deleteBlockedDatesForOfferId(id));
+				await Connector.executeQuery(QueryBuilder.deleteBlockedDatesForOfferId(id, true));
+			} catch (e) {
+				throw new InternalServerErrorException("Something went wrong...");
+			}
+
+			// Delete all blocked dates from lessee
+			try {
+				await Connector.executeQuery(QueryBuilder.deleteBlockedDatesForOfferId(id, false));
 			} catch (e) {
 				throw new InternalServerErrorException("Something went wrong...");
 			}
@@ -1457,12 +1467,22 @@ export class OfferService {
 				// Update request
 				a.status_id = 2;
 				a.qr_code_id = uuid();
-				Connector.executeQuery(QueryBuilder.updateRequest(a));
+				await Connector.executeQuery(QueryBuilder.updateRequest(a));
 
 				returnResponse = await this.getRequests({
 					session: reqBody.session,
 					request: reqBody.request
 				});
+
+				// Set blocked date to database
+				await Connector.executeQuery(QueryBuilder.insertBlockedDateForOfferId({
+					offer_blocked_id: uuid(),
+					offer_id: reqBody.request.offer.offer_id,
+					from_date: (requests as Request).date_range.from_date,
+					to_date: (requests as Request).date_range.to_date,
+					is_lessor: false
+				}
+				));
 
 				// Remove QR-Code string from response to avoid that the lessor can scan it
 				(returnResponse as Request).qr_code_id = '';
@@ -1495,7 +1515,7 @@ export class OfferService {
 				b.status_id = 3;
 				b.qr_code_id = undefined;
 
-				Connector.executeQuery(QueryBuilder.updateRequest(b));
+				await Connector.executeQuery(QueryBuilder.updateRequest(b));
 
 				returnResponse = await this.getRequests({
 					session: reqBody.session,
@@ -1536,7 +1556,7 @@ export class OfferService {
 				// Update request
 				c.status_id = 4;
 				c.qr_code_id = uuid();
-				Connector.executeQuery(QueryBuilder.updateRequest(c));
+				await Connector.executeQuery(QueryBuilder.updateRequest(c));
 
 				returnResponse = await this.getRequests({
 					session: reqBody.session,
@@ -1572,7 +1592,7 @@ export class OfferService {
 				// Update request
 				d.status_id = 5;
 				d.qr_code_id = '00000000'; // TODO: Decide what to do with the QR-Code....
-				Connector.executeQuery(QueryBuilder.updateRequest(d));
+				await Connector.executeQuery(QueryBuilder.updateRequest(d));
 
 				returnResponse = await this.getRequests({
 					session: reqBody.session,
@@ -1584,9 +1604,11 @@ export class OfferService {
 				break;
 			case 6:
 				// Request canceled by lessor
+				throw new Error("Method not implemented!");
 				break;
 			case 7:
 				// Request canceled by lessee
+				throw new Error("Method not implemented!");
 				break;
 			default: throw new BadRequestException("Not a valid status code");
 		}
@@ -1778,6 +1800,7 @@ export class OfferService {
 					offer_id: string,
 					from_date: Date,
 					to_date: Date,
+					is_lessor: number,
 					reason?: string
 				}> = [];
 
@@ -1792,13 +1815,15 @@ export class OfferService {
 				if (blockedDatesList.length > 0) {
 					let blockedDates: Array<{
 						from_date: Date,
-						to_date: Date
+						to_date: Date,
+						blocked_by_lessor: boolean
 					}> = [];
 
 					for (let i = 0; i < blockedDatesList.length; i++) {
 						blockedDates.push({
 							from_date: blockedDatesList[i].from_date,
-							to_date: blockedDatesList[i].to_date
+							to_date: blockedDatesList[i].to_date,
+							blocked_by_lessor: blockedDatesList[i].is_lessor === 1 ? true : false
 						});
 					}
 
