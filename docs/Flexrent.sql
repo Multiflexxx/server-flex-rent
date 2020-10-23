@@ -114,6 +114,7 @@ CREATE TABLE offer_blocked (
 	from_date DATE,
 	to_date DATE,
 	reason varchar(255),
+	lessor BOOL,
 	PRIMARY KEY (offer_blocked_id),
 	FOREIGN KEY (offer_id) REFERENCES offer (offer_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
