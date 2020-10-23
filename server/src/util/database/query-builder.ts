@@ -444,11 +444,12 @@ export class QueryBuilder {
 	 * Returns a Query to delete all blocked dates to a given offer id
 	 * @param id ID of the offer for which the blocked dates shall be deleted
 	 */
-	public static deleteBlockedDatesForOfferId(id: string): Query {
+	public static deleteBlockedDatesForOfferId(id: string, is_lessor: boolean): Query {
 		return {
-			query: "DELETE FROM offer_blocked WHERE offer_id = ?;",
+			query: "DELETE FROM offer_blocked WHERE offer_id = ? AND is_lessor = ?;",
 			args: [
-				id
+				id,
+				is_lessor
 			]
 		}
 	}
@@ -489,29 +490,32 @@ export class QueryBuilder {
 		offer_id: string,
 		from_date: Date,
 		to_date: Date,
+		is_lessor: boolean,
 		reason?: string
 	}): Query {
 		if (blocked_date.reason !== undefined
 			&& blocked_date.reason !== null
 			&& blocked_date.reason !== "") {
 			return {
-				query: "INSERT INTO offer_blocked (offer_blocked_id, offer_id, from_date, to_date, reason) VALUES (?, ?, ?, ?, ?)",
+				query: "INSERT INTO offer_blocked (offer_blocked_id, offer_id, from_date, to_date, is_lessor, reason) VALUES (?, ?, ?, ?, ?, ?)",
 				args: [
 					blocked_date.offer_blocked_id,
 					blocked_date.offer_id,
 					blocked_date.from_date,
 					blocked_date.to_date,
+					blocked_date.is_lessor,
 					blocked_date.reason
 				]
 			}
 		} else {
 			return {
-				query: "INSERT INTO offer_blocked (offer_blocked_id, offer_id, from_date, to_date) VALUES (?, ?, ?, ?)",
+				query: "INSERT INTO offer_blocked (offer_blocked_id, offer_id, from_date, to_date, is_lessor) VALUES (?, ?, ?, ?, ?)",
 				args: [
 					blocked_date.offer_blocked_id,
 					blocked_date.offer_id,
 					blocked_date.from_date,
-					blocked_date.to_date
+					blocked_date.to_date,
+					blocked_date.is_lessor
 				]
 			}
 		}

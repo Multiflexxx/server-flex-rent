@@ -13,7 +13,8 @@ export interface Offer {
     picture_links?: Array<string>,
     blocked_dates?: Array<{
         from_date: Date,
-        to_date: Date
+        to_date: Date,
+        blocked_by_lessor: boolean
     }>,
     lessor?: {
         first_name: string,
