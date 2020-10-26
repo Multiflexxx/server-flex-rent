@@ -68,20 +68,20 @@ CREATE TABLE category (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 INSERT INTO category (name, picture_link) VALUES
-('Gesundheit & Fitness', 'https://multiflexxx.de/Flexrent/assets/heartbeat-solid.svg'),
-('Computer & Büro', 'https://multiflexxx.de/Flexrent/assets/desktop-solid.svg'),
-('TV & Audio', 'https://multiflexxx.de/Flexrent/assets/tv-solid.svg'),
-('Smartphone & Zubehör', 'https://multiflexxx.de/Flexrent/assets/mobile-alt-solid.svg'),
-('Haushaltsgeräte', 'https://multiflexxx.de/Flexrent/assets/home-solid.svg'),
-('Foto & Drohnen', 'https://multiflexxx.de/Flexrent/assets/camera-solid.svg'),
-('Sport & Freizeit', 'https://multiflexxx.de/Flexrent/assets/dumbbell-solid.svg'),
-('Heimwerken & Garten', 'https://multiflexxx.de/Flexrent/assets/tools-solid.svg'),
-('Spielzeug', 'https://multiflexxx.de/Flexrent/assets/puzzle-piece-solid.svg'),
-('Gaming & VR', 'https://multiflexxx.de/Flexrent/assets/gamepad-solid.svg'),
-('Film', 'https://multiflexxx.de/Flexrent/assets/film-solid.svg'),
-('Musik', 'https://multiflexxx.de/Flexrent/assets/music-solid.svg'),
-('Smarthome', 'https://multiflexxx.de/Flexrent/assets/laptop-house-solid.svg'),
-('Sonstiges', 'https://multiflexxx.de/Flexrent/assets/ellipsis-h-solid');
+('Gesundheit & Fitness', 'https://multiflexxx.de/Flexrent/assets/fitness.svg'),
+('Computer & Büro', 'https://multiflexxx.de/Flexrent/assets/computer.svg'),
+('TV & Audio', 'https://multiflexxx.de/Flexrent/assets/tv.svg'),
+('Smartphone & Zubehör', 'https://multiflexxx.de/Flexrent/assets/smartphone.svg'),
+('Haushaltsgeräte', 'https://multiflexxx.de/Flexrent/assets/household.svg'),
+('Foto & Drohnen', 'https://multiflexxx.de/Flexrent/assets/photo.svg'),
+('Sport & Freizeit', 'https://multiflexxx.de/Flexrent/assets/sport.svg'),
+('Heimwerken & Garten', 'https://multiflexxx.de/Flexrent/assets/garden.svg'),
+('Spielzeug', 'https://multiflexxx.de/Flexrent/assets/toys.svg'),
+('Gaming & VR', 'https://multiflexxx.de/Flexrent/assets/gaming.svg'),
+('Film', 'https://multiflexxx.de/Flexrent/assets/film.svg'),
+('Musik', 'https://multiflexxx.de/Flexrent/assets/music.svg'),
+('Smarthome', 'https://multiflexxx.de/Flexrent/assets/smarthome.svg'),
+('Sonstiges', 'https://multiflexxx.de/Flexrent/assets/other.svg');
 
 -- Offer
 CREATE TABLE offer (
