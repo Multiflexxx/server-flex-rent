@@ -1,3 +1,5 @@
+import { User } from "src/user/user.model";
+
 export interface Offer {
     offer_id: string,
     title: string,
@@ -16,14 +18,15 @@ export interface Offer {
         to_date: Date,
         blocked_by_lessor: boolean
     }>,
-    lessor?: {
-        first_name: string,
-        last_name: string,
-        user_id: string,
-        post_code: string,
-        city: string,
-        verified: boolean,
-        lessor_rating: number,
-        number_of_lessor_ratings: number
-    }
+    lessor?: User
+    // lessor?: {
+    //     first_name: string,
+    //     last_name: string,
+    //     user_id: string,
+    //     post_code: string,
+    //     city: string,
+    //     verified: boolean,
+    //     lessor_rating: number,
+    //     number_of_lessor_ratings: number
+    // }
 }
