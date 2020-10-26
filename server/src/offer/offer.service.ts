@@ -981,7 +981,15 @@ export class OfferService {
 			//also it should be almost impossible to guess the id [security])
 			let requestUuid = uuid();
 
-			// TODO: Create concept for status
+			// Remove attributes that shall not be displayed in frontend!
+			delete user.user.date_of_birth;
+			delete user.user.email;
+			delete user.user.lessee_rating;
+			delete user.user.number_of_lessee_ratings;
+			delete user.user.password_hash;
+			delete user.user.phone_number;
+			delete user.user.place_id;
+
 			let request: Request = {
 				request_id: requestUuid,
 				user: user.user,
@@ -1238,7 +1246,7 @@ export class OfferService {
 
 					let responseUser: User;
 					try {
-						responseUser = await this.userService.getUser(dbRequests[0].user_id);
+						responseUser = await this.userService.getUser(dbRequests[0].user_id, false);
 					} catch (e) {
 						throw new InternalServerErrorException("Something went wrong");
 					}
@@ -1323,6 +1331,15 @@ export class OfferService {
 						}
 					}
 				}
+
+				// Remove attributes that shall not be displayed in frontend!
+				delete userResponse.user.date_of_birth;
+				delete userResponse.user.email;
+				delete userResponse.user.lessee_rating;
+				delete userResponse.user.number_of_lessee_ratings;
+				delete userResponse.user.password_hash;
+				delete userResponse.user.phone_number;
+				delete userResponse.user.place_id;
 
 				for (let i = 0; i < dbRequests.length; i++) {
 					let offer: Offer;
@@ -1695,16 +1712,16 @@ export class OfferService {
 					offer_id: string
 				}> = [];
 
-				let lessorDataList: Array<{
-					first_name: string,
-					last_name: string,
-					user_id: string,
-					post_code: string,
-					city: string,
-					verified: number,
-					lessor_rating: number,
-					number_of_lessor_ratings: number
-				}> = [];
+				// let lessorDataList: Array<{
+				// 	first_name: string,
+				// 	last_name: string,
+				// 	user_id: string,
+				// 	post_code: string,
+				// 	city: string,
+				// 	verified: number,
+				// 	lessor_rating: number,
+				// 	number_of_lessor_ratings: number
+				// }> = [];
 
 				try {
 					pictureUUIDList = await Connector.executeQuery(QueryBuilder.getOfferPictures(offerList[i].offer_id));
@@ -1712,15 +1729,32 @@ export class OfferService {
 					throw new InternalServerErrorException("Something went wrong...");
 				}
 
+				// try {
+				// 	lessorDataList = await Connector.executeQuery(QueryBuilder.getUserByOfferId(offerList[i].offer_id));
+				// } catch (e) {
+				// 	throw new InternalServerErrorException("Something went wrong...");
+				// }
+
+				// if (lessorDataList === undefined || lessorDataList === null || lessorDataList.length !== 1) {
+				// 	throw new InternalServerErrorException("Something went wrong...");
+				// }
+
+				// Lessor is now a user!
+				let lessor: User;
 				try {
-					lessorDataList = await Connector.executeQuery(QueryBuilder.getUserByOfferId(offerList[i].offer_id));
-				} catch (e) {
-					throw new InternalServerErrorException("Something went wrong...");
+					lessor = await this.userService.getUser(offerList[i].user_id, true);
+				} catch (error) {
+					throw error;
 				}
 
-				if (lessorDataList === undefined || lessorDataList === null || lessorDataList.length !== 1) {
-					throw new InternalServerErrorException("Something went wrong...");
-				}
+				// Remove attributes that shall not be displayed in frontend!
+				delete lessor.date_of_birth;
+				delete lessor.email;
+				delete lessor.lessee_rating;
+				delete lessor.number_of_lessee_ratings;
+				delete lessor.password_hash;
+				delete lessor.phone_number;
+				delete lessor.place_id;
 
 				if (pictureUUIDList.length > 0) {
 					let pictureLinks: Array<string> = [];
@@ -1742,16 +1776,7 @@ export class OfferService {
 							picture_link: offerList[i].picture_link
 						},
 						picture_links: pictureLinks,
-						lessor: {
-							first_name: lessorDataList[0].first_name,
-							last_name: lessorDataList[0].last_name,
-							user_id: offerList[i].user_id,
-							post_code: lessorDataList[0].post_code,
-							city: lessorDataList[0].city,
-							verified: (lessorDataList[0].verified === 1 ? true : false),
-							lessor_rating: lessorDataList[0].lessor_rating,
-							number_of_lessor_ratings: lessorDataList[0].number_of_lessor_ratings
-						}
+						lessor: lessor
 					});
 
 				} else {
@@ -1768,16 +1793,7 @@ export class OfferService {
 							picture_link: offerList[i].picture_link
 						},
 						picture_links: [],
-						lessor: {
-							first_name: lessorDataList[0].first_name,
-							last_name: lessorDataList[0].last_name,
-							user_id: offerList[i].user_id,
-							post_code: lessorDataList[0].post_code,
-							city: lessorDataList[0].city,
-							verified: (lessorDataList[0].verified === 1 ? true : false),
-							lessor_rating: lessorDataList[0].lessor_rating,
-							number_of_lessor_ratings: lessorDataList[0].number_of_lessor_ratings
-						}
+						lessor: lessor
 					});
 				}
 			}
