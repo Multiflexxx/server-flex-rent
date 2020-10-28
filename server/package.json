@@ -26,6 +26,7 @@
     "@nestjs/platform-express": "^7.0.0",
     "email-validator": "^2.0.4",
     "file-type": "^15.0.0",
+    "gcp-metadata": "^4.2.0",
     "mariadb": "^2.4.2",
     "moment": "^2.27.0",
     "moment-range": "^4.0.2",

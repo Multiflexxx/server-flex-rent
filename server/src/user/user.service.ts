@@ -7,13 +7,27 @@ import { v4 as uuidv4 } from 'uuid';
 import { stringify } from 'querystring';
 import { FileHandler } from 'src/util/file-handler/file-handler';
 
+const {OAuth2Client} = require('google-auth-library');
+const GOOGLE_CLIENT_ID = require("../../database.json").google_client_id;
+const google_oauth_client = new OAuth2Client(GOOGLE_CLIENT_ID);
+const metadata = require('gcp-metadata');
+
+
 const fileConfig = require('../../file-handler-config.json');
 const moment = require('moment');
 const rating_types: string[] = [
 	"lessor",
 	"lessee"
 ];
+
+const sign_in_methods = [
+	"google",
+	"email",
+	"facebook",
+	"apple"
+]
 const default_page_size: number = 10;
+let aud: any;
 
 @Injectable()
 export class UserService {
@@ -67,18 +81,27 @@ export class UserService {
 		return user;
 	}
 
-	public async createUser(user: User): Promise<{ user: User, session_id: string }> {
+	/**
+	 * Creates a user
+	 * @param user 
+	 * @param method 
+	 */
+	public async createUser(user: User, method: string): Promise<{ user: User, session_id: string }> {
 		if (!user) {
-			throw new BadRequestException("No user information supplied")
+			throw new BadRequestException("No user information supplied");
 		}
 		// Validate User input:
 		await this.validateRegistrationInput(user);
+
+		if(!method || !sign_in_methods.includes(method)) {
+			throw new BadRequestException("Invalid Sign Up Method");
+		}
 
 		// Assign user a new user ID
 		user.user_id = uuidv4();
 
 		// Create User
-		await Connector.executeQuery(QueryBuilder.createUser(user));
+		await Connector.executeQuery(QueryBuilder.createUser(user, method));
 
 		// Create Session for User and return user + new session
 		return await this.validateUser({
@@ -224,6 +247,10 @@ export class UserService {
 			session?: {
 				session_id: string,
 				user_id: string
+			},
+			oauth?: {
+				email: string,
+				method: string
 			}
 		}
 	): Promise<{
@@ -271,6 +298,24 @@ export class UserService {
 
 			user = await this.getUser(result.user_id, true);
 
+		} else if (auth.oauth && auth.oauth.email && auth.oauth.method) {
+			// Authenticate using oauth flow (Email and method)
+			let result = (await Connector.executeQuery(QueryBuilder.getUser({oauth: auth.oauth})))[0];
+
+			let user: User;
+			if(!result || !result.user_id) {
+				throw new UnauthorizedException("Invalid Sign In Option");
+			} else {
+				user = await this.getUser(result.user_id, true);
+			}
+
+			// Delete any old sessions
+			await Connector.executeQuery(QueryBuilder.deleteOldSessions(user.user_id));
+
+			// Set Session
+			session_id = uuidv4();
+			await Connector.executeQuery(QueryBuilder.createSession(session_id, user.user_id));
+
 		} else {
 			throw new BadRequestException("Invalid auth parameters 2");
 		}
@@ -280,6 +325,14 @@ export class UserService {
 			session_id: session_id
 		}
 	}
+
+	private async getOauthUser(email: string, method: string): Promise<{
+		user: User,
+		session_id: string
+	}> {
+		return null;
+	}
+
 
 	/**
 	 * Checks whether user input is valid for registration. Returns true if input is valid, otherwise false
@@ -532,5 +585,58 @@ export class UserService {
 
 		// Update Rating for user
 		await Connector.executeQuery(QueryBuilder.setNewUserRating(lessor_info.rated_user_id, lessor_info.average, lessor_info.rating_count, lessee_info.average , lessee_info.rating_count));
+	}
+
+
+	// Handle third party sign ins
+
+	/**
+	 * Sign in with google
+	 * @param auth object containing JWT token
+	 */
+	public async handleGoogleSignIn(
+		auth: {
+            token: string
+        }
+	): Promise<{
+        user: User,
+        session_id: string
+    }> {
+		const token_obj = {
+			idToken: auth.token,
+			audience: GOOGLE_CLIENT_ID
+		}
+		try {
+			const ticket = (await google_oauth_client.verifyIdToken(token_obj)).getPayload();
+			return await this.validateUser({
+				oauth: {
+					email: ticket.email,
+					method: "google"
+				}
+			})
+		} catch(e) {
+			throw new InternalServerErrorException("Google Sign In failed");
+		}
+	}
+
+	/**
+	 * Handle Sign in for oauth Apple user
+	 */
+	public async handleAppleSignIn(): Promise<{
+		user: User,
+		session_id: string
+	}> {
+		throw new Error("Apple Sign In not implemented");
+	}
+
+	
+	/**
+	 * Handle Sign in for oauth Facebook user
+	 */
+	public async handleFacebookSignIn(): Promise<{
+		user: User,
+		session_id: string
+	}> {
+		throw new Error("Facebook Sign In not implemented");
 	}
 }
