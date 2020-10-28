@@ -8,9 +8,9 @@ export class QueryBuilder {
 	 * Creates a user given an user object containing ALL information that will be saved to the database
 	 * @param user User with data to be kept
 	 */
-	public static createUser(user: User): Query {
+	public static createUser(user: User, method: string): Query {
 		return {
-			query: "INSERT INTO user (user_id, first_name, last_name, email, phone_number, password_hash, verified, place_id, street, house_number, lessee_rating, number_of_lessee_ratings, lessor_rating, number_of_lessor_ratings, date_of_birth) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
+			query: "INSERT INTO user (user_id, first_name, last_name, email, phone_number, password_hash, verified, place_id, street, house_number, lessee_rating, number_of_lessee_ratings, lessor_rating, number_of_lessor_ratings, date_of_birth, sign_in_method) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
 			args: [
 				user.user_id,
 				user.first_name,
@@ -26,7 +26,8 @@ export class QueryBuilder {
 				user.number_of_lessee_ratings,
 				user.lessor_rating,
 				user.number_of_lessor_ratings,
-				user.date_of_birth
+				user.date_of_birth,
+				method
 			]
 		}
 	}
@@ -85,6 +86,10 @@ export class QueryBuilder {
 			login?: {
 				email: string,
 				password_hash: string
+			},
+			oauth?: {
+				email: string,
+				method: string
 			}
 		}
 	): Query {
@@ -115,6 +120,14 @@ export class QueryBuilder {
 				args: [
 					user_info.login.email,
 					user_info.login.password_hash
+				]
+			}
+		} else if (user_info.oauth) {
+			return {
+				query: "SELECT * FROM user WHERE email = ? AND sign_in_method = ?;",
+				args: [
+					user_info.oauth.email,
+					user_info.oauth.method
 				]
 			}
 		}

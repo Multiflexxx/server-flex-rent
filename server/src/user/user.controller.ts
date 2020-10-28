@@ -29,8 +29,9 @@ export class UserController {
     @Put()
     async createUser(
         @Body('user') user: any,
+        @Body('sign_in_method') method: string
     ) {
-        return await this.userService.createUser(user);
+        return await this.userService.createUser(user, method);
     }
 
 
@@ -97,6 +98,45 @@ export class UserController {
         session_id: string
     }> {
         return await this.userService.validateUser(auth);
+    }
+
+
+    /**
+     * Authenticate user with google credentials
+     * @param auth 
+     */
+    @Post('/google')
+    async authenticateUserWithGoogle(
+        @Body('auth') auth: {
+            token: string
+        }
+    ): Promise<{
+        user: User,
+        session_id: string
+    }> {
+        return this.userService.handleGoogleSignIn(auth);
+    }
+
+    /**
+     * Authenticate user with apple credentials
+     */
+    @Post('/apple')
+    async authenticateUserWithApple(): Promise<{
+        user: User,
+        session_id: string
+    }> {
+        return this.userService.handleAppleSignIn();
+    }
+
+    /**
+     * Authenticate user with facebook credentials
+     */
+    @Post('/facebook')
+    async authenticateUserWithFacebook(): Promise<{
+        user: User,
+        session_id: string
+    }> {
+        return this.userService.handleFacebookSignIn();
     }
 
 
