@@ -302,7 +302,6 @@ export class UserService {
 			// Authenticate using oauth flow (Email and method)
 			let result = (await Connector.executeQuery(QueryBuilder.getUser({oauth: auth.oauth})))[0];
 
-			let user: User;
 			if(!result || !result.user_id) {
 				throw new UnauthorizedException("Invalid Sign In Option");
 			} else {
