@@ -7,11 +7,16 @@ import { v4 as uuidv4 } from 'uuid';
 import { stringify } from 'querystring';
 import { FileHandler } from 'src/util/file-handler/file-handler';
 
-const {OAuth2Client} = require('google-auth-library');
+const axios = require('axios');
+
+const { OAuth2Client } = require('google-auth-library');
 const GOOGLE_CLIENT_ID = require("../../database.json").google_client_id;
 const google_oauth_client = new OAuth2Client(GOOGLE_CLIENT_ID);
 const metadata = require('gcp-metadata');
 
+const fb_api = "https://graph.facebook.com/v2.12/me";
+const fb_api_query = "?fields=name,first_name,last_name,email";
+const fb_api_access_token = "&access_token=";
 
 const fileConfig = require('../../file-handler-config.json');
 const moment = require('moment');
@@ -93,7 +98,7 @@ export class UserService {
 		// Validate User input:
 		await this.validateRegistrationInput(user);
 
-		if(!method || !sign_in_methods.includes(method)) {
+		if (!method || !sign_in_methods.includes(method)) {
 			throw new BadRequestException("Invalid Sign Up Method");
 		}
 
@@ -145,7 +150,7 @@ export class UserService {
 		}
 
 		// Check old password
-		if(password && (!password.new_password_hash || !password.old_password_hash || password.old_password_hash != validatedUser.user.password_hash)) {
+		if (password && (!password.new_password_hash || !password.old_password_hash || password.old_password_hash != validatedUser.user.password_hash)) {
 			throw new UnauthorizedException("Incorrect Password");
 		}
 
@@ -179,12 +184,12 @@ export class UserService {
 		await Connector.executeQuery(QueryBuilder.updateUser(user, password ? password.new_password_hash : null));
 
 		let passwordHash: string;
-		if(password && password.new_password_hash) {
+		if (password && password.new_password_hash) {
 			passwordHash = password.new_password_hash;
 		} else {
 			passwordHash = validatedUser.user.password_hash;
 		}
-		
+
 		return await this.validateUser({
 			login: {
 				email: user.email,
@@ -206,17 +211,17 @@ export class UserService {
 		}
 	): Promise<void> {
 		// Validate Input
-		if(!user_id) {
+		if (!user_id) {
 			throw new BadRequestException("No user_id");
 		}
 
-		if(!auth || !auth.user_id || !auth.session_id) {
+		if (!auth || !auth.user_id || !auth.session_id) {
 			throw new BadRequestException("Invalid auth parameters");
 		}
 
-		const validatedUser = await this.validateUser({ session: auth})
+		const validatedUser = await this.validateUser({ session: auth })
 
-		if(!validatedUser || !validatedUser.user || validatedUser.user.user_id != user_id) {
+		if (!validatedUser || !validatedUser.user || validatedUser.user.user_id != user_id) {
 			throw new UnauthorizedException("Unauthorized");
 		}
 
@@ -300,10 +305,10 @@ export class UserService {
 
 		} else if (auth.oauth && auth.oauth.email && auth.oauth.method) {
 			// Authenticate using oauth flow (Email and method)
-			let result = (await Connector.executeQuery(QueryBuilder.getUser({oauth: auth.oauth})))[0];
+			let result = (await Connector.executeQuery(QueryBuilder.getUser({ oauth: auth.oauth })))[0];
 
-			if(!result || !result.user_id) {
-				throw new UnauthorizedException("Invalid Sign In Option");
+			if (!result || !result.user_id) {
+				throw new NotFoundException("No user with that sign in info and oauth method");
 			} else {
 				user = await this.getUser(result.user_id, true);
 			}
@@ -378,7 +383,7 @@ export class UserService {
 		}
 
 		// Check if the other fields are filled
-		if(!user.first_name || !user.last_name || !user.password_hash) {
+		if (!user.first_name || !user.last_name || !user.password_hash) {
 			throw new BadRequestException("Missing arguments");
 		}
 	}
@@ -395,26 +400,26 @@ export class UserService {
 		*/
 
 		// Check if rating_type parameter is valid (if given)
-		if(!(!query.rating_type || (query.rating_type && rating_types.includes(query.rating_type)))) {
+		if (!(!query.rating_type || (query.rating_type && rating_types.includes(query.rating_type)))) {
 			throw new BadRequestException("Invalid rating_type parameter in request");
 		}
 
 		// Check if rating parameter is valid (if given)
-		if(!(!query.rating || isNaN(query.rating) || (query.rating <= 5 && query.rating >= 1))) {
+		if (!(!query.rating || isNaN(query.rating) || (query.rating <= 5 && query.rating >= 1))) {
 			throw new BadRequestException("Invalid rating parameter in request");
 		}
 
 		// Check if user exists
-		let user: User = await this.getUser(user_id); 
-		if(!user) {
+		let user: User = await this.getUser(user_id);
+		if (!user) {
 			throw new NotFoundException("User not found")
 		}
 
 		// Check paging
 		let numberOfRatings: number;
-		if(query.rating_type) {
+		if (query.rating_type) {
 			// If rating_type = "lessor"
-			if(query.rating_type === rating_types[0]) {
+			if (query.rating_type === rating_types[0]) {
 				numberOfRatings = user.number_of_lessor_ratings;
 			} else {
 				numberOfRatings = user.number_of_lessee_ratings;
@@ -424,10 +429,10 @@ export class UserService {
 		}
 
 		let page: number;
-		if(!query.page || isNaN(query.page)) {
+		if (!query.page || isNaN(query.page)) {
 			page = 1;
 		} else {
-			if(query.page > Math.ceil(numberOfRatings / default_page_size)) {
+			if (query.page > Math.ceil(numberOfRatings / default_page_size)) {
 				throw new BadRequestException("Ran our of pages...");
 			} else {
 				page = query.page;
@@ -457,7 +462,6 @@ export class UserService {
 			throw new BadRequestException("Insufficient arguments");
 		}
 
-
 		// Check rating input
 		if (!rating || !rating.user_id || !rating.rating_type || !rating.rating || !rating.headline || !rating.text || rating.rating > 5 || rating.rating < 1 || !rating_types.includes(rating.rating_type)) {
 			throw new BadRequestException("Invalid rating arguments");
@@ -465,7 +469,7 @@ export class UserService {
 
 		// Check if user to be rated exists
 		const ratedUser = (await Connector.executeQuery(QueryBuilder.getUser({ user_id: rating.user_id })))[0];
-		if(!ratedUser) {
+		if (!ratedUser) {
 			throw new BadRequestException("User does not exist.");
 		}
 
@@ -509,18 +513,18 @@ export class UserService {
 	 */
 	public async getProfilePicture(user_id: string): Promise<string> {
 		const user = (await Connector.executeQuery(QueryBuilder.getUser({ user_id: user_id })))[0]
-		if(!user) {
+		if (!user) {
 			throw new NotFoundException("User not found");
 		}
 
-		if(!user.profile_picture) {
+		if (!user.profile_picture) {
 			throw new NotFoundException("No Profile picture")
 		}
 
 		// response.sendFile(fileConfig.file_storage_path + user.profile_picture);
 		return fileConfig.file_storage_path + user.profile_picture;
 	}
-	
+
 	/**
 	 * Uploads a given image to the server and sets its path as the profile_picture attribute of a user
 	 * @param user_id 
@@ -528,7 +532,7 @@ export class UserService {
 	 * @param image 
 	 */
 	public async uploadProfilePicture(
-		user_id: string, 
+		user_id: string,
 		session_id: string,
 		image: {
 			fieldname: string,
@@ -540,8 +544,8 @@ export class UserService {
 		}
 	): Promise<User> {
 		// Check auth
-		if(!session_id 
-			|| !user_id 
+		if (!session_id
+			|| !user_id
 			|| !image
 			|| !image.fieldname
 			|| !image.originalname
@@ -554,12 +558,12 @@ export class UserService {
 
 		const validatedUser = await this.validateUser({
 			session: {
-				user_id: user_id, 
+				user_id: user_id,
 				session_id: session_id
 			}
 		});
-		
-		if(user_id != user_id || validatedUser.user.user_id != user_id) {
+
+		if (user_id != user_id || validatedUser.user.user_id != user_id) {
 			throw new UnauthorizedException("Unauthorized");
 		}
 
@@ -583,7 +587,7 @@ export class UserService {
 		const lessee_info = newUserRating.filter(x => x.rating_type == "lessee")[0];
 
 		// Update Rating for user
-		await Connector.executeQuery(QueryBuilder.setNewUserRating(lessor_info.rated_user_id, lessor_info.average, lessor_info.rating_count, lessee_info.average , lessee_info.rating_count));
+		await Connector.executeQuery(QueryBuilder.setNewUserRating(lessor_info.rated_user_id, lessor_info.average, lessor_info.rating_count, lessee_info.average, lessee_info.rating_count));
 	}
 
 
@@ -595,12 +599,12 @@ export class UserService {
 	 */
 	public async handleGoogleSignIn(
 		auth: {
-            token: string
-        }
+			token: string
+		}
 	): Promise<{
-        user: User,
-        session_id: string
-    }> {
+		user: User,
+		session_id: string
+	}> {
 		const token_obj = {
 			idToken: auth.token,
 			audience: GOOGLE_CLIENT_ID
@@ -613,7 +617,7 @@ export class UserService {
 					method: "google"
 				}
 			})
-		} catch(e) {
+		} catch (e) {
 			throw new InternalServerErrorException("Google Sign In failed");
 		}
 	}
@@ -628,14 +632,44 @@ export class UserService {
 		throw new Error("Apple Sign In not implemented");
 	}
 
-	
+
 	/**
 	 * Handle Sign in for oauth Facebook user
 	 */
-	public async handleFacebookSignIn(): Promise<{
+	public async handleFacebookSignIn(
+		auth: {
+			token: string
+		}
+	): Promise<{
 		user: User,
 		session_id: string
 	}> {
-		throw new Error("Facebook Sign In not implemented");
+		if (!auth || !auth.token) {
+			throw new BadRequestException("Invalid auth details (token)");
+		}
+
+		// User token to get Information from facebook API
+		let fb_response: any;
+		try {
+			fb_response = await axios.get(fb_api + fb_api_query + fb_api_access_token + auth.token);
+		} catch (e) {
+			if (e.request.res.statusCode === 400) {
+				throw new BadRequestException("Invalid Facebook access token");
+			} else {
+				throw new InternalServerErrorException("Something went wrong...")
+			}
+		}
+
+		if(!fb_response.data.email) {
+			throw new BadRequestException("Service can't handle facebook logins without an email");
+		}
+
+		// Return user
+		return await this.validateUser({
+			oauth: {
+				email: fb_response.data.email,
+				method: "facebook"
+			}
+		});
 	}
 }
