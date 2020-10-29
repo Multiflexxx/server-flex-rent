@@ -132,11 +132,15 @@ export class UserController {
      * Authenticate user with facebook credentials
      */
     @Post('/facebook')
-    async authenticateUserWithFacebook(): Promise<{
+    async authenticateUserWithFacebook(
+        @Body('auth') auth: {
+            token: string
+        }
+    ): Promise<{
         user: User,
         session_id: string
     }> {
-        return this.userService.handleFacebookSignIn();
+        return this.userService.handleFacebookSignIn(auth);
     }
 
 
