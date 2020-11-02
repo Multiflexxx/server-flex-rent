@@ -197,12 +197,6 @@ export class UserService {
 		// Update User information
 		await Connector.executeQuery(QueryBuilder.updateUser(user, password && password.new_password_hash ? password.new_password_hash : null));
 
-/* 		let passwordHash: string;
-		if (password && password.new_password_hash) {
-			passwordHash = password.new_password_hash;
-		} else {
-			plainTextPwd = validatedUser.user.password_hash;
-		} */
 
 		return await this.validateUser({
 			session: auth.session
@@ -284,17 +278,6 @@ export class UserService {
 		// Decide whether to use login or session data
 		if (auth.login && auth.login.email && auth.login.password_hash) {
 
-			// auth.login.password_hash = bcrypt.hashSync(auth.login.password_hash, saltRounds);
-
-			// Authenticate using login data
-		/* 	let result = (await Connector.executeQuery(QueryBuilder.getUser({
-				login: {
-					email: auth.login.email,
-					password_hash: auth.login.password_hash
-				}
-			})))[0]; */
-			// let query = QueryBuilder.getUser({email: auth.login.email})
-
 			let result = (await Connector.executeQuery(QueryBuilder.getUser({email: auth.login.email})))[0];
 
 			if (result && result.user_id) {
@@ -307,12 +290,6 @@ export class UserService {
 				throw new UnauthorizedException("Email and Password don't match");
 			}
 
-			/* if (result && result.user_id) {
-				user = await this.getUser(result.user_id, true);
-			} else {
-				throw new UnauthorizedException("Email and Password don't match.");
-			}
- */
 			// Delete any old sessions
 			await Connector.executeQuery(QueryBuilder.deleteOldSessions(user.user_id));
 
