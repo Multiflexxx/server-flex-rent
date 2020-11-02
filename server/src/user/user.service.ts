@@ -9,6 +9,9 @@ import { FileHandler } from 'src/util/file-handler/file-handler';
 
 const axios = require('axios');
 
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
+
 const { OAuth2Client } = require('google-auth-library');
 const GOOGLE_CLIENT_ID = require("../../database.json").google_client_id;
 const google_oauth_client = new OAuth2Client(GOOGLE_CLIENT_ID);
@@ -105,6 +108,10 @@ export class UserService {
 		// Assign user a new user ID
 		user.user_id = uuidv4();
 
+		// Hash password again
+		const plainTextPwd: string = user.password_hash;
+		user.password_hash = bcrypt.hashSync(user.password_hash, saltRounds);
+
 		// Create User
 		await Connector.executeQuery(QueryBuilder.createUser(user, method));
 
@@ -112,7 +119,7 @@ export class UserService {
 		return await this.validateUser({
 			login: {
 				email: user.email,
-				password_hash: user.password_hash
+				password_hash: plainTextPwd
 			}
 		});
 	}
@@ -150,7 +157,7 @@ export class UserService {
 		}
 
 		// Check old password
-		if (password && (!password.new_password_hash || !password.old_password_hash || password.old_password_hash != validatedUser.user.password_hash)) {
+		if (password && (!password.new_password_hash || !password.old_password_hash || !bcrypt.compareSync(password.old_password_hash, validatedUser.user.password_hash))) {
 			throw new UnauthorizedException("Incorrect Password");
 		}
 
@@ -180,21 +187,25 @@ export class UserService {
 		user.city = newPlace.name;
 		user.place_id = newPlace.place_id
 
-		// Update User information
-		await Connector.executeQuery(QueryBuilder.updateUser(user, password ? password.new_password_hash : null));
+		// Hash password if new password given
+		let plainTextPwd: string
+		if (password && password.new_password_hash) {
+			plainTextPwd = password.new_password_hash;
+			password.new_password_hash = bcrypt.hashSync(password.new_password_hash, saltRounds);
+		}
 
-		let passwordHash: string;
+		// Update User information
+		await Connector.executeQuery(QueryBuilder.updateUser(user, password && password.new_password_hash ? password.new_password_hash : null));
+
+/* 		let passwordHash: string;
 		if (password && password.new_password_hash) {
 			passwordHash = password.new_password_hash;
 		} else {
-			passwordHash = validatedUser.user.password_hash;
-		}
+			plainTextPwd = validatedUser.user.password_hash;
+		} */
 
 		return await this.validateUser({
-			login: {
-				email: user.email,
-				password_hash: passwordHash
-			}
+			session: auth.session
 		});
 	}
 
@@ -272,20 +283,36 @@ export class UserService {
 
 		// Decide whether to use login or session data
 		if (auth.login && auth.login.email && auth.login.password_hash) {
+
+			// auth.login.password_hash = bcrypt.hashSync(auth.login.password_hash, saltRounds);
+
 			// Authenticate using login data
-			let result = (await Connector.executeQuery(QueryBuilder.getUser({
+		/* 	let result = (await Connector.executeQuery(QueryBuilder.getUser({
 				login: {
 					email: auth.login.email,
 					password_hash: auth.login.password_hash
 				}
-			})))[0];
+			})))[0]; */
+			// let query = QueryBuilder.getUser({email: auth.login.email})
+
+			let result = (await Connector.executeQuery(QueryBuilder.getUser({email: auth.login.email})))[0];
 
 			if (result && result.user_id) {
 				user = await this.getUser(result.user_id, true);
 			} else {
-				throw new UnauthorizedException("Email and Password don't match.");
+				throw new UnauthorizedException("Email and Password don't match");
 			}
 
+			if(!bcrypt.compareSync(auth.login.password_hash, result.password_hash)) {
+				throw new UnauthorizedException("Email and Password don't match");
+			}
+
+			/* if (result && result.user_id) {
+				user = await this.getUser(result.user_id, true);
+			} else {
+				throw new UnauthorizedException("Email and Password don't match.");
+			}
+ */
 			// Delete any old sessions
 			await Connector.executeQuery(QueryBuilder.deleteOldSessions(user.user_id));
 
@@ -660,7 +687,7 @@ export class UserService {
 			}
 		}
 
-		if(!fb_response.data.email) {
+		if (!fb_response.data.email) {
 			throw new BadRequestException("Service can't handle facebook logins without an email");
 		}
 
