@@ -467,7 +467,15 @@ export class UserService {
 		}
 
 		// Check rating input
-		if (!rating || !rating.user_id || !rating.rating_type || !rating.rating || !rating.headline || !rating.text || rating.rating > 5 || rating.rating < 1 || !rating_types.includes(rating.rating_type)) {
+		if (!rating 
+			|| !rating.user_id 
+			|| !rating.rating_type 
+			|| !rating.rating 
+			|| !rating.headline 
+			|| !rating.text 
+			|| rating.rating > 5 
+			|| rating.rating < 1 
+			|| !rating_types.includes(rating.rating_type)) {
 			throw new BadRequestException("Invalid rating arguments");
 		}
 
