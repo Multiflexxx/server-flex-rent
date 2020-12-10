@@ -461,7 +461,7 @@ export class OfferService {
 				rating: 0,
 				category_id: reqBody.offer.category.category_id,
 				user_id: reqBody.session.user_id,
-				price: reqBody.offer.price
+				price: price
 			};
 
 			try {
@@ -1712,32 +1712,12 @@ export class OfferService {
 					offer_id: string
 				}> = [];
 
-				// let lessorDataList: Array<{
-				// 	first_name: string,
-				// 	last_name: string,
-				// 	user_id: string,
-				// 	post_code: string,
-				// 	city: string,
-				// 	verified: number,
-				// 	lessor_rating: number,
-				// 	number_of_lessor_ratings: number
-				// }> = [];
-
 				try {
 					pictureUUIDList = await Connector.executeQuery(QueryBuilder.getOfferPictures(offerList[i].offer_id));
 				} catch (e) {
 					throw new InternalServerErrorException("Something went wrong...");
 				}
 
-				// try {
-				// 	lessorDataList = await Connector.executeQuery(QueryBuilder.getUserByOfferId(offerList[i].offer_id));
-				// } catch (e) {
-				// 	throw new InternalServerErrorException("Something went wrong...");
-				// }
-
-				// if (lessorDataList === undefined || lessorDataList === null || lessorDataList.length !== 1) {
-				// 	throw new InternalServerErrorException("Something went wrong...");
-				// }
 
 				// Lessor is now a user!
 				let lessor: User;
