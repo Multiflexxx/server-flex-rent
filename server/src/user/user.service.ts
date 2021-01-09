@@ -238,7 +238,7 @@ export class UserService {
 
 		// Set user to invisible
 		// TODO: delete personal info and only keep Name?
-		await Connector.executeQuery(QueryBuilder.userSetDeletedFlag(user_id));
+		// await Connector.executeQuery(QueryBuilder.userSetDeletedFlag(user_id));
 
 		/* // How do we delete users?
 		throw new Error("Method not implemented. (And will never be implemented)"); */
@@ -467,7 +467,15 @@ export class UserService {
 		}
 
 		// Check rating input
-		if (!rating || !rating.user_id || !rating.rating_type || !rating.rating || !rating.headline || !rating.text || rating.rating > 5 || rating.rating < 1 || !rating_types.includes(rating.rating_type)) {
+		if (!rating 
+			|| !rating.user_id 
+			|| !rating.rating_type 
+			|| !rating.rating 
+			|| !rating.headline 
+			|| !rating.text 
+			|| rating.rating > 5 
+			|| rating.rating < 1 
+			|| !rating_types.includes(rating.rating_type)) {
 			throw new BadRequestException("Invalid rating arguments");
 		}
 
