@@ -215,33 +215,8 @@ export class UserService {
 			session_id: string
 		}
 	): Promise<void> {
-		// Validate Input
-		if (!user_id) {
-			throw new BadRequestException("No user_id");
-		}
-
-		if (!auth || !auth.user_id || !auth.session_id) {
-			throw new BadRequestException("Invalid auth parameters");
-		}
-
-		const validatedUser = await this.validateUser({ session: auth })
-
-		if (!validatedUser || !validatedUser.user || validatedUser.user.user_id != user_id) {
-			throw new UnauthorizedException("Unauthorized");
-		}
-
-		// "Delete" user
-		// 1. Set delete old user sessions
-		await Connector.executeQuery(QueryBuilder.deleteOldSessions(user_id));
-
-		// Delete user offers?
-
-		// Set user to invisible
-		// TODO: delete personal info and only keep Name?
-		// await Connector.executeQuery(QueryBuilder.userSetDeletedFlag(user_id));
-
-		/* // How do we delete users?
-		throw new Error("Method not implemented. (And will never be implemented)"); */
+		// Set user Status to "soft_deleted" and set users deletion_date
+		
 	}
 
 	/**
@@ -317,7 +292,7 @@ export class UserService {
 				user = await this.getUser(result.user_id, true);
 			}
 
-			// Delete any old sessions
+			// ,, any old sessions
 			await Connector.executeQuery(QueryBuilder.deleteOldSessions(user.user_id));
 
 			// Set Session

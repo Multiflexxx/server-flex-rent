@@ -1,6 +1,7 @@
 import { User } from "src/user/user.model";
 import { Query } from "./query.model";
 import { Request } from "src/offer/request.model";
+const moment = require('moment');
 import { request } from "express";
 
 export class QueryBuilder {
@@ -133,18 +134,18 @@ export class QueryBuilder {
 		}
 	}
 
-	/**
-	 * 
-	 * @param id 
-	 */
-	// public static userSetDeletedFlag(user_id: string): Query {
-	// 	return {
-	// 		query: "UPDATE user SET is_deleted = true, deleted_on = CURRENT_TIMESTAMP() WHERE user_id = ?;",
-	// 		args: [
-	// 			user_id
-	// 		]
-	// 	}
-	// }
+	public static deleteUser(user_id: string, status_id: number, deletion_date?) {
+		if (status_id == 3) {
+			return {
+				query: "UPDATE user SET status_id = ?, deletion_date = ? WHERE user_id = ?;",
+				args: [
+					status_id,
+					!deletion_date ? moment().add(7, 'days').format('YYYY-MM-DD'): deletion_date,
+					user_id
+				]
+			}
+		}
+	}
 
 	/**
 	 * Returns a Query to get user information for an offer by a given offer ID
