@@ -238,7 +238,7 @@ export class UserService {
 
 		// Set user to invisible
 		// TODO: delete personal info and only keep Name?
-		await Connector.executeQuery(QueryBuilder.userSetDeletedFlag(user_id));
+		// await Connector.executeQuery(QueryBuilder.userSetDeletedFlag(user_id));
 
 		/* // How do we delete users?
 		throw new Error("Method not implemented. (And will never be implemented)"); */

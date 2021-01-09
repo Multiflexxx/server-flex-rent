@@ -55,7 +55,7 @@ export class QueryBuilder {
 			args.push(new_password);
 		}
 
-		query += " WHERE user_id = ? AND is_deleted = false;"
+		query += " WHERE user_id = ?;";
 		args.push(user.user_id);
 
 		return {
@@ -66,7 +66,7 @@ export class QueryBuilder {
 
 	public static changeProfilePicture(user_id: string, url: string): Query {
 		return {
-			query: "UPDATE user SET profile_picture = ? WHERE user_id = ? AND is_deleted = false;",
+			query: "UPDATE user SET profile_picture = ? WHERE user_id = ?;",
 			args: [
 				url,
 				user_id
@@ -95,28 +95,28 @@ export class QueryBuilder {
 	): Query {
 		if (user_info.user_id) {
 			return {
-				query: "SELECT * FROM user WHERE user_id = ? AND is_deleted = false;",
+				query: "SELECT * FROM user WHERE user_id = ?;",
 				args: [
 					user_info.user_id
 				]
 			}
 		} else if (user_info.email) {
 			return {
-				query: "SELECT * FROM user WHERE email = ? AND is_deleted = false;",
+				query: "SELECT * FROM user WHERE email = ?;",
 				args: [
 					user_info.email
 				]
 			}
 		} else if (user_info.phone) {
 			return {
-				query: "SELECT * FROM user WHERE phone_number = ? AND is_deleted = false;",
+				query: "SELECT * FROM user WHERE phone_number = ?;",
 				args: [
 					user_info.phone
 				]
 			}
 		} else if (user_info.login) {
 			return {
-				query: "SELECT * FROM user WHERE email = ? AND password_hash = ? AND is_deleted = false;",
+				query: "SELECT * FROM user WHERE email = ? AND password_hash = ?;",
 				args: [
 					user_info.login.email,
 					user_info.login.password_hash
@@ -137,14 +137,14 @@ export class QueryBuilder {
 	 * 
 	 * @param id 
 	 */
-	public static userSetDeletedFlag(user_id: string): Query {
-		return {
-			query: "UPDATE user SET is_deleted = true, deleted_on = CURRENT_TIMESTAMP() WHERE user_id = ?;",
-			args: [
-				user_id
-			]
-		}
-	}
+	// public static userSetDeletedFlag(user_id: string): Query {
+	// 	return {
+	// 		query: "UPDATE user SET is_deleted = true, deleted_on = CURRENT_TIMESTAMP() WHERE user_id = ?;",
+	// 		args: [
+	// 			user_id
+	// 		]
+	// 	}
+	// }
 
 	/**
 	 * Returns a Query to get user information for an offer by a given offer ID
@@ -794,7 +794,7 @@ export class QueryBuilder {
 	 */
 	public static setNewUserRating(user_id: string, lessor_rating: number, number_of_lessor_ratings: number, lessee_rating: number, number_of_lessee_ratings: number): Query {
 		return {
-			query: "UPDATE user SET lessor_rating = ?, number_of_lessor_ratings = ?, lessee_rating = ?, number_of_lessee_ratings = ? WHERE user_id = ? AND is_deleted = false;",
+			query: "UPDATE user SET lessor_rating = ?, number_of_lessor_ratings = ?, lessee_rating = ?, number_of_lessee_ratings = ? WHERE user_id = ?;",
 			args: [
 				lessor_rating,
 				number_of_lessor_ratings,
