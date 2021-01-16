@@ -1,7 +1,9 @@
 import { User } from "src/user/user.model";
 import { Query } from "./query.model";
 import { Request } from "src/offer/request.model";
+const moment = require('moment');
 import { request } from "express";
+import { UserService } from "src/user/user.service";
 
 export class QueryBuilder {
 	/**
@@ -133,18 +135,22 @@ export class QueryBuilder {
 		}
 	}
 
+
 	/**
-	 * 
-	 * @param id 
+	 * Sets a user's status to soft_deleted or hard_deleted. 
+	 * @param user_id 
+	 * @param deletion_date Optional parameter, if deletion date differs from default (7 days)
 	 */
-	// public static userSetDeletedFlag(user_id: string): Query {
-	// 	return {
-	// 		query: "UPDATE user SET is_deleted = true, deleted_on = CURRENT_TIMESTAMP() WHERE user_id = ?;",
-	// 		args: [
-	// 			user_id
-	// 		]
-	// 	}
-	// }
+	public static softDeleteUser(user_id: string, deletion_date?) {
+		return {
+			query: "UPDATE user SET status_id = ?, deletion_date = ? WHERE user_id = ?;",
+			args: [
+				UserService.userStates.softDeleted,
+				!deletion_date ? moment().add(7, 'days').format('YYYY-MM-DD'): deletion_date,
+				user_id
+			]
+		}
+	}
 
 	/**
 	 * Returns a Query to get user information for an offer by a given offer ID
@@ -651,7 +657,7 @@ export class QueryBuilder {
 	}): Query {
 		if (request_info.request_id) {
 			return {
-				query: "SELECT request_id, user_id, offer_id, status_id, from_date, to_date, message, qr_code_id FROM request WHERE request_id = ? ORDER BY created_on DESC;",
+				query: "SELECT request_id, user_id, offer_id, request.status_id as status_id, from_date, to_date, message, qr_code_id FROM request WHERE request.status_id = ? ORDER BY created_on DESC;",
 				args: [
 					request_info.request_id
 				]
@@ -660,7 +666,7 @@ export class QueryBuilder {
 			if (request_info.status_code) {
 				if (request_info.lessor) {
 					return {
-						query: "SELECT request_id, request.user_id, request.offer_id, status_id, from_date, to_date, message, qr_code_id FROM request INNER JOIN offer ON request.offer_id = offer.offer_id WHERE offer.user_id = ? AND ( status_id >= ? OR status_id = ? ) ORDER BY request.created_on DESC;",
+						query: "SELECT request_id, request.user_id, request.offer_id, request.status_id as status_id, from_date, to_date, message, qr_code_id FROM request INNER JOIN offer ON request.offer_id = offer.offer_id WHERE offer.user_id = ? AND ( request.status_id >= ? OR request.status_id = ? ) ORDER BY request.created_on DESC;",
 						args: [
 							request_info.user_id,
 							request_info.status_code,
@@ -669,7 +675,7 @@ export class QueryBuilder {
 					}
 				} else {
 					return {
-						query: "SELECT request_id, user_id, offer_id, status_id, from_date, to_date, message, qr_code_id, created_on FROM request WHERE user_id = ? AND (status_id >= ? OR status_id = ?)  ORDER BY created_on DESC;",
+						query: "SELECT request_id, user_id, offer_id, request.status_id as status_id, from_date, to_date, message, qr_code_id, created_on FROM request WHERE user_id = ? AND (request.status_id >= ? OR request.status_id = ?)  ORDER BY created_on DESC;",
 						args: [
 							request_info.user_id,
 							request_info.status_code,
@@ -681,7 +687,7 @@ export class QueryBuilder {
 			} else {
 				if (request_info.lessor) {
 					return {
-						query: "SELECT request_id, request.user_id, request.offer_id, status_id, from_date, to_date, message, qr_code_id FROM request INNER JOIN offer ON request.offer_id = offer.offer_id WHERE offer.user_id = ? AND (status_id < ? AND status_id != ?) ORDER BY request.created_on DESC;",
+						query: "SELECT request_id, request.user_id, request.offer_id, request.status_id as status_id, from_date, to_date, message, qr_code_id FROM request INNER JOIN offer ON request.offer_id = offer.offer_id WHERE offer.user_id = ? AND (request.status_id < ? AND request.status_id != ?) ORDER BY request.created_on DESC;",
 						args: [
 							request_info.user_id,
 							5,
@@ -690,7 +696,7 @@ export class QueryBuilder {
 					}
 				} else {
 					return {
-						query: "SELECT request_id, user_id, offer_id, status_id, from_date, to_date, message, qr_code_id FROM request WHERE user_id = ? AND (status_id < ? AND status_id != ?) ORDER BY created_on DESC;",
+						query: "SELECT request_id, user_id, offer_id, request.status_id as status_id, from_date, to_date, message, qr_code_id FROM request WHERE user_id = ? AND (request.status_id < ? AND request.status_id != ?) ORDER BY created_on DESC;",
 						args: [
 							request_info.user_id,
 							5,
