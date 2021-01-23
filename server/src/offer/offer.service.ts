@@ -436,6 +436,11 @@ export class OfferService {
 				throw new BadRequestException("Title is required");
 			}
 
+			// Check if title is too long
+			if(reqBody.offer.title.length > 100) {
+				throw new BadRequestException("Title too long");
+			}
+
 			// check if description is empty
 			if (reqBody.offer.description === undefined
 				|| reqBody.offer.description === null
@@ -756,6 +761,11 @@ export class OfferService {
 				|| reqBody.offer.title === null
 				|| reqBody.offer.title === "") {
 				throw new BadRequestException("Title is required");
+			}
+
+			// Check if title is too long
+			if(reqBody.offer.title.length > 100) {
+				throw new BadRequestException("Title too long");
 			}
 
 			// Check if description is empty
@@ -1174,12 +1184,19 @@ export class OfferService {
 				throw new InternalServerErrorException("Something went wrong...");
 			}
 
-			// Delete offer from database
+			// Soft delete offer from database
 			try {
-				await Connector.executeQuery(QueryBuilder.deleteOfferById(id));
+				await Connector.executeQuery(QueryBuilder.softDeleteOfferById(id));
 			} catch (e) {
-				throw new InternalServerErrorException("Something went wrong...")
+				throw new InternalServerErrorException("Something went wrong...");
 			}
+
+			// // Delete offer from database
+			// try {
+			// 	await Connector.executeQuery(QueryBuilder.deleteOfferById(id));
+			// } catch (e) {
+			// 	throw new InternalServerErrorException("Something went wrong...")
+			// }
 
 			return offer;
 		} else {
