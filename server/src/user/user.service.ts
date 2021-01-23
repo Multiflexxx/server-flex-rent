@@ -39,6 +39,14 @@ let aud: any;
 
 @Injectable()
 export class UserService {
+	public static userStates = {
+		created: 1,
+		verified: 2,
+		softDeleted: 3,
+		hardDeleted: 4
+	}
+
+
 	/**
 	 * Returns a User Object containing publicly visible user information
 	 * @param id ID of user
@@ -52,38 +60,52 @@ export class UserService {
 			throw new NotFoundException("User not found");
 		}
 
-		// refresh parameter is added to image path to reload image in frontend automatically
-		user = {
-			user_id: result.user_id,
-			first_name: result.first_name,
-			last_name: result.last_name,
-			verified: (result.verified === 1 ? true : false),
-			place_id: result.place_id,
-			lessee_rating: result.lessee_rating,
-			number_of_lessee_ratings: result.number_of_lessee_ratings,
-			lessor_rating: result.lessor_rating,
-			number_of_lessor_ratings: result.number_of_lessor_ratings,
-			profile_picture: result.profile_picture ? fileConfig.user_image_base_url + result.profile_picture.split(".")[0] + `?refresh=${uuidv4()}` : ""
-		}
-
-		// Add private parameters of user is authenticated
-		if (isAuthenticated) {
-			user.email = result.email;
-			user.phone_number = result.phone_number;
-			user.street = result.street;
-			user.house_number = result.house_number;
-			user.date_of_birth = result.date_of_birth;
-			user.password_hash = result.password_hash;
-
-			// Get post code and city name by place_id
-			result = (await Connector.executeQuery(QueryBuilder.getPlace({ place_id: user.place_id })))[0];
-
-			if (!result) {
-				throw new InternalServerErrorException("Something went wrong...");
+		if (result.status_id != UserService.userStates.softDeleted && result.status_id != UserService.userStates.hardDeleted) {
+			user = {
+				user_id: result.user_id,
+				first_name: result.first_name,
+				last_name: result.last_name,
+				verified: (result.verified === 1 ? true : false),
+				place_id: result.place_id,
+				lessee_rating: result.lessee_rating,
+				number_of_lessee_ratings: result.number_of_lessee_ratings,
+				lessor_rating: result.lessor_rating,
+				number_of_lessor_ratings: result.number_of_lessor_ratings,
+				profile_picture: result.profile_picture ? fileConfig.user_image_base_url + result.profile_picture.split(".")[0] + `?refresh=${uuidv4()}` : ""
 			}
 
-			user.post_code = result.post_code;
-			user.city = result.name;
+			// Add private parameters of user is authenticated
+			if (isAuthenticated) {
+				user.email = result.email;
+				user.phone_number = result.phone_number;
+				user.street = result.street;
+				user.house_number = result.house_number;
+				user.date_of_birth = result.date_of_birth;
+				user.password_hash = result.password_hash;
+
+				// Get post code and city name by place_id
+				result = (await Connector.executeQuery(QueryBuilder.getPlace({ place_id: user.place_id })))[0];
+
+				if (!result) {
+					throw new InternalServerErrorException("Something went wrong...");
+				}
+
+				user.post_code = result.post_code;
+				user.city = result.name;
+			}
+		} else {
+			user = {
+				user_id: result.user_id,
+				first_name: "Deleted",
+				last_name: "User",
+				verified: false,
+				place_id: 0,
+				lessee_rating: 0,
+				number_of_lessee_ratings: 0,
+				lessor_rating: 0,
+				number_of_lessor_ratings: 0,
+				profile_picture: result.profile_picture ? fileConfig.user_image_base_url + result.profile_picture.split(".")[0] + `?refresh=${uuidv4()}` : ""
+			}
 		}
 
 		return user;
@@ -208,16 +230,34 @@ export class UserService {
 	 * @param user_id user_id of user to be deleted
 	 * @param auth session_id and user_id of user to be deleted
 	 */
-	public async deleteUser(
+	public async softDeleteUser(
 		user_id: string,
 		auth: {
 			user_id: string,
 			session_id: string
 		}
 	): Promise<void> {
-		// Set user Status to "soft_deleted" and set users deletion_date
-		
+		// Check parameter
+		if (!user_id || !auth || !auth.user_id || !auth.session_id) {
+			throw new BadRequestException("Insufficient Parameter");
+		}
+
+		// Validate user
+		const validatedUser = await this.validateUser({ session: auth });
+		if (validatedUser.user.user_id != user_id) {
+			throw new UnauthorizedException("Not authorized")
+		}
+
+		// Set user Status to "soft_deleted" and set users deletion_date (today + 1 week)
+
+		// Todo: Check if user can even be deleted (cant be deleted when user has open requests etc...)
+		await Connector.executeQuery(QueryBuilder.softDeleteUser(auth.user_id));
 	}
+
+	/**
+	 * Function used for hard deleting a user, after the one week period after soft deleting expired
+	 */
+	public async hardDeleteUser() { }
 
 	/**
 	 * Returns a complete user object and session_id given proper auth details
@@ -253,7 +293,7 @@ export class UserService {
 		// Decide whether to use login or session data
 		if (auth.login && auth.login.email && auth.login.password_hash) {
 
-			let result = (await Connector.executeQuery(QueryBuilder.getUser({email: auth.login.email})))[0];
+			let result = (await Connector.executeQuery(QueryBuilder.getUser({ email: auth.login.email })))[0];
 
 			if (result && result.user_id) {
 				user = await this.getUser(result.user_id, true);
@@ -261,7 +301,7 @@ export class UserService {
 				throw new UnauthorizedException("Email and Password don't match");
 			}
 
-			if(!bcrypt.compareSync(auth.login.password_hash, result.password_hash)) {
+			if (!bcrypt.compareSync(auth.login.password_hash, result.password_hash)) {
 				throw new UnauthorizedException("Email and Password don't match");
 			}
 
@@ -442,14 +482,14 @@ export class UserService {
 		}
 
 		// Check rating input
-		if (!rating 
-			|| !rating.user_id 
-			|| !rating.rating_type 
-			|| !rating.rating 
-			|| !rating.headline 
-			|| !rating.text 
-			|| rating.rating > 5 
-			|| rating.rating < 1 
+		if (!rating
+			|| !rating.user_id
+			|| !rating.rating_type
+			|| !rating.rating
+			|| !rating.headline
+			|| !rating.text
+			|| rating.rating > 5
+			|| rating.rating < 1
 			|| !rating_types.includes(rating.rating_type)) {
 			throw new BadRequestException("Invalid rating arguments");
 		}

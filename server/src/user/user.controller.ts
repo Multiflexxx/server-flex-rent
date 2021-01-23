@@ -72,7 +72,7 @@ export class UserController {
         },
         @Res() response
     ) {
-        await this.userService.deleteUser(id, auth);
+        await this.userService.softDeleteUser(id, auth);
         response.send(200);
     }
 
