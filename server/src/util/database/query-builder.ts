@@ -2,7 +2,6 @@ import { User } from "src/user/user.model";
 import { Query } from "./query.model";
 import { Request } from "src/offer/request.model";
 const moment = require('moment');
-import { request } from "express";
 import { UserService } from "src/user/user.service";
 
 export class QueryBuilder {
@@ -219,14 +218,14 @@ export class QueryBuilder {
 			}
 		} else if (offer_info.query) {
 			if (offer_info.query.category && offer_info.query.category > 0) {
-				let query = `SELECT offer_id, offer.user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id WHERE ${offer_info.query.place_ids} AND offer.category_id = ? `;
+				let query = `SELECT offer_id, offer.user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id WHERE ${offer_info.query.place_ids} AND offer.category_id = ? AND offer.status_id != -1 `;
 				let args = [];
 
 				args.push(offer_info.query.category);
 
 				if (offer_info.query.search && offer_info.query.search !== "") {
 					let search = "%" + offer_info.query.search + "%";
-					query += " AND title LIKE ? AND offer.status_id != -1 ";
+					query += " AND title LIKE ? ";
 					args.push(search);
 				}
 
@@ -238,14 +237,14 @@ export class QueryBuilder {
 					args: args
 				}
 			} else if (offer_info.query.search && offer_info.query.search !== "") {
-				let query = `SELECT offer_id, offer.user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id WHERE ${offer_info.query.place_ids} AND title LIKE ? `;
+				let query = `SELECT offer_id, offer.user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id WHERE ${offer_info.query.place_ids} AND title LIKE ? AND offer.status_id != -1`;
 				let args = [];
 
 				let search = "%" + offer_info.query.search + "%";
 				args.push(search);
 
 				if (offer_info.query.category && offer_info.query.category > 0) {
-					query += " AND category_id = ? AND offer.status_id != -1 ";
+					query += " AND category_id = ? ";
 					args.push(offer_info.query.category);
 				}
 
