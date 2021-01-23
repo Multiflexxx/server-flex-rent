@@ -212,7 +212,7 @@ export class QueryBuilder {
 	): Query {
 		if (offer_info.offer_id) {
 			return {
-				query: "SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id WHERE offer_id = ?;",
+				query: "SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id WHERE offer_id = ? AND offer.status_id != 1;",
 				args: [
 					offer_info.offer_id
 				]
@@ -226,7 +226,7 @@ export class QueryBuilder {
 
 				if (offer_info.query.search && offer_info.query.search !== "") {
 					let search = "%" + offer_info.query.search + "%";
-					query += " AND title LIKE ?";
+					query += " AND title LIKE ? AND offer.status_id != -1 ";
 					args.push(search);
 				}
 
@@ -245,7 +245,7 @@ export class QueryBuilder {
 				args.push(search);
 
 				if (offer_info.query.category && offer_info.query.category > 0) {
-					query += " AND category_id = ?";
+					query += " AND category_id = ? AND offer.status_id != -1 ";
 					args.push(offer_info.query.category);
 				}
 
@@ -258,7 +258,7 @@ export class QueryBuilder {
 				}
 			} else {
 				return {
-					query: `SELECT offer_id, offer.user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id WHERE ${offer_info.query.place_ids} LIMIT ?;`,
+					query: `SELECT offer_id, offer.user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id WHERE ${offer_info.query.place_ids} AND offer.status_id != -1 LIMIT ?;`,
 					args: [
 						offer_info.query.limit
 					]
@@ -266,14 +266,14 @@ export class QueryBuilder {
 			}
 		} else if (offer_info.user_id) {
 			return {
-				query: "SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id WHERE user_id = ?;",
+				query: "SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id WHERE user_id = ? AND offer.status_id != -1;",
 				args: [
 					offer_info.user_id
 				]
 			}
 		} else {
 			return {
-				query: "SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id LIMIT 15;",
+				query: "SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id AND offer.status_id != -1 LIMIT 15;",
 				args: []
 			}
 		}
@@ -309,17 +309,17 @@ export class QueryBuilder {
 		if (offer_info) {
 			if (offer_info && offer_info.best_offers) {
 				return {
-					query: `SELECT offer_id, offer.user_id, title, description, offer.rating, price, offer.category_id, category.name AS category_name, category.picture_link, offer.number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id WHERE ${offer_info.place_ids} ORDER BY offer.rating DESC, offer.number_of_ratings DESC LIMIT 9;`,
+					query: `SELECT offer_id, offer.user_id, title, description, offer.rating, price, offer.category_id, category.name AS category_name, category.picture_link, offer.number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id WHERE ${offer_info.place_ids} AND offer.status_id != -1 ORDER BY offer.rating DESC, offer.number_of_ratings DESC LIMIT 9;`,
 					args: []
 				}
 			} else if (offer_info && offer_info.latest_offers) {
 				return {
-					query: `SELECT offer_id, offer.user_id, title, description, offer.rating, price, offer.category_id, category.name AS category_name, category.picture_link, offer.number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id WHERE ${offer_info.place_ids} ORDER BY offer.created_at DESC LIMIT 9;`,
+					query: `SELECT offer_id, offer.user_id, title, description, offer.rating, price, offer.category_id, category.name AS category_name, category.picture_link, offer.number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id WHERE ${offer_info.place_ids} AND offer.status_id != -1 ORDER BY offer.created_at DESC LIMIT 9;`,
 					args: []
 				}
 			} else if (offer_info && offer_info.best_lessors) {
 				return {
-					query: `SELECT offer_id, offer.user_id, title, description, offer.rating, price, offer.category_id, category.name AS category_name, category.picture_link, offer.number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id WHERE ${offer_info.place_ids} ORDER BY user.lessor_rating DESC, user.number_of_lessor_ratings DESC LIMIT 9;`,
+					query: `SELECT offer_id, offer.user_id, title, description, offer.rating, price, offer.category_id, category.name AS category_name, category.picture_link, offer.number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id WHERE ${offer_info.place_ids} AND offer.status_id != -1 ORDER BY user.lessor_rating DESC, user.number_of_lessor_ratings DESC LIMIT 9;`,
 					args: []
 				}
 			}
@@ -390,7 +390,7 @@ export class QueryBuilder {
 		category_id: number,
 	}): Query {
 		return {
-			query: "INSERT INTO offer (offer_id, user_id, title, description, rating, price, category_id, number_of_ratings, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW());",
+			query: "INSERT INTO offer (offer_id, user_id, title, description, rating, price, category_id, number_of_ratings, created_at, status_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?);",
 			args: [
 				offer.offer_id,
 				offer.user_id,
@@ -399,7 +399,8 @@ export class QueryBuilder {
 				offer.rating,
 				offer.price,
 				offer.category_id,
-				offer.number_of_ratings
+				offer.number_of_ratings,
+				1
 			]
 		}
 	}
@@ -416,7 +417,7 @@ export class QueryBuilder {
 		category_id: number
 	}): Query {
 		return {
-			query: "UPDATE offer SET title = ?, description = ?, price = ?, category_id = ? WHERE offer_id = ?;",
+			query: "UPDATE offer SET title = ?, description = ?, price = ?, category_id = ? WHERE offer_id = ? AND offer.status_id != -1;",
 			args: [
 				offer.title,
 				offer.description,
@@ -437,7 +438,7 @@ export class QueryBuilder {
 		number_of_ratings: number
 	}): Query {
 		return {
-			query: "UPDATE offer SET rating = ?, number_of_ratings = ? WHERE offer_id = ?;",
+			query: "UPDATE offer SET rating = ?, number_of_ratings = ? WHERE offer_id = ? AND offer.status_id != -1;",
 			args: [
 				rating.rating,
 				rating.number_of_ratings,
@@ -446,13 +447,22 @@ export class QueryBuilder {
 		}
 	}
 
-	/**
-	 * Returns a Query to delete an offer with a given ID
-	 * @param id ID of the offer to be deleted
-	 */
-	public static deleteOfferById(id: string): Query {
+	// /**
+	//  * Returns a Query to delete an offer with a given ID
+	//  * @param id ID of the offer to be deleted
+	//  */
+	// public static deleteOfferById(id: string): Query {
+	// 	return {
+	// 		query: "DELETE FROM offer WHERE offer_id = ?;",
+	// 		args: [
+	// 			id
+	// 		]
+	// 	}
+	// }
+
+	public static softDeleteOfferById(id: string): Query {
 		return {
-			query: "DELETE FROM offer WHERE offer_id = ?;",
+			query: "UPDATE offer SET title = CONCAT('(Gelöscht) ', title), description = '(Angebot wurde gelöscht.)', deletion_date = NOW(), status_id = -1 WHERE offer_id = ?;",
 			args: [
 				id
 			]
