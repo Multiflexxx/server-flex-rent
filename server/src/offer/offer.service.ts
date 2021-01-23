@@ -1096,6 +1096,7 @@ export class OfferService {
 		}
 	}
 
+	// TODO: REFACTOR DELETION
 	/**
 	 * Deletes a given offer after user is authenticated
 	 * @param id ID of the offer to be deleted
