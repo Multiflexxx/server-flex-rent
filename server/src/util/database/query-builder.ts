@@ -211,7 +211,7 @@ export class QueryBuilder {
 	): Query {
 		if (offer_info.offer_id) {
 			return {
-				query: "SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id WHERE offer_id = ? AND offer.status_id != -1;",
+				query: "SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id WHERE offer_id = ? ;",
 				args: [
 					offer_info.offer_id
 				]
@@ -265,7 +265,7 @@ export class QueryBuilder {
 			}
 		} else if (offer_info.user_id) {
 			return {
-				query: "SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id WHERE user_id = ? AND offer.status_id != -1;",
+				query: "SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id WHERE user_id = ?;",
 				args: [
 					offer_info.user_id
 				]
