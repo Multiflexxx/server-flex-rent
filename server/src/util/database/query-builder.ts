@@ -657,7 +657,7 @@ export class QueryBuilder {
 	}): Query {
 		if (request_info.request_id) {
 			return {
-				query: "SELECT request_id, user_id, offer_id, request.status_id as status_id, from_date, to_date, message, qr_code_id FROM request WHERE request.status_id = ? ORDER BY created_on DESC;",
+				query: "SELECT request_id, user_id, offer_id, request.status_id as status_id, from_date, to_date, message, qr_code_id FROM request WHERE request_id = ? ORDER BY created_on DESC;",
 				args: [
 					request_info.request_id
 				]
