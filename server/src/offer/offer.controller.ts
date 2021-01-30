@@ -84,7 +84,7 @@ export class OfferController {
 	 * @param id ID of offer to be deleted
 	 * @param reqBody body of the request is used for passing authorization details
 	 */
-	@Patch('delete-offer:id')
+	@Patch('delete-offer/:id')
 	deleteOffer(
 		@Param('id') id: string,
 		@Body() reqBody: {}
