@@ -1106,7 +1106,6 @@ export class OfferService {
 		}
 	}
 
-	// TODO: REFACTOR DELETION
 	/**
 	 * Deletes a given offer after user is authenticated
 	 * @param id ID of the offer to be deleted
@@ -1191,13 +1190,9 @@ export class OfferService {
 				throw new InternalServerErrorException("Something went wrong...");
 			}
 
-			// // Delete offer from database
-			// try {
-			// 	await Connector.executeQuery(QueryBuilder.deleteOfferById(id));
-			// } catch (e) {
-			// 	throw new InternalServerErrorException("Something went wrong...")
-			// }
-
+			// Update offer with new deleted data
+			offer = await this.getOfferById(id);
+		
 			return offer;
 		} else {
 			throw new BadRequestException("Could not delete offer");
