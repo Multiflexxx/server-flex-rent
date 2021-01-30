@@ -461,7 +461,7 @@ export class QueryBuilder {
 
 	public static softDeleteOfferById(id: string): Query {
 		return {
-			query: "UPDATE offer SET title = CONCAT('(Gelöscht) ', title), description = '(Angebot wurde gelöscht.)', deletion_date = NOW(), status_id = -1 WHERE offer_id = ?;",
+			query: "UPDATE offer SET title = CONCAT('(Gelöscht) ', title), description = '(Angebot wurde gelöscht.)', deletion_date = NOW(), status_id = -1 WHERE offer_id = ? AND status_id != -1;",
 			args: [
 				id
 			]
