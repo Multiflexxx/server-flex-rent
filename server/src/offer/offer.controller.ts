@@ -79,6 +79,20 @@ export class OfferController {
 	}
 
 	/**
+	 * INFO: Patch is used, because dart's http delete function does not support bodies
+	 * Deletes an offer given an ID and sufficient authorization.
+	 * @param id ID of offer to be deleted
+	 * @param reqBody body of the request is used for passing authorization details
+	 */
+	@Patch('delete-offer:id')
+	deleteOffer(
+		@Param('id') id: string,
+		@Body() reqBody: {}
+	) {
+		return this.offerService.deleteOffer(id, reqBody);
+	}
+
+	/**
 	* Updates an offer given the id and parameters to be updated, given sufficient authorization. 
 	 * @param reqBody Update parameters
 	 * @param id ID of offer to be updated
@@ -137,19 +151,6 @@ export class OfferController {
 		@Body() reqBody: {}
 	) {
 		return this.offerService.handleRequests(reqBody);
-	}
-
-	/**
-	 * Deletes an offer given an ID and sufficient authorization.
-	 * @param id ID of offer to be deleted
-	 * @param reqBody body of the request is used for passing authorization details
-	 */
-	@Delete(':id')
-	deleteOffer(
-		@Param('id') id: string,
-		@Body() reqBody: {}
-	) {
-		return this.offerService.deleteOffer(id, reqBody);
 	}
 
 	/**
