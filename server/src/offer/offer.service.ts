@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, InternalServerErrorException, BadRequestException, UnauthorizedException } from '@nestjs/common';
+import { Injectable, NotFoundException, InternalServerErrorException, BadRequestException, UnauthorizedException, MethodNotAllowedException, NotImplementedException } from '@nestjs/common';
 import { Connector } from 'src/util/database/connector';
 import { QueryBuilder } from 'src/util/database/query-builder';
 import { FileHandler } from 'src/util/file-handler/file-handler'
@@ -337,6 +337,35 @@ export class OfferService {
 	}
 
 	/**
+	 * Returns top categories (Categories with most offers)
+	 */
+	public async getTopCategories(): Promise<Array<Category>> {
+		let categoriesResponse: Array<{
+			category_id: string,
+			name: string,
+			picture_link: string,
+			offer_count: number
+		}> = [];
+
+		try {
+			categoriesResponse = await Connector.executeQuery(QueryBuilder.getCategories({ top_categories: true }));
+		} catch (e) {
+			throw new InternalServerErrorException("Something went wrong...");
+		}
+
+		if (categoriesResponse.length > 0) {
+			// Delete temporary column offer_count from response
+			categoriesResponse.forEach(category => {
+				delete category.offer_count
+			});
+
+			return categoriesResponse;
+		} else {
+			throw new InternalServerErrorException("Could not get categories");
+		}
+	}
+
+	/**
 	 * Returns all categories from database
 	 */
 	public async getAllCategories(): Promise<Array<Category>> {
@@ -437,7 +466,7 @@ export class OfferService {
 			}
 
 			// Check if title is too long
-			if(reqBody.offer.title.length > 100) {
+			if (reqBody.offer.title.length > 100) {
 				throw new BadRequestException("Title too long");
 			}
 
@@ -764,7 +793,7 @@ export class OfferService {
 			}
 
 			// Check if title is too long
-			if(reqBody.offer.title.length > 100) {
+			if (reqBody.offer.title.length > 100) {
 				throw new BadRequestException("Title too long");
 			}
 
@@ -1192,7 +1221,7 @@ export class OfferService {
 
 			// Update offer with new deleted data
 			offer = await this.getOfferById(id);
-		
+
 			return offer;
 		} else {
 			throw new BadRequestException("Could not delete offer");

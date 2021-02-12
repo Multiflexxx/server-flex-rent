@@ -119,3 +119,5 @@ dist
 database.json
 geo/
 server/file-handler-config.json
+email.json
+server/src/test-endpoint
