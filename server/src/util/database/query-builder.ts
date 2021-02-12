@@ -326,11 +326,12 @@ export class QueryBuilder {
 	}
 
 	/**
-	 * Returns all categories OR a category with a given id
-	 * @param category_info 
+	 * Returns all categories OR a category with a given id OR top categories
+	 * @param category_info object with parameters to get right query
 	 */
 	public static getCategories(category_info: {
-		category_id?: number
+		category_id?: number,
+		top_categories?: boolean
 	}): Query {
 		if (category_info.category_id) {
 			return {
@@ -339,7 +340,13 @@ export class QueryBuilder {
 					category_info.category_id
 				]
 			}
-		} else {
+		} else if (category_info.top_categories) {
+			return {
+				query: "SELECT category.category_id, name, picture_link, COUNT(offer_id) AS offer_count FROM category LEFT JOIN offer ON category.category_id = offer.category_id GROUP BY category.category_id ORDER BY offer_count DESC LIMIT 5;",
+				args: []
+			}
+		}
+		else {
 			return {
 				query: "SELECT * FROM category;",
 				args: []

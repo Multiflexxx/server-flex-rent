@@ -9,10 +9,12 @@ export class EmailHandler {
     private static transporter = EmailHandler.nodeMailer.createTransport(EmailHandler.transporterConfig);
 
     /**
+     * Method to send the verification email to users
+     * @param recipient email of receiver
+     * @param subject subject of mail
+     * @param link verification link
      * 
-     * @param recipient 
-     * @param subject 
-     * @param link 
+     * @returns returns an EmailResponse object if email was sent successfully
      */
     public static async sendVerificationEmail(
         recipient: string,
