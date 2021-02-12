@@ -21,6 +21,14 @@ export class OfferController {
 	/**
 	 * Returns all available categories
 	 */
+	@Get('top-categories')
+	getTopCategories() {
+		return this.offerService.getTopCategories();
+	}
+
+	/**
+	 * Returns all available categories
+	 */
 	@Get('categories')
 	getAllCategories() {
 		return this.offerService.getAllCategories();
