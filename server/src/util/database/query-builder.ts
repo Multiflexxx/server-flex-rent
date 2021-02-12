@@ -342,7 +342,7 @@ export class QueryBuilder {
 			}
 		} else if (category_info.top_categories) {
 			return {
-				query: "SELECT category.category_id, name, picture_link, COUNT(offer_id) AS offer_count FROM category LEFT JOIN offer ON category.category_id = offer.category_id GROUP BY category.category_id ORDER BY offer_count DESC LIMIT 5;",
+				query: "SELECT category.category_id, name, picture_link, COUNT(offer_id) AS offer_count FROM category LEFT JOIN offer ON category.category_id = offer.category_id GROUP BY category.category_id ORDER BY offer_count DESC LIMIT 4;",
 				args: []
 			}
 		}
