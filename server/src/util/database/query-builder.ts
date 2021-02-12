@@ -145,7 +145,7 @@ export class QueryBuilder {
 			query: "UPDATE user SET status_id = ?, deletion_date = ? WHERE user_id = ?;",
 			args: [
 				UserService.userStates.softDeleted,
-				!deletion_date ? moment().add(7, 'days').format('YYYY-MM-DD'): deletion_date,
+				!deletion_date ? moment().add(7, 'days').format('YYYY-MM-DD') : deletion_date,
 				user_id
 			]
 		}
@@ -205,10 +205,14 @@ export class QueryBuilder {
 				limit: number,
 				search?: string,
 				category?: number,
+				price_below?: number,
+				rating_above?: number,
+				lessor_name?: string
 			},
 			user_id?: string
 		}
 	): Query {
+		// Offerby Id
 		if (offer_info.offer_id) {
 			return {
 				query: "SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id WHERE offer_id = ? ;",
@@ -218,10 +222,175 @@ export class QueryBuilder {
 			}
 		} else if (offer_info.query) {
 			if (offer_info.query.category && offer_info.query.category > 0) {
+				// Filter by category
 				let query = `SELECT offer_id, offer.user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id WHERE ${offer_info.query.place_ids} AND offer.category_id = ? AND offer.status_id != -1 `;
 				let args = [];
 
 				args.push(offer_info.query.category);
+
+				if (offer_info.query.price_below && offer_info.query.price_below > 0) {
+					query += " AND offer.price <= ? ";
+					args.push(offer_info.query.price_below);
+				}
+
+				if (offer_info.query.rating_above && offer_info.query.rating_above > 0) {
+					query += " AND offer.rating >= ? ";
+					args.push(offer_info.query.rating_above);
+				}
+
+				if (offer_info.query.search && offer_info.query.search !== "") {
+					let search = "%" + offer_info.query.search + "%";
+					query += " AND title LIKE ? ";
+					args.push(search);
+				}
+
+				if (offer_info.query.lessor_name && offer_info.query.lessor_name !== "") {
+					let username = "%" + offer_info.query.lessor_name + "%";
+					query += " AND ( user.first_name LIKE ? OR user.last_name LIKE ? ) ";
+					args.push(username);
+					args.push(username);
+				}
+
+				query += " LIMIT ?;";
+				args.push(offer_info.query.limit);
+
+				return {
+					query: query,
+					args: args
+				}
+			} else if (offer_info.query.search && offer_info.query.search !== "") {
+				// Filter by search
+				let query = `SELECT offer_id, offer.user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id WHERE ${offer_info.query.place_ids} AND title LIKE ? AND offer.status_id != -1`;
+				let args = [];
+
+				let search = "%" + offer_info.query.search + "%";
+				args.push(search);
+
+				if (offer_info.query.category && offer_info.query.category > 0) {
+					query += " AND category_id = ? ";
+					args.push(offer_info.query.category);
+				}
+
+				if (offer_info.query.price_below && offer_info.query.price_below > 0) {
+					query += " AND offer.price <= ? ";
+					args.push(offer_info.query.price_below);
+				}
+
+				if (offer_info.query.rating_above && offer_info.query.rating_above > 0) {
+					query += " AND offer.rating >= ? ";
+					args.push(offer_info.query.rating_above);
+				}
+
+				if (offer_info.query.lessor_name && offer_info.query.lessor_name !== "") {
+					let username = "%" + offer_info.query.lessor_name + "%";
+					query += " AND ( user.first_name LIKE ? OR user.last_name LIKE ? ) ";
+					args.push(username);
+					args.push(username);
+				}
+
+				query += " LIMIT ?;";
+				args.push(offer_info.query.limit);
+
+				return {
+					query: query,
+					args: args
+				}
+			} else if (offer_info.query.price_below && offer_info.query.price_below > 0) {
+				// Filter by price
+				let query = `SELECT offer_id, offer.user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id WHERE ${offer_info.query.place_ids} AND offer.price <= ? AND offer.status_id != -1 `;
+				let args = [];
+
+				args.push(offer_info.query.price_below);
+
+				if (offer_info.query.category && offer_info.query.category > 0) {
+					query += " AND category_id = ? ";
+					args.push(offer_info.query.category);
+				}
+
+				if (offer_info.query.rating_above && offer_info.query.rating_above > 0) {
+					query += " AND offer.rating >= ? ";
+					args.push(offer_info.query.rating_above);
+				}
+
+				if (offer_info.query.search && offer_info.query.search !== "") {
+					let search = "%" + offer_info.query.search + "%";
+					query += " AND title LIKE ? ";
+					args.push(search);
+				}
+
+				if (offer_info.query.lessor_name && offer_info.query.lessor_name !== "") {
+					let username = "%" + offer_info.query.lessor_name + "%";
+					query += " AND ( user.first_name LIKE ? OR user.last_name LIKE ? ) ";
+					args.push(username);
+					args.push(username);
+				}
+
+				query += " LIMIT ?;";
+				args.push(offer_info.query.limit);
+
+				return {
+					query: query,
+					args: args
+				}
+			} else if (offer_info.query.rating_above && offer_info.query.rating_above > 0) {
+				// Filter by rating
+				let query = `SELECT offer_id, offer.user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id WHERE ${offer_info.query.place_ids} AND offer.rating >= ? AND offer.status_id != -1 `;
+				let args = [];
+
+				args.push(offer_info.query.rating_above);
+
+				if (offer_info.query.category && offer_info.query.category > 0) {
+					query += " AND category_id = ? ";
+					args.push(offer_info.query.category);
+				}
+
+				if (offer_info.query.price_below && offer_info.query.price_below > 0) {
+					query += " AND offer.price <= ? ";
+					args.push(offer_info.query.price_below);
+				}
+
+				if (offer_info.query.search && offer_info.query.search !== "") {
+					let search = "%" + offer_info.query.search + "%";
+					query += " AND title LIKE ? ";
+					args.push(search);
+				}
+
+				if (offer_info.query.lessor_name && offer_info.query.lessor_name !== "") {
+					let username = "%" + offer_info.query.lessor_name + "%";
+					query += " AND ( user.first_name LIKE ? OR user.last_name LIKE ? ) ";
+					args.push(username);
+					args.push(username);
+				}
+
+				query += " LIMIT ?;";
+				args.push(offer_info.query.limit);
+
+				return {
+					query: query,
+					args: args
+				}
+			} else if (offer_info.query.lessor_name && offer_info.query.lessor_name !== "") {
+				// Filter by username
+				let query = `SELECT offer_id, offer.user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id WHERE ${offer_info.query.place_ids} AND ( user.first_name LIKE ? OR user.last_name LIKE ? ) AND offer.status_id != -1 `;
+				let args = [];
+				let username = "%" + offer_info.query.lessor_name + "%";
+				args.push(username);
+				args.push(username);
+
+				if (offer_info.query.category && offer_info.query.category > 0) {
+					query += " AND category_id = ? ";
+					args.push(offer_info.query.category);
+				}
+
+				if (offer_info.query.price_below && offer_info.query.price_below > 0) {
+					query += " AND offer.price <= ? ";
+					args.push(offer_info.query.price_below);
+				}
+				
+				if (offer_info.query.rating_above && offer_info.query.rating_above > 0) {
+					query += " AND offer.rating >= ? ";
+					args.push(offer_info.query.rating_above);
+				}
 
 				if (offer_info.query.search && offer_info.query.search !== "") {
 					let search = "%" + offer_info.query.search + "%";
@@ -236,56 +405,37 @@ export class QueryBuilder {
 					query: query,
 					args: args
 				}
-			} else if (offer_info.query.search && offer_info.query.search !== "") {
-				let query = `SELECT offer_id, offer.user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id WHERE ${offer_info.query.place_ids} AND title LIKE ? AND offer.status_id != -1`;
-				let args = [];
-
-				let search = "%" + offer_info.query.search + "%";
-				args.push(search);
-
-				if (offer_info.query.category && offer_info.query.category > 0) {
-					query += " AND category_id = ? ";
-					args.push(offer_info.query.category);
+			} else {
+					return {
+						query: `SELECT offer_id, offer.user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id WHERE ${offer_info.query.place_ids} AND offer.status_id != -1 LIMIT ?;`,
+						args: [
+							offer_info.query.limit
+						]
+					}
 				}
-
-				query += " LIMIT ?;";
-				args.push(offer_info.query.limit);
-
+			} else if (offer_info.user_id) {
 				return {
-					query: query,
-					args: args
+					query: "SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id WHERE user_id = ? AND offer.status_id != -1;",
+					args: [
+						offer_info.user_id
+					]
 				}
 			} else {
 				return {
-					query: `SELECT offer_id, offer.user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id WHERE ${offer_info.query.place_ids} AND offer.status_id != -1 LIMIT ?;`,
-					args: [
-						offer_info.query.limit
-					]
+					query: "SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id AND offer.status_id != -1 LIMIT 15;",
+					args: []
 				}
 			}
-		} else if (offer_info.user_id) {
-			return {
-				query: "SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id WHERE user_id = ? AND offer.status_id != -1;",
-				args: [
-					offer_info.user_id
-				]
-			}
-		} else {
-			return {
-				query: "SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id AND offer.status_id != -1 LIMIT 15;",
-				args: []
-			}
 		}
-	}
 
 	/**
 	 * Returns a list of locations where the distance is in range from a given location
 	 * @param location_info 
 	 */
 	public static getLocationIdsByDistance(location_info: {
-		place_id_1: number,
-		distance: number
-	}): Query {
+			place_id_1: number,
+			distance: number
+		}): Query {
 		return {
 			query: "SELECT place_id_2 FROM distance_matrix WHERE place_id_1 = ? AND distance <= ?",
 			args: [
