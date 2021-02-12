@@ -134,6 +134,12 @@ export class OfferService {
 	 * the result is filtered by category
 	 * If a parameter called 'search' is provided with a non empty string,
 	 * the result is filtered by the given search keyword
+	 * If a parameter called 'lessor_name' is provided with a non empty string,
+	 * the result is filtered by lessor's name
+	 * If a parameter called 'price_below' with a numeric value > 0 is provided,
+	 * the result contains offers below or equal to the given price
+	 * If a parameter called 'rating_above' is provided with a numeric value > 0,
+	 * the result is filtered by all offers with a rating above the given value
 	 * @param post_code required postcode of user who sends request
 	 * @param distance distance from postcode of requester (default is 30km)
 	 */
@@ -141,14 +147,20 @@ export class OfferService {
 		post_code?: string,
 		limit?: string,
 		category?: string,
-		search?: string
-		distance?: number
+		search?: string,
+		distance?: number,
+		lessor_name?: string,
+		price_below?: number,
+		rating_above?: number
 	}): Promise<Array<Offer>> {
 		let limit: number = 25; // Default limit
 		let category: number = 0;
 		let search: string = "";
 		// Default distance is 30km
 		let distance = 30;
+		let lessorName: string = undefined;
+		let priceBelow: number = undefined;
+		let ratingAbove: number = undefined;
 
 		if (query.post_code === undefined || query.post_code === null || query.post_code === '') {
 			throw new BadRequestException("Post code is required");
@@ -225,6 +237,39 @@ export class OfferService {
 			}
 		}
 
+		// Check if lessor is set and has valid data
+		if (query.lessor_name !== undefined && query.lessor_name !== null) {
+			if (query.lessor_name === "") {
+				throw new BadRequestException("Lessor name is invalid");
+			} else {
+				lessorName = query.lessor_name;
+			}
+		}
+
+		// Parse price to number
+		if (query.price_below !== undefined && query.price_below !== null) {
+			if (isNaN(query.price_below)) {
+				priceBelow = parseInt(query.price_below.toString());
+				if (isNaN(priceBelow) || priceBelow <= 0) {
+					throw new BadRequestException("Not a valid price");
+				}
+			} else {
+				priceBelow = query.price_below;
+			}
+		}
+
+		// Parse rating to number
+		if (query.rating_above !== undefined && query.rating_above !== null) {
+			if (isNaN(query.rating_above)) {
+				ratingAbove = parseInt(query.rating_above.toString());
+				if (isNaN(ratingAbove) || ratingAbove < 0 || ratingAbove > 5) {
+					throw new BadRequestException("Not a valid rating");
+				}
+			} else {
+				ratingAbove = query.rating_above;
+			}
+		}
+
 		let dbOffers: Array<{
 			offer_id: string,
 			user_id: string,
@@ -246,7 +291,10 @@ export class OfferService {
 						distance: distance,
 						limit: limit,
 						category: category,
-						search: search
+						search: search,
+						price_below: priceBelow,
+						rating_above: ratingAbove,
+						lessor_name: lessorName
 					}
 				}));
 		} catch (e) {
