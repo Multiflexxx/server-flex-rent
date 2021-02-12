@@ -1482,7 +1482,7 @@ export class OfferService {
 			reqBody.request.status_id === null ||
 			isNaN(reqBody.request.status_id) ||
 			reqBody.request.status_id <= 0 ||
-			reqBody.request.status_id > 5) {
+			reqBody.request.status_id > 7) {
 			throw new BadRequestException("Invalid status code");
 		}
 
@@ -1663,11 +1663,51 @@ export class OfferService {
 				break;
 			case 6:
 				// Request canceled by lessor
+				// TODO: Clarify if case is needed or not
+				// Case does not make any sense for now
 				throw new Error("Method not implemented!");
 				break;
 			case 7:
 				// Request canceled by lessee
-				throw new Error("Method not implemented!");
+				let f: Request = reqBody.request;
+
+				// Check if lessee sent request
+				try {
+					dbRequests = await Connector.executeQuery(QueryBuilder.getRequest({ request_id: reqBody.request.request_id }));
+				} catch (error) {
+					throw new InternalServerErrorException("Something went wrong...");
+				}
+
+				// Check if lessee sent request
+				if (dbRequests[0].user_id !== userResponse.user.user_id) {
+					throw new BadRequestException("You are not the lessee of the offer!");
+				}
+
+				// Disallow overwriting of existing status codes
+				if (dbRequests[0].qr_code_id !== null && dbRequests[0].qr_code_id !== '') {
+					throw new BadRequestException("Cannot update already set status");
+				}
+
+				// Cancelation by lessee is possible until lessor accepts or rejects
+				// => Check if status is other than 1
+				if (dbRequests[0].status_id !== 1) {
+					throw new BadRequestException("Cannot update already set status");
+				}
+
+				// Update object to write canceled by lessee to database
+				f.status_id = 7;
+				f.qr_code_id = undefined;
+
+				await Connector.executeQuery(QueryBuilder.updateRequest(f));
+
+				returnResponse = await this.getRequests({
+					session: reqBody.session,
+					request: reqBody.request
+				});
+
+				// Remove QR-Code string from response to avoid that the lessor can scan it
+				(returnResponse as Request).qr_code_id = '';
+
 				break;
 			default: throw new BadRequestException("Not a valid status code");
 		}
