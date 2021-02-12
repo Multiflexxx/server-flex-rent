@@ -1,4 +1,5 @@
 import { InternalServerErrorException, NotImplementedException } from '@nestjs/common';
+import { EmailResponse } from './email-response.model';
 
 
 export class EmailHandler {
@@ -13,16 +14,17 @@ export class EmailHandler {
      * @param subject 
      * @param link 
      */
-    public static async sendVerificationEmail(recipient: string, subject: string, link: string): Promise<any> {
+    public static async sendVerificationEmail(
+        recipient: string,
+        subject: string,
+        link: string):
+        Promise<EmailResponse> {
+
         // Email Body
         let htmlBody = `<h1>Email Bestätigen</h1>Willkommen bei Flexrent. Klicke auf den Link um deine Email-Adresse zu bestätigen.<br><br><a href="${link}">${link}</a>`;
-        // Create domain from host
-        let domain = `${(EmailHandler.transporterConfig.host).split('.')[1]}.${(EmailHandler.transporterConfig.host).split('.')[2]}`;
-        // Create sender
-        let from = `${EmailHandler.transporterConfig.auth.user}@${domain}`;
 
         let mailOptions = {
-            from: from,
+            from: EmailHandler.transporterConfig.auth.user,
             to: recipient,
             subject: subject,
             html: htmlBody
@@ -39,7 +41,5 @@ export class EmailHandler {
         return result;
     }
 
-    public static sendTextEmail(recipient: string, subject: string, text: string) {
-        throw new NotImplementedException("Method not implemented yet!");
-    }
+    //TODO: Create Methods to send other Emails
 }
