@@ -120,4 +120,5 @@ database.json
 geo/
 server/file-handler-config.json
 email.json
+sms.json
 server/src/test-endpoint
