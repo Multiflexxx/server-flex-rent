@@ -1013,6 +1013,12 @@ export class QueryBuilder {
 		}
 	}
 
+	public static closeTimedOutOffers() {
+		return {
+			query: "UPDATE request SET status_id = 8 WHERE status_id = 1 AND NOW() > from_date;",
+			args: []
+		}
+	}
 
 	public static testQuery() {
 		return {

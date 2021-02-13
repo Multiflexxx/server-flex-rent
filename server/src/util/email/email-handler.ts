@@ -38,7 +38,7 @@ export class EmailHandler {
         try {
             result = await EmailHandler.transporter.sendMail(mailOptions);
         } catch (err) {
-            console.log(err);
+            console.error(err);
             throw new InternalServerErrorException("Something went wrong");
         }
 

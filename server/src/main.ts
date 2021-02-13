@@ -13,4 +13,5 @@ async function bootstrap() {
 }
 
 bootstrap();
+CronJobs.closeTimedOutOffers();
 // CronJobs.startUserDeletionScan()
