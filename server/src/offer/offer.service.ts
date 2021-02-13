@@ -1119,6 +1119,8 @@ export class OfferService {
 		},
 		rating?: string
 	}): Promise<Offer> {
+		//TODO: JOIN requests to check that a user can only rate the offer so often he/she lent it
+		// SEE IDEA of Tristan
 		if (id !== undefined && id !== null && id !== "" && reqBody !== undefined && reqBody !== null) {
 			if (!reqBody.session) {
 				throw new BadRequestException("Not a valid request");
