@@ -3,6 +3,7 @@ import { Query } from "./query.model";
 import { Request } from "src/offer/request.model";
 const moment = require('moment');
 import { UserService } from "src/user/user.service";
+import * as StaticConsts from 'src/util/static-consts';
 
 export class QueryBuilder {
 	/**
@@ -221,19 +222,19 @@ export class QueryBuilder {
 				]
 			}
 		} else if (offer_info.query) {
-			if (offer_info.query.category && offer_info.query.category > 0) {
+			if (offer_info.query.category && offer_info.query.category > StaticConsts.CHECK_ZERO) {
 				// Filter by category
-				let query = `SELECT offer_id, offer.user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id WHERE ${offer_info.query.place_ids} AND offer.category_id = ? AND offer.status_id != -1 `;
+				let query = `SELECT offer_id, offer.user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id WHERE ${offer_info.query.place_ids} AND offer.category_id = ? AND offer.status_id != ${StaticConsts.OFFER_STATUS_DELETED} `;
 				let args = [];
 
 				args.push(offer_info.query.category);
 
-				if (offer_info.query.price_below && offer_info.query.price_below > 0) {
+				if (offer_info.query.price_below && offer_info.query.price_below > StaticConsts.CHECK_ZERO) {
 					query += " AND offer.price <= ? ";
 					args.push(offer_info.query.price_below);
 				}
 
-				if (offer_info.query.rating_above && offer_info.query.rating_above > 0) {
+				if (offer_info.query.rating_above && offer_info.query.rating_above > StaticConsts.CHECK_ZERO) {
 					query += " AND offer.rating >= ? ";
 					args.push(offer_info.query.rating_above);
 				}
@@ -260,23 +261,23 @@ export class QueryBuilder {
 				}
 			} else if (offer_info.query.search && offer_info.query.search !== "") {
 				// Filter by search
-				let query = `SELECT offer_id, offer.user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id WHERE ${offer_info.query.place_ids} AND title LIKE ? AND offer.status_id != -1`;
+				let query = `SELECT offer_id, offer.user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id WHERE ${offer_info.query.place_ids} AND title LIKE ? AND offer.status_id != ${StaticConsts.OFFER_STATUS_DELETED} `;
 				let args = [];
 
 				let search = "%" + offer_info.query.search + "%";
 				args.push(search);
 
-				if (offer_info.query.category && offer_info.query.category > 0) {
+				if (offer_info.query.category && offer_info.query.category > StaticConsts.CHECK_ZERO) {
 					query += " AND category_id = ? ";
 					args.push(offer_info.query.category);
 				}
 
-				if (offer_info.query.price_below && offer_info.query.price_below > 0) {
+				if (offer_info.query.price_below && offer_info.query.price_below > StaticConsts.CHECK_ZERO) {
 					query += " AND offer.price <= ? ";
 					args.push(offer_info.query.price_below);
 				}
 
-				if (offer_info.query.rating_above && offer_info.query.rating_above > 0) {
+				if (offer_info.query.rating_above && offer_info.query.rating_above > StaticConsts.CHECK_ZERO) {
 					query += " AND offer.rating >= ? ";
 					args.push(offer_info.query.rating_above);
 				}
@@ -295,19 +296,19 @@ export class QueryBuilder {
 					query: query,
 					args: args
 				}
-			} else if (offer_info.query.price_below && offer_info.query.price_below > 0) {
+			} else if (offer_info.query.price_below && offer_info.query.price_below > StaticConsts.CHECK_ZERO) {
 				// Filter by price
-				let query = `SELECT offer_id, offer.user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id WHERE ${offer_info.query.place_ids} AND offer.price <= ? AND offer.status_id != -1 `;
+				let query = `SELECT offer_id, offer.user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id WHERE ${offer_info.query.place_ids} AND offer.price <= ? AND offer.status_id != ${StaticConsts.OFFER_STATUS_DELETED} `;
 				let args = [];
 
 				args.push(offer_info.query.price_below);
 
-				if (offer_info.query.category && offer_info.query.category > 0) {
+				if (offer_info.query.category && offer_info.query.category > StaticConsts.CHECK_ZERO) {
 					query += " AND category_id = ? ";
 					args.push(offer_info.query.category);
 				}
 
-				if (offer_info.query.rating_above && offer_info.query.rating_above > 0) {
+				if (offer_info.query.rating_above && offer_info.query.rating_above > StaticConsts.CHECK_ZERO) {
 					query += " AND offer.rating >= ? ";
 					args.push(offer_info.query.rating_above);
 				}
@@ -332,19 +333,19 @@ export class QueryBuilder {
 					query: query,
 					args: args
 				}
-			} else if (offer_info.query.rating_above && offer_info.query.rating_above > 0) {
+			} else if (offer_info.query.rating_above && offer_info.query.rating_above > StaticConsts.CHECK_ZERO) {
 				// Filter by rating
-				let query = `SELECT offer_id, offer.user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id WHERE ${offer_info.query.place_ids} AND offer.rating >= ? AND offer.status_id != -1 `;
+				let query = `SELECT offer_id, offer.user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id WHERE ${offer_info.query.place_ids} AND offer.rating >= ? AND offer.status_id != ${StaticConsts.OFFER_STATUS_DELETED} `;
 				let args = [];
 
 				args.push(offer_info.query.rating_above);
 
-				if (offer_info.query.category && offer_info.query.category > 0) {
+				if (offer_info.query.category && offer_info.query.category > StaticConsts.CHECK_ZERO) {
 					query += " AND category_id = ? ";
 					args.push(offer_info.query.category);
 				}
 
-				if (offer_info.query.price_below && offer_info.query.price_below > 0) {
+				if (offer_info.query.price_below && offer_info.query.price_below > StaticConsts.CHECK_ZERO) {
 					query += " AND offer.price <= ? ";
 					args.push(offer_info.query.price_below);
 				}
@@ -371,23 +372,23 @@ export class QueryBuilder {
 				}
 			} else if (offer_info.query.lessor_name && offer_info.query.lessor_name !== "") {
 				// Filter by username
-				let query = `SELECT offer_id, offer.user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id WHERE ${offer_info.query.place_ids} AND ( user.first_name LIKE ? OR user.last_name LIKE ? ) AND offer.status_id != -1 `;
+				let query = `SELECT offer_id, offer.user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id WHERE ${offer_info.query.place_ids} AND ( user.first_name LIKE ? OR user.last_name LIKE ? ) AND offer.status_id != ${StaticConsts.OFFER_STATUS_DELETED} `;
 				let args = [];
 				let username = "%" + offer_info.query.lessor_name + "%";
 				args.push(username);
 				args.push(username);
 
-				if (offer_info.query.category && offer_info.query.category > 0) {
+				if (offer_info.query.category && offer_info.query.category > StaticConsts.CHECK_ZERO) {
 					query += " AND category_id = ? ";
 					args.push(offer_info.query.category);
 				}
 
-				if (offer_info.query.price_below && offer_info.query.price_below > 0) {
+				if (offer_info.query.price_below && offer_info.query.price_below > StaticConsts.CHECK_ZERO) {
 					query += " AND offer.price <= ? ";
 					args.push(offer_info.query.price_below);
 				}
 				
-				if (offer_info.query.rating_above && offer_info.query.rating_above > 0) {
+				if (offer_info.query.rating_above && offer_info.query.rating_above > StaticConsts.CHECK_ZERO) {
 					query += " AND offer.rating >= ? ";
 					args.push(offer_info.query.rating_above);
 				}
@@ -407,7 +408,7 @@ export class QueryBuilder {
 				}
 			} else {
 					return {
-						query: `SELECT offer_id, offer.user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id WHERE ${offer_info.query.place_ids} AND offer.status_id != -1 LIMIT ?;`,
+						query: `SELECT offer_id, offer.user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id WHERE ${offer_info.query.place_ids} AND offer.status_id != ${StaticConsts.OFFER_STATUS_DELETED} LIMIT ?;`,
 						args: [
 							offer_info.query.limit
 						]
@@ -415,14 +416,14 @@ export class QueryBuilder {
 				}
 			} else if (offer_info.user_id) {
 				return {
-					query: "SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id WHERE user_id = ? AND offer.status_id != -1;",
+					query: `SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id WHERE user_id = ? AND offer.status_id != ${StaticConsts.OFFER_STATUS_DELETED};`,
 					args: [
 						offer_info.user_id
 					]
 				}
 			} else {
 				return {
-					query: "SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id AND offer.status_id != -1 LIMIT 15;",
+					query: `SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id AND offer.status_id != ${StaticConsts.OFFER_STATUS_DELETED} LIMIT ${StaticConsts.LIMIT_FOR_OFFERS_15};`,
 					args: []
 				}
 			}
@@ -458,17 +459,17 @@ export class QueryBuilder {
 		if (offer_info) {
 			if (offer_info && offer_info.best_offers) {
 				return {
-					query: `SELECT offer_id, offer.user_id, title, description, offer.rating, price, offer.category_id, category.name AS category_name, category.picture_link, offer.number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id WHERE ${offer_info.place_ids} AND offer.status_id != -1 ORDER BY offer.rating DESC, offer.number_of_ratings DESC LIMIT 9;`,
+					query: `SELECT offer_id, offer.user_id, title, description, offer.rating, price, offer.category_id, category.name AS category_name, category.picture_link, offer.number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id WHERE ${offer_info.place_ids} AND offer.status_id != ${StaticConsts.OFFER_STATUS_DELETED} ORDER BY offer.rating DESC, offer.number_of_ratings DESC LIMIT ${StaticConsts.LIMIT_FOR_HOMEPAGE_OFFERS};`,
 					args: []
 				}
 			} else if (offer_info && offer_info.latest_offers) {
 				return {
-					query: `SELECT offer_id, offer.user_id, title, description, offer.rating, price, offer.category_id, category.name AS category_name, category.picture_link, offer.number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id WHERE ${offer_info.place_ids} AND offer.status_id != -1 ORDER BY offer.created_at DESC LIMIT 9;`,
+					query: `SELECT offer_id, offer.user_id, title, description, offer.rating, price, offer.category_id, category.name AS category_name, category.picture_link, offer.number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id WHERE ${offer_info.place_ids} AND offer.status_id != ${StaticConsts.OFFER_STATUS_DELETED} ORDER BY offer.created_at DESC LIMIT ${StaticConsts.LIMIT_FOR_HOMEPAGE_OFFERS};`,
 					args: []
 				}
 			} else if (offer_info && offer_info.best_lessors) {
 				return {
-					query: `SELECT offer_id, offer.user_id, title, description, offer.rating, price, offer.category_id, category.name AS category_name, category.picture_link, offer.number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id WHERE ${offer_info.place_ids} AND offer.status_id != -1 ORDER BY user.lessor_rating DESC, user.number_of_lessor_ratings DESC LIMIT 9;`,
+					query: `SELECT offer_id, offer.user_id, title, description, offer.rating, price, offer.category_id, category.name AS category_name, category.picture_link, offer.number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id WHERE ${offer_info.place_ids} AND offer.status_id != ${StaticConsts.OFFER_STATUS_DELETED} ORDER BY user.lessor_rating DESC, user.number_of_lessor_ratings DESC LIMIT ${StaticConsts.LIMIT_FOR_HOMEPAGE_OFFERS};`,
 					args: []
 				}
 			}
@@ -492,7 +493,7 @@ export class QueryBuilder {
 			}
 		} else if (category_info.top_categories) {
 			return {
-				query: "SELECT category.category_id, name, picture_link, COUNT(offer_id) AS offer_count FROM category LEFT JOIN offer ON category.category_id = offer.category_id GROUP BY category.category_id ORDER BY offer_count DESC LIMIT 4;",
+				query: `SELECT category.category_id, name, picture_link, COUNT(offer_id) AS offer_count FROM category LEFT JOIN offer ON category.category_id = offer.category_id GROUP BY category.category_id ORDER BY offer_count DESC LIMIT ${StaticConsts.LIMIT_FOR_TOP_CATEGORIES};`,
 				args: []
 			}
 		}
@@ -556,7 +557,7 @@ export class QueryBuilder {
 				offer.price,
 				offer.category_id,
 				offer.number_of_ratings,
-				1
+				StaticConsts.OFFER_STATUS_CREATED
 			]
 		}
 	}
@@ -573,7 +574,7 @@ export class QueryBuilder {
 		category_id: number
 	}): Query {
 		return {
-			query: "UPDATE offer SET title = ?, description = ?, price = ?, category_id = ? WHERE offer_id = ? AND offer.status_id != -1;",
+			query: `UPDATE offer SET title = ?, description = ?, price = ?, category_id = ? WHERE offer_id = ? AND offer.status_id != ${StaticConsts.OFFER_STATUS_DELETED};`,
 			args: [
 				offer.title,
 				offer.description,
@@ -594,7 +595,7 @@ export class QueryBuilder {
 		number_of_ratings: number
 	}): Query {
 		return {
-			query: "UPDATE offer SET rating = ?, number_of_ratings = ? WHERE offer_id = ? AND offer.status_id != -1;",
+			query: `UPDATE offer SET rating = ?, number_of_ratings = ? WHERE offer_id = ? AND offer.status_id != ${StaticConsts.OFFER_STATUS_DELETED};`,
 			args: [
 				rating.rating,
 				rating.number_of_ratings,
@@ -603,22 +604,9 @@ export class QueryBuilder {
 		}
 	}
 
-	// /**
-	//  * Returns a Query to delete an offer with a given ID
-	//  * @param id ID of the offer to be deleted
-	//  */
-	// public static deleteOfferById(id: string): Query {
-	// 	return {
-	// 		query: "DELETE FROM offer WHERE offer_id = ?;",
-	// 		args: [
-	// 			id
-	// 		]
-	// 	}
-	// }
-
 	public static softDeleteOfferById(id: string): Query {
 		return {
-			query: "UPDATE offer SET title = CONCAT('(Gelöscht) ', title), description = '(Angebot wurde gelöscht.)', deletion_date = NOW(), status_id = -1 WHERE offer_id = ? AND status_id != -1;",
+			query: `UPDATE offer SET title = CONCAT('(Gelöscht) ', title), description = '(Angebot wurde gelöscht.)', deletion_date = NOW(), status_id = -1 WHERE offer_id = ? AND status_id != ${StaticConsts.OFFER_STATUS_DELETED};`,
 			args: [
 				id
 			]
@@ -856,8 +844,8 @@ export class QueryBuilder {
 						query: "SELECT request_id, request.user_id, request.offer_id, request.status_id as status_id, from_date, to_date, message, qr_code_id FROM request INNER JOIN offer ON request.offer_id = offer.offer_id WHERE offer.user_id = ? AND (request.status_id < ? AND request.status_id != ?) ORDER BY request.created_on DESC;",
 						args: [
 							request_info.user_id,
-							5,
-							3
+							StaticConsts.REQUEST_STATUS_ITEM_RETURNED_TO_LESSOR,
+							StaticConsts.REQUEST_STATUS_REJECTED_BY_LESSOR
 						]
 					}
 				} else {
@@ -865,8 +853,8 @@ export class QueryBuilder {
 						query: "SELECT request_id, user_id, offer_id, request.status_id as status_id, from_date, to_date, message, qr_code_id FROM request WHERE user_id = ? AND (request.status_id < ? AND request.status_id != ?) ORDER BY created_on DESC;",
 						args: [
 							request_info.user_id,
-							5,
-							3
+							StaticConsts.REQUEST_STATUS_ITEM_RETURNED_TO_LESSOR,
+							StaticConsts.REQUEST_STATUS_REJECTED_BY_LESSOR
 						]
 					}
 				}
@@ -1002,7 +990,7 @@ export class QueryBuilder {
 			args.push(page_size);
 			args.push(page_size * (page - 1));
 		} else {
-			query += " LIMIT 10 OFFSET 0";
+			query += ` LIMIT ${StaticConsts.USER_RATING_DEFAULT_LIMIT} OFFSET ${StaticConsts.USER_RATING_DEFAULT_OFFSET} `;
 		}
 
 		query += ";";
@@ -1015,7 +1003,7 @@ export class QueryBuilder {
 
 	public static closeTimedOutOffers() {
 		return {
-			query: "UPDATE request SET status_id = 8 WHERE status_id = 1 AND NOW() > from_date;",
+			query: `UPDATE request SET status_id = ${StaticConsts.REQUEST_STATUS_REQUEST_TIMED_OUT} WHERE status_id = ${StaticConsts.OFFER_STATUS_DELETED} AND NOW() > from_date;`,
 			args: []
 		}
 	}
