@@ -139,7 +139,7 @@ export class OfferController {
 	}
 
 	/**
-	 * Returns a reuest for a given request ID OR all requests for a given user and status code
+	 * Returns a request for a given request ID OR all requests for a given user and status code
 	 * @param reqBody 
 	 */
 	@Post('user-requests')
