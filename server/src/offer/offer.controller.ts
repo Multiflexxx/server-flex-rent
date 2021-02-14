@@ -1,6 +1,7 @@
 import { Controller, Get, Param, Put, Patch, Delete, Query, Body, Post, UseInterceptors, UploadedFiles, Res, NotFoundException } from '@nestjs/common';
 import { OfferService } from './offer.service';
 import { FilesInterceptor } from '@nestjs/platform-express';
+import * as StaticConsts from 'src/util/static-consts';
 const fileConfig = require('../../file-handler-config.json');
 
 @Controller('offer')
@@ -129,7 +130,7 @@ export class OfferController {
 	 * @param images field key for files array
 	 */
 	@Post('images')
-	@UseInterceptors(FilesInterceptor('images', 10))
+	@UseInterceptors(FilesInterceptor('images', StaticConsts.MAX_NUMBER_OF_OFFER_IMAGES))
 	uploadOfferPicture(
 		@UploadedFiles() images,
 		@Body() reqBody

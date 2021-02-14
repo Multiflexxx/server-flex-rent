@@ -11,6 +11,7 @@ const moment = extendMoment(Moment);
 import { UserService } from 'src/user/user.service';
 import { User } from 'src/user/user.model';
 import { Request } from './request.model';
+import * as StaticConsts from 'src/util/static-consts';
 
 const BASE_OFFER_LINK = require('../../file-handler-config.json').offer_image_base_url;
 
@@ -38,7 +39,7 @@ export class OfferService {
 		}
 
 		// Default distance is 30km
-		let distance = 30;
+		let distance = StaticConsts.DEFAULT_SEARCH_DISTANCE_FOR_OFFERS;
 		if (reqBody.distance) {
 			if (isNaN(reqBody.distance)) {
 				distance = parseInt(reqBody.distance.toString());
@@ -153,11 +154,11 @@ export class OfferService {
 		price_below?: number,
 		rating_above?: number
 	}): Promise<Array<Offer>> {
-		let limit: number = 25; // Default limit
+		let limit: number = StaticConsts.DEFAULT_SEARCH_LIMIT_FOR_OFFERS; // Default limit
 		let category: number = 0;
 		let search: string = "";
 		// Default distance is 30km
-		let distance = 30;
+		let distance = StaticConsts.DEFAULT_SEARCH_DISTANCE_FOR_OFFERS;
 		let lessorName: string = undefined;
 		let priceBelow: number = undefined;
 		let ratingAbove: number = undefined;
@@ -250,7 +251,7 @@ export class OfferService {
 		if (query.price_below !== undefined && query.price_below !== null) {
 			if (isNaN(query.price_below)) {
 				priceBelow = parseInt(query.price_below.toString());
-				if (isNaN(priceBelow) || priceBelow <= 0) {
+				if (isNaN(priceBelow) || priceBelow <= StaticConsts.CHECK_ZERO) {
 					throw new BadRequestException("Not a valid price");
 				}
 			} else {
@@ -262,7 +263,7 @@ export class OfferService {
 		if (query.rating_above !== undefined && query.rating_above !== null) {
 			if (isNaN(query.rating_above)) {
 				ratingAbove = parseInt(query.rating_above.toString());
-				if (isNaN(ratingAbove) || ratingAbove < 0 || ratingAbove > 5) {
+				if (isNaN(ratingAbove) || ratingAbove < StaticConsts.RATING_MIN_FOR_OFFERS || ratingAbove > StaticConsts.RATING_MAX_FOR_OFFERS) {
 					throw new BadRequestException("Not a valid rating");
 				}
 			} else {
@@ -370,7 +371,7 @@ export class OfferService {
 			throw new InternalServerErrorException("Something went wrong...");
 		}
 
-		if (dbOffers.length > 0) {
+		if (dbOffers.length > StaticConsts.CHECK_ZERO) {
 			// Outsourcing of code
 			offers = await this.addDataToOffers(dbOffers);
 
@@ -401,7 +402,7 @@ export class OfferService {
 			throw new InternalServerErrorException("Something went wrong...");
 		}
 
-		if (categoriesResponse.length > 0) {
+		if (categoriesResponse.length > StaticConsts.CHECK_ZERO) {
 			// Delete temporary column offer_count from response
 			categoriesResponse.forEach(category => {
 				delete category.offer_count
@@ -425,7 +426,7 @@ export class OfferService {
 			throw new InternalServerErrorException("Something went wrong...");
 		}
 
-		if (categories.length > 0) {
+		if (categories.length > StaticConsts.CHECK_ZERO) {
 			return categories;
 		} else {
 			throw new InternalServerErrorException("Could not get categories");
@@ -495,11 +496,11 @@ export class OfferService {
 			// and check if price is greater 0
 			if (isNaN(reqBody.offer.price)) {
 				price = parseFloat(reqBody.offer.price.toString());
-				if (isNaN(price) || price <= 0) {
+				if (isNaN(price) || price <= StaticConsts.CHECK_ZERO) {
 					throw new BadRequestException("Not a valid price");
 				}
 			} else {
-				if (reqBody.offer.price <= 0) {
+				if (reqBody.offer.price <= StaticConsts.CHECK_ZERO) {
 					throw new BadRequestException("Not a valid price");
 				} else {
 					price = reqBody.offer.price;
@@ -514,7 +515,7 @@ export class OfferService {
 			}
 
 			// Check if title is too long
-			if (reqBody.offer.title.length > 100) {
+			if (reqBody.offer.title.length > StaticConsts.OFFER_TITLE_MAX_LENGTH) {
 				throw new BadRequestException("Title too long");
 			}
 
@@ -570,10 +571,10 @@ export class OfferService {
 						// or range from start to end is invalid
 						if (!moment(dateRange.from_date.toString()).isValid()
 							|| !moment(dateRange.to_date.toString()).isValid()
-							|| moment(dateRange.to_date.toString()).diff(dateRange.from_date.toString()) < 0) {
+							|| moment(dateRange.to_date.toString()).diff(dateRange.from_date.toString()) < StaticConsts.CHECK_ZERO) {
 							throw new BadRequestException("Invalid date range for unavailablity of product");
-						} else if (moment(dateRange.from_date.toString()).diff(moment()) < 0
-							|| moment(dateRange.to_date.toString()).diff(moment()) < 0) {
+						} else if (moment(dateRange.from_date.toString()).diff(moment()) < StaticConsts.CHECK_ZERO
+							|| moment(dateRange.to_date.toString()).diff(moment()) < StaticConsts.CHECK_ZERO) {
 							// Throw error, if from_date or to_date is in past
 							throw new BadRequestException("Blocked dates cannot be set in past")
 						}
@@ -638,7 +639,7 @@ export class OfferService {
 			&& reqBody !== null
 			&& images !== undefined
 			&& images !== null
-			&& images.length > 0) {
+			&& images.length > StaticConsts.CHECK_ZERO) {
 
 			// Validate session and user
 			let user = await this.userService.validateUser({
@@ -686,7 +687,7 @@ export class OfferService {
 
 				let numberOfimages = imagesFromDatabase.length + images.length;
 
-				if (numberOfimages > 10) {
+				if (numberOfimages > StaticConsts.MAX_NUMBER_OF_OFFER_IMAGES) {
 					throw new BadRequestException("Too many images");
 				} else {
 					for (let i = 0; i < images.length; i++) {
@@ -701,8 +702,8 @@ export class OfferService {
 
 						if (images[i].size === undefined
 							|| images[i].size === null
-							|| images[i].size <= 0
-							|| images[i].size > 5242880) {
+							|| images[i].size <= StaticConsts.CHECK_ZERO
+							|| images[i].size > StaticConsts.MAX_FILE_SIZE_FOR_OFFER_IMAGES) {
 							throw new BadRequestException("Invalid image size");
 						}
 
@@ -822,11 +823,11 @@ export class OfferService {
 			// and check if price is greater 0
 			if (isNaN(reqBody.offer.price)) {
 				price = parseFloat(reqBody.offer.price.toString());
-				if (isNaN(price) || price <= 0) {
+				if (isNaN(price) || price <= StaticConsts.CHECK_ZERO) {
 					throw new BadRequestException("Not a valid price");
 				}
 			} else {
-				if (reqBody.offer.price <= 0) {
+				if (reqBody.offer.price <= StaticConsts.CHECK_ZERO) {
 					throw new BadRequestException("Not a valid price");
 				} else {
 					price = reqBody.offer.price;
@@ -841,7 +842,7 @@ export class OfferService {
 			}
 
 			// Check if title is too long
-			if (reqBody.offer.title.length > 100) {
+			if (reqBody.offer.title.length > StaticConsts.OFFER_TITLE_MAX_LENGTH) {
 				throw new BadRequestException("Title too long");
 			}
 
@@ -900,10 +901,10 @@ export class OfferService {
 						// or range from start to end is invalid
 						if (!moment(dateRange.from_date.toString()).isValid()
 							|| !moment(dateRange.to_date.toString()).isValid()
-							|| moment(dateRange.to_date.toString()).diff(dateRange.from_date.toString()) < 0) {
+							|| moment(dateRange.to_date.toString()).diff(dateRange.from_date.toString()) < StaticConsts.CHECK_ZERO) {
 							throw new BadRequestException("Invalid date range for unavailablity of product");
-						} else if (moment(dateRange.from_date.toString()).diff(moment()) < 0
-							|| moment(dateRange.to_date.toString()).diff(moment()) < 0) {
+						} else if (moment(dateRange.from_date.toString()).diff(moment()) < StaticConsts.CHECK_ZERO
+							|| moment(dateRange.to_date.toString()).diff(moment()) < StaticConsts.CHECK_ZERO) {
 							// Throw error, if from_date or to_date is in past
 							throw new BadRequestException("Blocked dates cannot be set in past")
 						}
@@ -1017,10 +1018,10 @@ export class OfferService {
 				// or range from start to end is invalid
 				if (!moment(reqBody.date_range.from_date.toString()).isValid()
 					|| !moment(reqBody.date_range.to_date.toString()).isValid()
-					|| moment(reqBody.date_range.to_date.toString()).diff(reqBody.date_range.from_date.toString()) < 0) {
+					|| moment(reqBody.date_range.to_date.toString()).diff(reqBody.date_range.from_date.toString()) < StaticConsts.CHECK_ZERO) {
 					throw new BadRequestException("Invalid date range for request");
-				} else if (moment(reqBody.date_range.from_date.toString()).diff(moment()) < 0
-					|| moment(reqBody.date_range.to_date.toString()).diff(moment()) < 0) {
+				} else if (moment(reqBody.date_range.from_date.toString()).diff(moment()) < StaticConsts.CHECK_ZERO
+					|| moment(reqBody.date_range.to_date.toString()).diff(moment()) < StaticConsts.CHECK_ZERO) {
 					// Throw error, if from_date or to_date is in past
 					throw new BadRequestException("Requested dates cannot be set in past")
 				}
@@ -1081,7 +1082,7 @@ export class OfferService {
 				request_id: requestUuid,
 				user: user.user,
 				offer: offer,
-				status_id: 1,
+				status_id: StaticConsts.REQUEST_STATUS_OPEN,
 				date_range: {
 					from_date: new Date(moment(
 						reqBody.date_range.from_date.toString()
@@ -1161,13 +1162,13 @@ export class OfferService {
 			if (reqBody.rating !== undefined && reqBody.rating !== null) {
 				// Update limit, if given
 				userRating = parseFloat(reqBody.rating);
-				if (isNaN(userRating) || userRating <= 0.0 || userRating > 5.0) {
+				if (isNaN(userRating) || userRating <= StaticConsts.RATING_MIN_FOR_OFFERS || userRating > StaticConsts.RATING_MAX_FOR_OFFERS) {
 					// Not a number
 					throw new BadRequestException("Rating is not a valid number");
 				}
 			}
 
-			let updatedRating = parseFloat(((offer.rating * offer.number_of_ratings + userRating) / (offer.number_of_ratings + 1)).toFixed(2));
+			let updatedRating = parseFloat(((offer.rating * offer.number_of_ratings + userRating) / (offer.number_of_ratings + 1)).toFixed(StaticConsts.FLOAT_FIXED_DECIMAL_PLACES));
 
 			try {
 				Connector.executeQuery(QueryBuilder.updateOfferRating({
@@ -1324,9 +1325,9 @@ export class OfferService {
 					throw new InternalServerErrorException("Something went wrong...");
 				}
 
-				if (dbRequests.length < 1) {
+				if (dbRequests.length < StaticConsts.DB_RETURN_LENGTH_ONE) {
 					throw new BadRequestException("Request does not exist");
-				} else if (dbRequests.length === 1) {
+				} else if (dbRequests.length === StaticConsts.DB_RETURN_LENGTH_ONE) {
 					let offer: Offer;
 					let qrCodeValue = "";
 
@@ -1346,10 +1347,10 @@ export class OfferService {
 					// Lessee sent request and status code matches OR lessor sent request and status code matches
 					if (
 						(dbRequests[0].user_id === userResponse.user.user_id &&
-							dbRequests[0].status_id === 2)
+							dbRequests[0].status_id === StaticConsts.REQUEST_STATUS_ACCEPTED_BY_LESSOR)
 						||
 						(offer.lessor.user_id === userResponse.user.user_id &&
-							dbRequests[0].status_id === 4)) {
+							dbRequests[0].status_id === StaticConsts.REQUEST_STATUS_ITEM_LEND_TO_LESSEE)) {
 						qrCodeValue = (dbRequests[0].qr_code_id === null) ? "" : dbRequests[0].qr_code_id;
 					}
 
@@ -1384,7 +1385,7 @@ export class OfferService {
 
 				let response: Array<Request> = [];
 
-				if (reqBody.status_code !== undefined && reqBody.status_code === 5) {
+				if (reqBody.status_code !== undefined && reqBody.status_code === StaticConsts.REQUEST_STATUS_ITEM_RETURNED_TO_LESSOR) {
 					if (reqBody.lessor !== undefined && reqBody.lessor === true) {
 						try {
 							dbRequests = await Connector.executeQuery(QueryBuilder.getRequest({
@@ -1523,7 +1524,7 @@ export class OfferService {
 			throw new InternalServerErrorException("Something went wrong...");
 		}
 
-		if (dbOffers === undefined || dbOffers === null || dbOffers.length !== 1) {
+		if (dbOffers === undefined || dbOffers === null || dbOffers.length !== StaticConsts.DB_RETURN_LENGTH_ONE) {
 			throw new InternalServerErrorException("Something went wrong...");
 		}
 
@@ -1531,8 +1532,8 @@ export class OfferService {
 		if (reqBody.request.status_id === undefined ||
 			reqBody.request.status_id === null ||
 			isNaN(reqBody.request.status_id) ||
-			reqBody.request.status_id <= 0 ||
-			reqBody.request.status_id > 7) {
+			reqBody.request.status_id <= StaticConsts.CHECK_ZERO ||
+			reqBody.request.status_id > StaticConsts.REQUEST_STATUS_REQUEST_CANCELED_BY_LESSEE) {
 			throw new BadRequestException("Invalid status code");
 		}
 
@@ -1549,7 +1550,7 @@ export class OfferService {
 		}> = [];
 
 		switch (reqBody.request.status_id) {
-			case 2:
+			case StaticConsts.REQUEST_STATUS_ACCEPTED_BY_LESSOR:
 				// Accepted by lessor
 				// Check if owner sent request
 				if (dbOffers[0].user_id !== userResponse.user.user_id) {
@@ -1569,12 +1570,12 @@ export class OfferService {
 					throw new BadRequestException("Cannot update already set status");
 				}
 
-				if (dbRequests[0].status_id !== 1) {
+				if (dbRequests[0].status_id !== StaticConsts.REQUEST_STATUS_OPEN) {
 					throw new BadRequestException("Cannot update already set status");
 				}
 
 				// Update request
-				a.status_id = 2;
+				a.status_id = StaticConsts.REQUEST_STATUS_ACCEPTED_BY_LESSOR;
 				a.qr_code_id = uuid();
 				await Connector.executeQuery(QueryBuilder.updateRequest(a));
 
@@ -1596,7 +1597,7 @@ export class OfferService {
 				// Remove QR-Code string from response to avoid that the lessor can scan it
 				(returnResponse as Request).qr_code_id = '';
 				break;
-			case 3:
+			case StaticConsts.REQUEST_STATUS_REJECTED_BY_LESSOR:
 				// Rejected by lessor
 				// Check if owner sent request
 				if (dbOffers[0].user_id !== userResponse.user.user_id) {
@@ -1616,12 +1617,12 @@ export class OfferService {
 					throw new BadRequestException("Cannot update already set status");
 				}
 
-				if (dbRequests[0].status_id !== 1) {
+				if (dbRequests[0].status_id !== StaticConsts.REQUEST_STATUS_OPEN) {
 					throw new BadRequestException("Cannot update already set status");
 				}
 
 				// Update object to write reject to database
-				b.status_id = 3;
+				b.status_id = StaticConsts.REQUEST_STATUS_REJECTED_BY_LESSOR;
 				b.qr_code_id = undefined;
 
 				await Connector.executeQuery(QueryBuilder.updateRequest(b));
@@ -1634,7 +1635,7 @@ export class OfferService {
 				// Remove QR-Code string from response to avoid that the lessor can scan it
 				(returnResponse as Request).qr_code_id = '';
 				break;
-			case 4:
+			case StaticConsts.REQUEST_STATUS_ITEM_LEND_TO_LESSEE:
 				// Lend by lessor
 				// Check if lessor (owner of offer) sent request
 				if (dbOffers[0].user_id !== userResponse.user.user_id) {
@@ -1654,7 +1655,7 @@ export class OfferService {
 					throw new InternalServerErrorException("Something went wrong...");
 				}
 
-				if (dbRequests[0].status_id !== 2) {
+				if (dbRequests[0].status_id !== StaticConsts.REQUEST_STATUS_ACCEPTED_BY_LESSOR) {
 					throw new BadRequestException("Cannot borrow item");
 				}
 
@@ -1663,7 +1664,7 @@ export class OfferService {
 				}
 
 				// Update request
-				c.status_id = 4;
+				c.status_id = StaticConsts.REQUEST_STATUS_ITEM_LEND_TO_LESSEE;
 				c.qr_code_id = uuid();
 				await Connector.executeQuery(QueryBuilder.updateRequest(c));
 
@@ -1675,7 +1676,7 @@ export class OfferService {
 				// Remove QR-Code string from response to avoid that the lessor can scan it
 				(returnResponse as Request).qr_code_id = '';
 				break;
-			case 5:
+			case StaticConsts.REQUEST_STATUS_ITEM_RETURNED_TO_LESSOR:
 				// Returned to lessor
 				let d: Request = reqBody.request;
 
@@ -1690,7 +1691,7 @@ export class OfferService {
 					throw new BadRequestException("You are not the lessee of the offer!");
 				}
 
-				if (dbRequests[0].status_id !== 4) {
+				if (dbRequests[0].status_id !== StaticConsts.REQUEST_STATUS_ITEM_LEND_TO_LESSEE) {
 					throw new BadRequestException("Cannot return item");
 				}
 
@@ -1699,8 +1700,8 @@ export class OfferService {
 				}
 
 				// Update request
-				d.status_id = 5;
-				d.qr_code_id = '00000000'; // TODO: Decide what to do with the QR-Code....
+				d.status_id = StaticConsts.REQUEST_STATUS_ITEM_RETURNED_TO_LESSOR;
+				d.qr_code_id = StaticConsts.REQUEST_QR_CODE_NULL; // TODO: Decide what to do with the QR-Code....
 				await Connector.executeQuery(QueryBuilder.updateRequest(d));
 
 				returnResponse = await this.getRequests({
@@ -1711,13 +1712,13 @@ export class OfferService {
 				// Remove QR-Code string from response to avoid that the lessor can scan it
 				(returnResponse as Request).qr_code_id = '';
 				break;
-			case 6:
+			case StaticConsts.REQUEST_STATUS_REQUEST_CANCELED_BY_LESSOR:
 				// Request canceled by lessor
 				// TODO: Clarify if case is needed or not
 				// Case does not make any sense for now
 				throw new Error("Method not implemented!");
 				break;
-			case 7:
+			case StaticConsts.REQUEST_STATUS_REQUEST_CANCELED_BY_LESSEE:
 				// Request canceled by lessee
 				let f: Request = reqBody.request;
 
@@ -1740,12 +1741,12 @@ export class OfferService {
 
 				// Cancelation by lessee is possible until lessor accepts or rejects
 				// => Check if status is other than 1
-				if (dbRequests[0].status_id !== 1) {
+				if (dbRequests[0].status_id !== StaticConsts.REQUEST_STATUS_OPEN) {
 					throw new BadRequestException("Cannot update already set status");
 				}
 
 				// Update object to write canceled by lessee to database
-				f.status_id = 7;
+				f.status_id = StaticConsts.REQUEST_STATUS_REQUEST_CANCELED_BY_LESSEE;
 				f.qr_code_id = undefined;
 
 				await Connector.executeQuery(QueryBuilder.updateRequest(f));
@@ -1785,7 +1786,7 @@ export class OfferService {
 			throw new BadRequestException("Not a valid offer id");
 		}
 
-		if (offers.length === 1) {
+		if (offers.length === StaticConsts.DB_RETURN_LENGTH_ONE) {
 			return true;
 		} else {
 			return false;
@@ -1807,7 +1808,7 @@ export class OfferService {
 			throw new BadRequestException("Not a valid category id");
 		}
 
-		if (categories.length === 1) {
+		if (categories.length === StaticConsts.DB_RETURN_LENGTH_ONE) {
 			return true;
 		} else {
 			return false;
@@ -1837,7 +1838,7 @@ export class OfferService {
 	}>): Promise<Array<Offer>> {
 		let offers: Array<Offer> = [];
 
-		if (offerList.length > 0) {
+		if (offerList.length > StaticConsts.CHECK_ZERO) {
 			for (let i = 0; i < offerList.length; i++) {
 				let pictureUUIDList: Array<{
 					uuid: string,
@@ -1868,7 +1869,7 @@ export class OfferService {
 				delete lessor.phone_number;
 				delete lessor.place_id;
 
-				if (pictureUUIDList.length > 0) {
+				if (pictureUUIDList.length > StaticConsts.CHECK_ZERO) {
 					let pictureLinks: Array<string> = [];
 
 					for (let j = 0; j < pictureUUIDList.length; j++) {
@@ -1940,7 +1941,7 @@ export class OfferService {
 					throw new InternalServerErrorException("Something went wrong...");
 				}
 
-				if (blockedDatesList.length > 0) {
+				if (blockedDatesList.length > StaticConsts.CHECK_ZERO) {
 					let blockedDates: Array<{
 						from_date: Date,
 						to_date: Date,
@@ -1951,7 +1952,7 @@ export class OfferService {
 						blockedDates.push({
 							from_date: blockedDatesList[i].from_date,
 							to_date: blockedDatesList[i].to_date,
-							blocked_by_lessor: blockedDatesList[i].is_lessor === 1 ? true : false
+							blocked_by_lessor: blockedDatesList[i].is_lessor === StaticConsts.DB_TRUE ? true : false
 						});
 					}
 
