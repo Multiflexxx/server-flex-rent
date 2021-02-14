@@ -1,4 +1,4 @@
-import { InternalServerErrorException, NotImplementedException } from '@nestjs/common';
+import { InternalServerErrorException } from '@nestjs/common';
 import { EmailResponse } from './email-response.model';
 
 
