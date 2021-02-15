@@ -387,7 +387,7 @@ export class QueryBuilder {
 					query += " AND offer.price <= ? ";
 					args.push(offer_info.query.price_below);
 				}
-				
+
 				if (offer_info.query.rating_above && offer_info.query.rating_above > StaticConsts.CHECK_ZERO) {
 					query += " AND offer.rating >= ? ";
 					args.push(offer_info.query.rating_above);
@@ -407,36 +407,36 @@ export class QueryBuilder {
 					args: args
 				}
 			} else {
-					return {
-						query: `SELECT offer_id, offer.user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id WHERE ${offer_info.query.place_ids} AND offer.status_id != ${StaticConsts.OFFER_STATUS_DELETED} LIMIT ?;`,
-						args: [
-							offer_info.query.limit
-						]
-					}
-				}
-			} else if (offer_info.user_id) {
 				return {
-					query: `SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id WHERE user_id = ? AND offer.status_id != ${StaticConsts.OFFER_STATUS_DELETED};`,
+					query: `SELECT offer_id, offer.user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id JOIN user ON offer.user_id = user.user_id WHERE ${offer_info.query.place_ids} AND offer.status_id != ${StaticConsts.OFFER_STATUS_DELETED} LIMIT ?;`,
 					args: [
-						offer_info.user_id
+						offer_info.query.limit
 					]
 				}
-			} else {
-				return {
-					query: `SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id AND offer.status_id != ${StaticConsts.OFFER_STATUS_DELETED} LIMIT ${StaticConsts.LIMIT_FOR_OFFERS_15};`,
-					args: []
-				}
+			}
+		} else if (offer_info.user_id) {
+			return {
+				query: `SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id WHERE user_id = ? AND offer.status_id != ${StaticConsts.OFFER_STATUS_DELETED};`,
+				args: [
+					offer_info.user_id
+				]
+			}
+		} else {
+			return {
+				query: `SELECT offer_id, user_id, title, description, rating, price, offer.category_id, category.name AS category_name, category.picture_link, number_of_ratings FROM offer JOIN category ON offer.category_id = category.category_id AND offer.status_id != ${StaticConsts.OFFER_STATUS_DELETED} LIMIT ${StaticConsts.LIMIT_FOR_OFFERS_15};`,
+				args: []
 			}
 		}
+	}
 
 	/**
 	 * Returns a list of locations where the distance is in range from a given location
 	 * @param location_info 
 	 */
 	public static getLocationIdsByDistance(location_info: {
-			place_id_1: number,
-			distance: number
-		}): Query {
+		place_id_1: number,
+		distance: number
+	}): Query {
 		return {
 			query: "SELECT place_id_2 FROM distance_matrix WHERE place_id_1 = ? AND distance <= ?",
 			args: [
@@ -1001,10 +1001,42 @@ export class QueryBuilder {
 		}
 	}
 
+	/**
+	 * Used to close offers after a timeout happens
+	 */
 	public static closeTimedOutOffers() {
 		return {
 			query: `UPDATE request SET status_id = ${StaticConsts.REQUEST_STATUS_REQUEST_TIMED_OUT} WHERE status_id = ${StaticConsts.OFFER_STATUS_DELETED} AND NOW() > from_date;`,
 			args: []
+		}
+	}
+
+	/**
+	 * Updates the timestamp when a user made a request to get a request object
+	 * @param requestId Id of the request to be updated
+	 */
+	public static updateLastUpdateRequestTimestamp(requestId: string) {
+		return {
+			query: "UPDATE request SET last_update_request_from_user = NOW() WHERE request.request_id = ?;",
+			args: [
+				requestId
+			]
+		}
+	}
+
+	/**
+	 * Returns the number of requests with a created timestamp greater than the last update
+	 * for a given status and user
+	 * @param userId Id of user to get request numbers for
+	 * @param requestState State of the request for filtering
+	 */
+	public static getNumberOfNewOfferRequestsPerUser(userId: string, requestState: number) {
+		return {
+			query: "SELECT COUNT(request.request_id) as number_of_new_requests FROM request WHERE request.status_id = ? AND request.user_id = ? AND request.created_on >= request.last_update_request_from_user; ",
+			args: [
+				requestState,
+				userId
+			]
 		}
 	}
 

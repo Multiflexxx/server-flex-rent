@@ -163,6 +163,17 @@ export class OfferController {
 	}
 
 	/**
+	 * returns a number of new open requests fo a user
+	 * @param reqBody session object
+	 */
+	@Post('get-number-of-new-offer-requests')
+	getNumberOfNewOfferRequestsPerUser(
+		@Body() reqBody: {}
+	) {
+		return this.offerService.getNumberOfNewOfferRequestsPerUser(reqBody);
+	}
+
+	/**
 	 * Books offer for a specified time frame, given sufficient authorization.
 	 * @param id ID of offer to be booked
 	 * @param reqBody body of the request is used for passing authorization details

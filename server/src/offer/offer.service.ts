@@ -1367,6 +1367,9 @@ export class OfferService {
 						qr_code_id: qrCodeValue
 					}
 
+					// Update last update request
+					await Connector.executeQuery(QueryBuilder.updateLastUpdateRequestTimestamp(reqBody.request.request_id));
+
 					return o;
 				} else {
 					throw new InternalServerErrorException("Something went wrong...");
@@ -1769,6 +1772,61 @@ export class OfferService {
 		} else {
 			throw new InternalServerErrorException("Something went wrong...");
 		}
+	}
+
+	/**
+	 * Returns the number of new opened offer requests
+	 * @param reqBody Uses a session object to get all request numbers per user
+	 */
+	public async getNumberOfNewOfferRequestsPerUser(reqBody: {
+		session?: {
+			session_id?: string,
+			user_id?: string
+		}
+	}): Promise<{
+		number_of_new_requests: number
+		// number_of_new_accepted_requests: number,
+		// number_of_new_rejected_requests: number
+	}> {
+		if (!reqBody || !reqBody.session) {
+			throw new BadRequestException("Not a valid request");
+		}
+
+		let userResponse = await this.userService.validateUser({
+			session: {
+				session_id: reqBody.session.session_id,
+				user_id: reqBody.session.user_id
+			}
+		});
+
+		// check if user exists
+		if (userResponse === undefined || userResponse === null) {
+			throw new BadRequestException("Not a valid user/session");
+		}
+
+		// Get number of requests per state
+		let numberOfNewRequests = ((await Connector.executeQuery(
+			QueryBuilder.getNumberOfNewOfferRequestsPerUser(
+				reqBody.session.user_id,
+				StaticConsts.REQUEST_STATUS_OPEN)))[0]).number_of_new_requests;
+
+		// let numberOfNewAcceptedRequests = await Connector.executeQuery(
+		// 	QueryBuilder.getNumberOfNewOfferRequestsPerUser(
+		// 		reqBody.session.user_id,
+		// 		StaticConsts.REQUEST_STATUS_ACCEPTED_BY_LESSOR))[0];
+
+		// let numberOfNewRejectedRequests = await Connector.executeQuery(
+		// 	QueryBuilder.getNumberOfNewOfferRequestsPerUser(
+		// 		reqBody.session.user_id,
+		// 		StaticConsts.REQUEST_STATUS_REJECTED_BY_LESSOR)
+		// );
+
+		let o = {
+			number_of_new_requests: numberOfNewRequests
+			// number_of_new_accepted_requests: numberOfNewAcceptedRequests,
+			// number_of_new_rejected_requests: numberOfNewRejectedRequests
+		}
+		return o;
 	}
 
 	/**
