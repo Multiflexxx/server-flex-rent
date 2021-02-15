@@ -824,7 +824,7 @@ export class QueryBuilder {
 						args: [
 							request_info.user_id,
 							request_info.status_code,
-							3
+							StaticConsts.REQUEST_STATUS_REJECTED_BY_LESSOR
 						]
 					}
 				} else {
@@ -833,7 +833,7 @@ export class QueryBuilder {
 						args: [
 							request_info.user_id,
 							request_info.status_code,
-							3
+							StaticConsts.REQUEST_STATUS_REJECTED_BY_LESSOR
 						]
 					}
 				}
