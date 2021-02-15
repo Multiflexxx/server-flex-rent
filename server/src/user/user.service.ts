@@ -39,13 +39,13 @@ let aud: any;
 
 @Injectable()
 export class UserService {
+
 	public static userStates = {
 		created: 1,
 		verified: 2,
 		softDeleted: 3,
 		hardDeleted: 4
 	}
-
 
 	/**
 	 * Returns a User Object containing publicly visible user information
@@ -380,6 +380,10 @@ export class UserService {
 			throw new BadRequestException("Phone number address already registered");
 		}
 
+		user.lessee_rating = 0
+        user.number_of_lessee_ratings = 0
+        user.lessor_rating = 0
+        user.number_of_lessor_ratings = 0
 
 		// Validate date of birth
 		// Check if Birthdate is valid and in acceptable time range
