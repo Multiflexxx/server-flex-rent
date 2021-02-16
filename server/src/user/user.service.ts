@@ -9,17 +9,13 @@ import { FileHandler } from 'src/util/file-handler/file-handler';
 import * as StaticConsts from 'src/util/static-consts';
 
 const axios = require('axios');
-
 const bcrypt = require('bcrypt');
-
 const { OAuth2Client } = require('google-auth-library');
 const GOOGLE_CLIENT_ID = require("../../database.json").google_client_id;
 const google_oauth_client = new OAuth2Client(GOOGLE_CLIENT_ID);
 const metadata = require('gcp-metadata');
-
 const fileConfig = require('../../file-handler-config.json');
 const moment = require('moment');
-let aud: any;
 
 @Injectable()
 export class UserService {
@@ -358,9 +354,9 @@ export class UserService {
 		}
 
 		user.lessee_rating = 0
-        user.number_of_lessee_ratings = 0
-        user.lessor_rating = 0
-        user.number_of_lessor_ratings = 0
+		user.number_of_lessee_ratings = 0
+		user.lessor_rating = 0
+		user.number_of_lessor_ratings = 0
 
 		// Validate date of birth
 		// Check if Birthdate is valid and in acceptable time range
