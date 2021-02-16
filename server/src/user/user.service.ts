@@ -222,10 +222,11 @@ export class UserService {
 		if (validatedUser.user.user_id != user_id) {
 			throw new UnauthorizedException("Not authorized")
 		}
+		// Todo: Check if user can even be deleted (cant be deleted when user has open requests etc...)
 
 		// Set user Status to "soft_deleted" and set users deletion_date (today + 1 week)
-
-		// Todo: Check if user can even be deleted (cant be deleted when user has open requests etc...)
+		await Connector.executeQuery(QueryBuilder.setUserDeletionDate(auth.session.user_id));
+		await Connector.executeQuery(QueryBuilder.transferUserInfo(auth.session.user_id));
 		await Connector.executeQuery(QueryBuilder.softDeleteUser(auth.session.user_id));
 	}
 

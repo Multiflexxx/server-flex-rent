@@ -16,19 +16,19 @@ export class CronJobs {
         ]
 
         for(let job of jobs) {
-            job()
+            job();
         }
     }
 
     public static async startUserDeletionScan() {
-        schedule.scheduleJob('* * /2 * * *', async function() {
-            let userService: UserService;
+        schedule.scheduleJob('0 */1 * * * *', async function() {
+            let userService: UserService = new UserService();
             await userService.hardDeleteUser()
-        })
+        });
     }
 
     public static async closeTimedOutOffers() {
-        let closeJob = schedule.scheduleJob('0 0 */2 * * *', async function() {
+        schedule.scheduleJob('0 0 */2 * * *', async function() {
             await Connector.executeQuery(QueryBuilder.closeTimedOutOffers());
         });
     }
