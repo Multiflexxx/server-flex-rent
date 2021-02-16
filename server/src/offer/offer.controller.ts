@@ -163,6 +163,19 @@ export class OfferController {
 	}
 
 	/**
+	 * Returns the number of new opened offer requests for lessor view
+	 * and the number of accepted / rejected updates for lessee view
+	 * and the total number of updates (sum of all)
+	 * @param reqBody session object
+	 */
+	@Post('get-number-of-new-offer-requests')
+	getNumberOfNewOfferRequestsPerUser(
+		@Body() reqBody: {}
+	) {
+		return this.offerService.getNumberOfNewOfferRequestsPerUser(reqBody);
+	}
+
+	/**
 	 * Books offer for a specified time frame, given sufficient authorization.
 	 * @param id ID of offer to be booked
 	 * @param reqBody body of the request is used for passing authorization details
