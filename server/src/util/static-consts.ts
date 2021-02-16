@@ -6,6 +6,7 @@ export const FLOAT_FIXED_DECIMAL_PLACES = 2;
 export const DB_RETURN_LENGTH_ONE = 1;
 export const DB_TRUE = 1;
 export const DB_FALSE = 0;
+export const DB_DELETED_USER_PLACE_ID = -1;
 
 /*------ OFFER ------ */
 export const DEFAULT_SEARCH_DISTANCE_FOR_OFFERS = 30;
@@ -56,3 +57,4 @@ export const userStates = {
     SOFT_DELETED: 3,
     HARD_DELETED: 4
 }
+

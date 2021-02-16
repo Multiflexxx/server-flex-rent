@@ -206,17 +206,19 @@ export class UserService {
 	public async softDeleteUser(
 		user_id: string,
 		auth: {
-			user_id: string,
-			session_id: string
+			session: {
+				user_id: string,
+				session_id: string
+			}
 		}
 	): Promise<void> {
 		// Check parameter
-		if (!user_id || !auth || !auth.user_id || !auth.session_id) {
+		if (!user_id || !auth || !auth.session.user_id || !auth.session.session_id) {
 			throw new BadRequestException("Insufficient Parameter");
 		}
 
 		// Validate user wow
-		const validatedUser = await this.validateUser({ session: auth });
+		const validatedUser = await this.validateUser(auth);
 		if (validatedUser.user.user_id != user_id) {
 			throw new UnauthorizedException("Not authorized")
 		}
@@ -224,13 +226,15 @@ export class UserService {
 		// Set user Status to "soft_deleted" and set users deletion_date (today + 1 week)
 
 		// Todo: Check if user can even be deleted (cant be deleted when user has open requests etc...)
-		await Connector.executeQuery(QueryBuilder.softDeleteUser(auth.user_id));
+		await Connector.executeQuery(QueryBuilder.softDeleteUser(auth.session.user_id));
 	}
 
 	/**
 	 * Function used for hard deleting a user, after the one week period after soft deleting expired
 	 */
-	public async hardDeleteUser() { }
+	public async hardDeleteUser() { 
+		await Connector.executeQuery(QueryBuilder.cron_hardDeleteUser());
+	}
 
 	/**
 	 * Returns a complete user object and session_id given proper auth details

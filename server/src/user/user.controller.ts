@@ -8,7 +8,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 export class UserController {
     constructor(
         private readonly userService: UserService
-        ) {}
+    ) {}
 
     /**
      * Returns a single user specified by the ID passed in the URL
@@ -67,13 +67,15 @@ export class UserController {
     async deleteUser(
         @Param('id') id: string,
         @Body('auth') auth: {
-            session_id: string,
-            user_id: string
+            session: {
+                session_id: string,
+                user_id: string
+            }
         },
         @Res() response
     ) {
         await this.userService.softDeleteUser(id, auth);
-        response.send(200);
+        response.sendStatus(200);
     }
 
 
