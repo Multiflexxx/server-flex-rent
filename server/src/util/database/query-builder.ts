@@ -782,7 +782,7 @@ export class QueryBuilder {
 	 */
 	public static createRequest(request: Request): Query {
 		return {
-			query: "INSERT INTO request (request_id, user_id, offer_id, status_id, from_date, to_date, message, qr_code_id, updated_on) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW());",
+			query: "INSERT INTO request (request_id, user_id, offer_id, status_id, from_date, to_date, message, qr_code_id, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW());",
 			args: [
 				request.request_id,
 				request.user.user_id,
@@ -803,7 +803,7 @@ export class QueryBuilder {
 	public static updateRequest(request: Request): Query {
 		if (request.qr_code_id) {
 			return {
-				query: "UPDATE request SET status_id = ?, qr_code_id = ?, updated_on = NOW() WHERE request_id = ?;",
+				query: "UPDATE request SET status_id = ?, qr_code_id = ?, updated_at = NOW() WHERE request_id = ?;",
 				args: [
 					request.status_id,
 					request.qr_code_id,
@@ -812,7 +812,7 @@ export class QueryBuilder {
 			}
 		} else {
 			return {
-				query: "UPDATE request SET status_id = ?, updated_on = NOW() WHERE request_id = ?;",
+				query: "UPDATE request SET status_id = ?, updated_at = NOW() WHERE request_id = ?;",
 				args: [
 					request.status_id,
 					request.request_id
@@ -836,7 +836,7 @@ export class QueryBuilder {
 	}): Query {
 		if (request_info.request_id) {
 			return {
-				query: "SELECT request_id, user_id, offer_id, request.status_id as status_id, from_date, to_date, message, qr_code_id FROM request WHERE request_id = ? ORDER BY created_on DESC;",
+				query: "SELECT request_id, user_id, offer_id, request.status_id as status_id, from_date, to_date, message, qr_code_id FROM request WHERE request_id = ? ORDER BY created_at DESC;",
 				args: [
 					request_info.request_id
 				]
@@ -845,7 +845,7 @@ export class QueryBuilder {
 			if (request_info.status_code) {
 				if (request_info.lessor) {
 					return {
-						query: "SELECT request_id, request.user_id, request.offer_id, request.status_id as status_id, from_date, to_date, message, qr_code_id FROM request INNER JOIN offer ON request.offer_id = offer.offer_id WHERE offer.user_id = ? AND ( request.status_id >= ? OR request.status_id = ? ) ORDER BY request.created_on DESC;",
+						query: "SELECT request_id, request.user_id, request.offer_id, request.status_id as status_id, from_date, to_date, message, qr_code_id FROM request INNER JOIN offer ON request.offer_id = offer.offer_id WHERE offer.user_id = ? AND ( request.status_id >= ? OR request.status_id = ? ) ORDER BY request.created_at DESC;",
 						args: [
 							request_info.user_id,
 							request_info.status_code,
@@ -854,7 +854,7 @@ export class QueryBuilder {
 					}
 				} else {
 					return {
-						query: "SELECT request_id, user_id, offer_id, request.status_id as status_id, from_date, to_date, message, qr_code_id, created_on FROM request WHERE user_id = ? AND (request.status_id >= ? OR request.status_id = ?)  ORDER BY created_on DESC;",
+						query: "SELECT request_id, user_id, offer_id, request.status_id as status_id, from_date, to_date, message, qr_code_id, created_at FROM request WHERE user_id = ? AND (request.status_id >= ? OR request.status_id = ?)  ORDER BY created_at DESC;",
 						args: [
 							request_info.user_id,
 							request_info.status_code,
@@ -866,7 +866,7 @@ export class QueryBuilder {
 			} else {
 				if (request_info.lessor) {
 					return {
-						query: "SELECT request_id, request.user_id, request.offer_id, request.status_id as status_id, from_date, to_date, message, qr_code_id FROM request INNER JOIN offer ON request.offer_id = offer.offer_id WHERE offer.user_id = ? AND (request.status_id < ? AND request.status_id != ?) ORDER BY request.created_on DESC;",
+						query: "SELECT request_id, request.user_id, request.offer_id, request.status_id as status_id, from_date, to_date, message, qr_code_id FROM request INNER JOIN offer ON request.offer_id = offer.offer_id WHERE offer.user_id = ? AND (request.status_id < ? AND request.status_id != ?) ORDER BY request.created_at DESC;",
 						args: [
 							request_info.user_id,
 							StaticConsts.REQUEST_STATUS_ITEM_RETURNED_TO_LESSOR,
@@ -875,7 +875,7 @@ export class QueryBuilder {
 					}
 				} else {
 					return {
-						query: "SELECT request_id, user_id, offer_id, request.status_id as status_id, from_date, to_date, message, qr_code_id FROM request WHERE user_id = ? AND (request.status_id < ? AND request.status_id != ?) ORDER BY created_on DESC;",
+						query: "SELECT request_id, user_id, offer_id, request.status_id as status_id, from_date, to_date, message, qr_code_id FROM request WHERE user_id = ? AND (request.status_id < ? AND request.status_id != ?) ORDER BY created_at DESC;",
 						args: [
 							request_info.user_id,
 							StaticConsts.REQUEST_STATUS_ITEM_RETURNED_TO_LESSOR,
@@ -1031,7 +1031,7 @@ export class QueryBuilder {
 	 */
 	public static closeTimedOutOffers() {
 		return {
-			query: "UPDATE request SET status_id = ?, updated_on = NOW() WHERE status_id = ? AND NOW() > from_date;",
+			query: "UPDATE request SET status_id = ?, updated_at = NOW() WHERE status_id = ? AND NOW() > from_date;",
 			args: [
 				StaticConsts.REQUEST_STATUS_REQUEST_TIMED_OUT,
 				StaticConsts.OFFER_STATUS_DELETED
@@ -1039,18 +1039,37 @@ export class QueryBuilder {
 		}
 	}
 
-	/**
-	 * Updates the timestamp when a user made a request to get a request object
-	 * @param requestId Id of the request to be updated
-	 */
-	public static updateLastUpdateRequestTimestamp(requestId: string) {
-		return {
-			query: "UPDATE request SET last_update_request_from_user = NOW() WHERE request.request_id = ?;",
-			args: [
-				requestId
-			]
+
+	public static updateReadByUser(requestId: string, isLessor: boolean) {
+		if (isLessor) {
+			return {
+				query: "UPDATE request SET read_by_lessor = TRUE WHERE request.request_id = ?;",
+				args: [
+					requestId
+				]
+			}
+		} else {
+			return {
+				query: "UPDATE request SET read_by_lessee = TRUE WHERE request.request_id = ?;",
+				args: [
+					requestId
+				]
+			}
 		}
 	}
+
+	// /**
+	//  * Updates the timestamp when a user made a request to get a request object
+	//  * @param requestId Id of the request to be updated
+	//  */
+	// public static updateLastUpdateRequestTimestamp(requestId: string) {
+	// 	return {
+	// 		query: "UPDATE request SET last_update_request_from_user = NOW() WHERE request.request_id = ?;",
+	// 		args: [
+	// 			requestId
+	// 		]
+	// 	}
+	// }
 
 	/**
 	 * Returns the number of requests with a created timestamp greater than the last update
@@ -1061,7 +1080,7 @@ export class QueryBuilder {
 	public static getNumberOfNewOfferRequestsPerUser(userId: string, requestState: number) {
 		if (requestState == StaticConsts.REQUEST_STATUS_OPEN) {
 			return {
-				query: "SELECT COUNT(request.request_id) as number_of_new_requests FROM request JOIN offer ON request.offer_id = offer.offer_id WHERE request.status_id = ? AND offer.user_id = ? AND (request.updated_on >= request.last_update_request_from_user OR request.last_update_request_from_user IS NULL);",
+				query: "SELECT COUNT(request.request_id) as number_of_new_requests FROM request JOIN offer ON request.offer_id = offer.offer_id WHERE request.status_id = ? AND offer.user_id = ? AND read_by_lessor = FALSE;",
 				args: [
 					requestState,
 					userId
@@ -1069,7 +1088,7 @@ export class QueryBuilder {
 			}
 		} else {
 			return {
-				query: "SELECT COUNT(request.request_id) as number_of_new_requests FROM request WHERE request.status_id = ? AND request.user_id = ? AND (request.updated_on >= request.last_update_request_from_user OR request.last_update_request_from_user IS NULL);",
+				query: "SELECT COUNT(request.request_id) as number_of_new_requests FROM request WHERE request.status_id = ? AND request.user_id = ? AND read_by_lessee = FALSE;",
 				args: [
 					requestState,
 					userId
