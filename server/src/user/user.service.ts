@@ -215,7 +215,7 @@ export class UserService {
 			throw new BadRequestException("Insufficient Parameter");
 		}
 
-		// Validate user
+		// Validate user wow
 		const validatedUser = await this.validateUser({ session: auth });
 		if (validatedUser.user.user_id != user_id) {
 			throw new UnauthorizedException("Not authorized")
