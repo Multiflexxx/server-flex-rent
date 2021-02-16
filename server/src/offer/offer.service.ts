@@ -1118,8 +1118,27 @@ export class OfferService {
 			session_id?: string,
 			user_id?: string
 		},
-		rating?: string
+		request?: Request,
+		rating?: {
+			rating: number,
+			headline?: string,
+			rating_text?: string,
+		}
+		// rating?: string
 	}): Promise<Offer> {
+
+		throw new NotImplementedException("NOT IMPLEMENTED YET!");
+
+		// TODO: insert ratings in table
+		// Check who rated which offer and if offer really was requested
+		// Update offer rating in offer table
+		//  => offer shows number of stars, but a list of single ratings can be shown
+		// Created endpoint to get these ratings for an given offer
+		//  => If ratings would be sent to client in normal request
+		//     this could cause problems and pagination would be difficult 
+		// ADD pagination to get ratings endpoint
+
+
 		//TODO: JOIN requests to check that a user can only rate the offer so often he/she lent it
 		// SEE IDEA of Tristan
 		if (id !== undefined && id !== null && id !== "" && reqBody !== undefined && reqBody !== null) {
