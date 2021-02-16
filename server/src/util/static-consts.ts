@@ -36,4 +36,23 @@ export const REQUEST_STATUS_REQUEST_TIMED_OUT = 8;
 
 /* ------ USER ------ */
 export const USER_RATING_DEFAULT_LIMIT = 10;
-export const USER_RATING_DEFAULT_OFFSET = 0
+export const USER_RATING_DEFAULT_OFFSET = 0;
+export const HASH_SALT_ROUNDS = 10;
+export const FB_API_URL = "https://graph.facebook.com/v2.12/me?fields=name,first_name,last_name,email&access_token=";
+export const RATING_TYPES: string[] = [
+	"lessor",
+	"lessee"
+];
+export const SIGN_IN_METHODS = [
+	"google",
+	"email",
+	"facebook",
+	"apple"
+];
+export const DEFAULT_PAGE_SIZE: number = 10;
+export const userStates = {
+    CREATED: 1,
+    VERIFIED: 2,
+    SOFT_DELETED: 3,
+    HARD_DELETED: 4
+}

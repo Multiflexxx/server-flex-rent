@@ -154,7 +154,7 @@ export class QueryBuilder {
 		return {
 			query: "UPDATE soft_deleted_user SET status_id = ?, deletion_date = DATE_ADD(CURRENT_DATE(), INTERVAL 1 WEEK) WHERE user_id = ?;",
 			args: [
-				UserService.userStates.softDeleted,
+				StaticConsts.userStates.SOFT_DELETED,
 				user_id
 			]
 		}
@@ -164,7 +164,7 @@ export class QueryBuilder {
 		return {
 			query: "UPDATE user SET first_name = 'Gelöschter', last_name = 'Nutzer', email = '', phone_number = '', password_hash = '', verified = 0, place_id = 0, street = '', house_number = '', lessee_rating = 0,  lessor_rating = 0, number_of_lessee_ratings= 0, number_of_lessor_ratings = 0, date_of_birth = CURRENT_DATE() , profile_picture = NULL, sign_in_method = '', status_id = ?, deletion_date = DATE_ADD(CURRENT_DATE(), INTERVAL 8 DAY) WHERE user_id = ?;",
 			args: [
-				UserService.userStates.softDeleted,
+				StaticConsts.userStates.SOFT_DELETED,
 				user_id
 			]
 		}
