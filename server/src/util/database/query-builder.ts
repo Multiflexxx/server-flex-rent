@@ -757,7 +757,7 @@ export class QueryBuilder {
 	 */
 	public static createRequest(request: Request): Query {
 		return {
-			query: "INSERT INTO request (request_id, user_id, offer_id, status_id, from_date, to_date, message, qr_code_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
+			query: "INSERT INTO request (request_id, user_id, offer_id, status_id, from_date, to_date, message, qr_code_id, updated_on) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW());",
 			args: [
 				request.request_id,
 				request.user.user_id,
@@ -778,7 +778,7 @@ export class QueryBuilder {
 	public static updateRequest(request: Request): Query {
 		if (request.qr_code_id) {
 			return {
-				query: "UPDATE request SET status_id = ?, qr_code_id = ? WHERE request_id = ?;",
+				query: "UPDATE request SET status_id = ?, qr_code_id = ?, updated_on = NOW() WHERE request_id = ?;",
 				args: [
 					request.status_id,
 					request.qr_code_id,
@@ -787,7 +787,7 @@ export class QueryBuilder {
 			}
 		} else {
 			return {
-				query: "UPDATE request SET status_id = ? WHERE request_id = ?;",
+				query: "UPDATE request SET status_id = ?, updated_on = NOW() WHERE request_id = ?;",
 				args: [
 					request.status_id,
 					request.request_id
@@ -1006,8 +1006,11 @@ export class QueryBuilder {
 	 */
 	public static closeTimedOutOffers() {
 		return {
-			query: `UPDATE request SET status_id = ${StaticConsts.REQUEST_STATUS_REQUEST_TIMED_OUT} WHERE status_id = ${StaticConsts.OFFER_STATUS_DELETED} AND NOW() > from_date;`,
-			args: []
+			query: "UPDATE request SET status_id = ?, updated_on = NOW() WHERE status_id = ? AND NOW() > from_date;",
+			args: [
+				StaticConsts.REQUEST_STATUS_REQUEST_TIMED_OUT,
+				StaticConsts.OFFER_STATUS_DELETED
+			]
 		}
 	}
 
@@ -1031,12 +1034,22 @@ export class QueryBuilder {
 	 * @param requestState State of the request for filtering
 	 */
 	public static getNumberOfNewOfferRequestsPerUser(userId: string, requestState: number) {
-		return {
-			query: "SELECT COUNT(request.request_id) as number_of_new_requests FROM request WHERE request.status_id = ? AND request.user_id = ? AND request.created_on >= request.last_update_request_from_user; ",
-			args: [
-				requestState,
-				userId
-			]
+		if (requestState == StaticConsts.REQUEST_STATUS_OPEN) {
+			return {
+				query: "SELECT COUNT(request.request_id) as number_of_new_requests FROM request JOIN offer ON request.offer_id = offer.offer_id WHERE request.status_id = ? AND offer.user_id = ? AND (request.updated_on >= request.last_update_request_from_user OR request.last_update_request_from_user IS NULL);",
+				args: [
+					requestState,
+					userId
+				]
+			}
+		} else {
+			return {
+				query: "SELECT COUNT(request.request_id) as number_of_new_requests FROM request WHERE request.status_id = ? AND request.user_id = ? AND (request.updated_on >= request.last_update_request_from_user OR request.last_update_request_from_user IS NULL);",
+				args: [
+					requestState,
+					userId
+				]
+			}
 		}
 	}
 
