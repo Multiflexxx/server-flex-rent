@@ -163,7 +163,9 @@ export class OfferController {
 	}
 
 	/**
-	 * returns a number of new open requests fo a user
+	 * Returns the number of new opened offer requests for lessor view
+	 * and the number of accepted / rejected updates for lessee view
+	 * and the total number of updates (sum of all)
 	 * @param reqBody session object
 	 */
 	@Post('get-number-of-new-offer-requests')
