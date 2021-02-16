@@ -1374,9 +1374,11 @@ export class OfferService {
 						qr_code_id: qrCodeValue
 					}
 
-					// Update last update request
-					await Connector.executeQuery(QueryBuilder.updateLastUpdateRequestTimestamp(reqBody.request.request_id));
+					// Check if lessor sent request or lessee
+					let isLessor = (offer.lessor.user_id === userResponse.user.user_id) ? true : false;
 
+					await Connector.executeQuery(QueryBuilder.updateReadByUser(reqBody.request.request_id, isLessor));
+					
 					return o;
 				} else {
 					throw new InternalServerErrorException("Something went wrong...");
@@ -1921,7 +1923,6 @@ export class OfferService {
 				} catch (e) {
 					throw new InternalServerErrorException("Something went wrong...");
 				}
-
 
 				// Lessor is now a user!
 				let lessor: User;
