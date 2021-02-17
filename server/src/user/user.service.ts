@@ -1,24 +1,25 @@
-import { Injectable, BadRequestException, NotFoundException, InternalServerErrorException, Put, Patch, Inject, forwardRef, UnauthorizedException, Query } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, InternalServerErrorException, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { User } from './user.model';
 import { Connector } from 'src/util/database/connector';
 import * as EmailValidator from 'email-validator';
 import { QueryBuilder } from 'src/util/database/query-builder';
 import { v4 as uuidv4 } from 'uuid';
-import { stringify } from 'querystring';
 import { FileHandler } from 'src/util/file-handler/file-handler';
 import * as StaticConsts from 'src/util/static-consts';
+import { OfferService } from 'src/offer/offer.service';
+import { Request } from 'src/offer/request.model';
 
 const axios = require('axios');
 const bcrypt = require('bcrypt');
 const { OAuth2Client } = require('google-auth-library');
 const GOOGLE_CLIENT_ID = require("../../database.json").google_client_id;
 const google_oauth_client = new OAuth2Client(GOOGLE_CLIENT_ID);
-const metadata = require('gcp-metadata');
 const fileConfig = require('../../file-handler-config.json');
 const moment = require('moment');
 
 @Injectable()
 export class UserService {
+	constructor(private readonly offerService: OfferService) {}
 
 	/**
 	 * Returns a User Object containing publicly visible user information
@@ -222,7 +223,31 @@ export class UserService {
 		if (validatedUser.user.user_id != user_id) {
 			throw new UnauthorizedException("Not authorized")
 		}
-		// Todo: Check if user can even be deleted (cant be deleted when user has open requests etc...)
+
+		// Check if user can even be deleted (cant be deleted when user has open requests etc...)
+		let openRequests = await this.offerService.getRequests({
+			session: auth.session,
+		});
+		
+		let temp: Request[] = []
+		if(!(openRequests instanceof Request)) {
+			temp = (openRequests as any[]) as Request[]
+		}
+
+		// Cancel deletion process, if user has open requests
+		temp.forEach(a => {
+			if(a.status_id == StaticConsts.REQUEST_STATUS_ACCEPTED_BY_LESSOR || a.status_id == StaticConsts.REQUEST_STATUS_ITEM_LEND_TO_LESSEE)
+				throw new ConflictException("Open Requests must be closed before deleting user");
+		});
+
+		// Delete user's offer
+		let offer = await this.offerService.getOffersByUserId(auth.session.user_id);
+		offer.forEach(async o => {
+			await this.offerService.deleteOffer(o.offer_id, { session: auth.session });
+		});
+
+		// Delete user's profile Picture
+		FileHandler.deleteImage(validatedUser.user.profile_picture);
 
 		// Set user Status to "soft_deleted" and set users deletion_date (today + 1 week)
 		await Connector.executeQuery(QueryBuilder.setUserDeletionDate(auth.session.user_id));
@@ -230,12 +255,12 @@ export class UserService {
 		await Connector.executeQuery(QueryBuilder.softDeleteUser(auth.session.user_id));
 	}
 
-	/**
-	 * Function used for hard deleting a user, after the one week period after soft deleting expired
-	 */
-	public async hardDeleteUser() { 
-		await Connector.executeQuery(QueryBuilder.cron_hardDeleteUser());
-	}
+	// /**
+	//  * Function used for hard deleting a user, after the one week period after soft deleting expired
+	//  */
+	// public async hardDeleteUser() { 
+	// 	await Connector.executeQuery(QueryBuilder.cron_hardDeleteUser());
+	// }
 
 	/**
 	 * Returns a complete user object and session_id given proper auth details

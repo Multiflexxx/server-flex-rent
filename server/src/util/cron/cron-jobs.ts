@@ -1,4 +1,5 @@
 const schedule = require('node-schedule');
+import { OfferService } from 'src/offer/offer.service';
 import { UserService } from 'src/user/user.service';
 import { Connector } from 'src/util/database/connector';
 import { QueryBuilder } from 'src/util/database/query-builder';
@@ -22,8 +23,7 @@ export class CronJobs {
 
     public static async startUserDeletionScan() {
         schedule.scheduleJob('0 */1 * * * *', async function() {
-            let userService: UserService = new UserService();
-            await userService.hardDeleteUser()
+            await Connector.executeQuery(QueryBuilder.cron_hardDeleteUser());
         });
     }
 
