@@ -610,25 +610,6 @@ export class QueryBuilder {
 		}
 	}
 
-	/**
-	 * Returns a Query to update the offer rating
-	 * @param rating Information needed to update rating for offer
-	 */
-	public static updateOfferRating(rating: {
-		offer_id: string,
-		rating: number,
-		number_of_ratings: number
-	}): Query {
-		return {
-			query: `UPDATE offer SET rating = ?, number_of_ratings = ? WHERE offer_id = ? AND offer.status_id != ${StaticConsts.OFFER_STATUS_DELETED};`,
-			args: [
-				rating.rating,
-				rating.number_of_ratings,
-				rating.offer_id
-			]
-		}
-	}
-
 	public static softDeleteOfferById(id: string): Query {
 		return {
 			query: `UPDATE offer SET title = CONCAT('(Gelöscht) ', title), description = '(Angebot wurde gelöscht.)', deletion_date = NOW(), status_id = -1 WHERE offer_id = ? AND status_id != ${StaticConsts.OFFER_STATUS_DELETED};`,
@@ -1029,7 +1010,7 @@ export class QueryBuilder {
 	/**
 	 * Used to close offers after a timeout happens
 	 */
-	public static closeTimedOutOffers() {
+	public static closeTimedOutOffers(): Query {
 		return {
 			query: "UPDATE request SET status_id = ?, updated_at = NOW() WHERE status_id = ? AND NOW() > from_date;",
 			args: [
@@ -1040,7 +1021,7 @@ export class QueryBuilder {
 	}
 
 
-	public static updateReadByUser(requestId: string, isLessor: boolean) {
+	public static updateReadByUser(requestId: string, isLessor: boolean): Query {
 		if (isLessor) {
 			return {
 				query: "UPDATE request SET read_by_lessor = TRUE WHERE request.request_id = ?;",
@@ -1058,18 +1039,117 @@ export class QueryBuilder {
 		}
 	}
 
-	// /**
-	//  * Updates the timestamp when a user made a request to get a request object
-	//  * @param requestId Id of the request to be updated
-	//  */
-	// public static updateLastUpdateRequestTimestamp(requestId: string) {
-	// 	return {
-	// 		query: "UPDATE request SET last_update_request_from_user = NOW() WHERE request.request_id = ?;",
-	// 		args: [
-	// 			requestId
-	// 		]
-	// 	}
-	// }
+	public static getRequestByOfferAndUserId(offerId: string, userId: string): Query {
+		return {
+			query: "SELECT request_id, user_id, offer_id, status_id FROM request WHERE offer_id = ? AND user_id = ? AND status_id = ?;",
+			args: [
+				offerId,
+				userId,
+				StaticConsts.REQUEST_STATUS_ITEM_RETURNED_TO_LESSOR
+			]
+		}
+	}
+
+	/**
+	 * static getRatings
+	 */
+	public static getOfferRatings(rating_info: {
+		rated_check?: {
+			offer_id: string,
+			user_id: string
+		},
+		offer_id?: string,
+		request_id?: string,
+		user_id?: string
+	}): Query {
+		if (rating_info.rated_check) {
+			return {
+				query: "SELECT user_id, offer_id, request_id, rating, headline, rating_text, created_at, updated_at FROM offer_rating WHERE offer_id = ? AND user_id = ?;",
+				args: [
+					rating_info.rated_check.offer_id,
+					rating_info.rated_check.user_id
+				]
+			}
+		}
+		else if (rating_info.offer_id) {
+			return {
+				query: "SELECT user_id, offer_id, request_id, rating, headline, rating_text, created_at, updated_at FROM offer_rating WHERE offer_id = ?;",
+				args: [
+					rating_info.offer_id
+				]
+			}
+		} else if (rating_info.request_id) {
+			return {
+				query: "SELECT user_id, offer_id, request_id, rating, headline, rating_text, created_at, updated_at FROM offer_rating WHERE request_id = ?;",
+				args: [
+					rating_info.request_id
+				]
+			}
+		} else if (rating_info.user_id) {
+			return {
+				query: "SELECT user_id, offer_id, request_id, rating, headline, rating_text, created_at, updated_at FROM offer_rating WHERE user_id = ?;",
+				args: [
+					rating_info.user_id
+				]
+			}
+		}
+	}
+
+	/**
+	 * Returns a Query to update the offer rating
+	 * @param rating Information needed to update rating for offer
+	 */
+	public static updateOfferRating(rating_infos: {
+		rating_in_offer?: {
+			offer_id: string,
+			rating: number,
+			number_of_ratings: number
+		},
+		rating_in_offer_ratings?: {
+			insert: boolean,
+			offer_id: string,
+			user_id: string,
+			request_id: string,
+			rating: number,
+			headline: string,
+			rating_text: string
+		}
+	}): Query {
+		if (rating_infos.rating_in_offer) {
+			return {
+				query: "UPDATE offer SET rating = ?, number_of_ratings = ? WHERE offer_id = ? AND offer.status_id != ?;",
+				args: [
+					rating_infos.rating_in_offer.rating,
+					rating_infos.rating_in_offer.number_of_ratings,
+					rating_infos.rating_in_offer.offer_id,
+					StaticConsts.OFFER_STATUS_DELETED
+				]
+			}
+		} else if (rating_infos.rating_in_offer_ratings) {
+			if (rating_infos.rating_in_offer_ratings.insert) {
+				// Insert new rating
+				return {
+					query: "INSERT INTO offer_rating (offer_id, user_id, request_id, rating, headline, rating_text, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW());",
+					args: [
+						rating_infos.rating_in_offer_ratings.offer_id,
+						rating_infos.rating_in_offer_ratings.user_id,
+						rating_infos.rating_in_offer_ratings.request_id,
+						rating_infos.rating_in_offer_ratings.rating,
+						rating_infos.rating_in_offer_ratings.headline,
+						rating_infos.rating_in_offer_ratings.rating_text
+					]
+				}
+			} else {
+				// Update existing rating
+				// TODO
+				return {
+					query: "",
+					args: []
+				}
+			}
+		}
+
+	}
 
 	/**
 	 * Returns the number of requests with a created timestamp greater than the last update
@@ -1077,7 +1157,7 @@ export class QueryBuilder {
 	 * @param userId Id of user to get request numbers for
 	 * @param requestState State of the request for filtering
 	 */
-	public static getNumberOfNewOfferRequestsPerUser(userId: string, requestState: number) {
+	public static getNumberOfNewOfferRequestsPerUser(userId: string, requestState: number): Query {
 		if (requestState == StaticConsts.REQUEST_STATUS_OPEN) {
 			return {
 				query: "SELECT COUNT(request.request_id) as number_of_new_requests FROM request JOIN offer ON request.offer_id = offer.offer_id WHERE request.status_id = ? AND offer.user_id = ? AND read_by_lessor = FALSE;",

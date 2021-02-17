@@ -93,30 +93,6 @@ export class OfferController {
 	}
 
 	/**
-	* Updates an offer given the id and parameters to be updated, given sufficient authorization. 
-	 * @param reqBody Update parameters
-	 * @param id ID of offer to be updated
-	 */
-	@Patch(':id')
-	updateOffer(
-		@Body() reqBody: {},
-		@Param('id') id: string,
-	) {
-		return this.offerService.updateOffer(id, reqBody);
-	}
-
-	/**
-	 * Creates a new offer using the parameters passed in the request's body
-	 * @param reqBody Parameters of Offer to be created
-	 */
-	@Put()
-	createOffer(
-		@Body() reqBody: {}
-	) {
-		return this.offerService.createOffer(reqBody);
-	}
-
-	/**
 	 * Accepts up to ten files to upload images
 	 * @param images field key for files array
 	 */
@@ -167,20 +143,6 @@ export class OfferController {
 	}
 
 	/**
-	 * Books offer for a specified time frame, given sufficient authorization.
-	 * @param id ID of offer to be booked
-	 * @param reqBody body of the request is used for passing authorization details
-	 */
-	@Post(':id')
-	bookOffer(
-		@Param('id') id: string,
-		@Body() reqBody: {}
-	) {
-		// User-ID, offer-ID, date-range, message, (payment?)
-		return this.offerService.bookOffer(id, reqBody);
-	}
-
-	/**
 	 * Rate an offer
 	 * @param reqBody body of the request is used for passing authorization details, and rating infos
 	 */
@@ -224,5 +186,43 @@ export class OfferController {
 		@Param('id') id: string
 	) {
 		return this.offerService.getOfferById(id);
+	}
+
+	/**
+	* Updates an offer given the id and parameters to be updated, given sufficient authorization. 
+	 * @param reqBody Update parameters
+	 * @param id ID of offer to be updated
+	 */
+	@Patch(':id')
+	updateOffer(
+		@Body() reqBody: {},
+		@Param('id') id: string,
+	) {
+		return this.offerService.updateOffer(id, reqBody);
+	}
+
+	/**
+	 * Creates a new offer using the parameters passed in the request's body
+	 * @param reqBody Parameters of Offer to be created
+	 */
+	@Put()
+	createOffer(
+		@Body() reqBody: {}
+	) {
+		return this.offerService.createOffer(reqBody);
+	}
+
+	/**
+	 * Books offer for a specified time frame, given sufficient authorization.
+	 * @param id ID of offer to be booked
+	 * @param reqBody body of the request is used for passing authorization details
+	 */
+	@Post(':id')
+	bookOffer(
+		@Param('id') id: string,
+		@Body() reqBody: {}
+	) {
+		// User-ID, offer-ID, date-range, message, (payment?)
+		return this.offerService.bookOffer(id, reqBody);
 	}
 }
