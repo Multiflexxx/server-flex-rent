@@ -137,18 +137,43 @@ export class QueryBuilder {
 
 
 	/**
-	 * Sets a user's status to soft_deleted or hard_deleted. 
+	 * Transfers
 	 * @param user_id 
 	 * @param deletion_date Optional parameter, if deletion date differs from default (7 days)
 	 */
-	public static softDeleteUser(user_id: string, deletion_date?) {
+	public static transferUserInfo(user_id: string): Query {
 		return {
-			query: "UPDATE user SET status_id = ?, deletion_date = ? WHERE user_id = ?;",
+			query: "INSERT INTO soft_deleted_user (user_id, first_name, last_name, email, phone_number, password_hash, verified, place_id, street, house_number, lessee_rating, lessor_rating, number_of_lessee_ratings, number_of_lessor_ratings, date_of_birth, profile_picture, sign_in_method, status_id, deletion_date) SELECT * FROM user WHERE user_id = ?;",
 			args: [
-				UserService.userStates.softDeleted,
-				!deletion_date ? moment().add(7, 'days').format('YYYY-MM-DD') : deletion_date,
 				user_id
 			]
+		}
+	}
+
+	public static updateSoftDeletedUserInfo(user_id: string): Query {
+		return {
+			query: "UPDATE soft_deleted_user SET status_id = ?, deletion_date = DATE_ADD(CURRENT_DATE(), INTERVAL 1 WEEK) WHERE user_id = ?;",
+			args: [
+				StaticConsts.userStates.SOFT_DELETED,
+				user_id
+			]
+		}
+	}
+
+	public static softDeleteUser(user_id: string): Query {
+		return {
+			query: "UPDATE user SET first_name = 'Gelöschter', last_name = 'Nutzer', email = '', phone_number = '', password_hash = '', verified = 0, place_id = 0, street = '', house_number = '', lessee_rating = 0,  lessor_rating = 0, number_of_lessee_ratings= 0, number_of_lessor_ratings = 0, date_of_birth = CURRENT_DATE() , profile_picture = NULL, sign_in_method = '', status_id = ?, deletion_date = DATE_ADD(CURRENT_DATE(), INTERVAL 8 DAY) WHERE user_id = ?;",
+			args: [
+				StaticConsts.userStates.SOFT_DELETED,
+				user_id
+			]
+		}
+	}
+
+	public static cron_hardDeleteUser(): Query {
+		return {
+			query: "DELETE FROM soft_deleted_user WHERE deletion_date = CURRENT_DATE();",
+			args: []
 		}
 	}
 

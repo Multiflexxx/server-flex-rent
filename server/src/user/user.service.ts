@@ -6,46 +6,19 @@ import { QueryBuilder } from 'src/util/database/query-builder';
 import { v4 as uuidv4 } from 'uuid';
 import { stringify } from 'querystring';
 import { FileHandler } from 'src/util/file-handler/file-handler';
+import * as StaticConsts from 'src/util/static-consts';
 
 const axios = require('axios');
-
 const bcrypt = require('bcrypt');
-const saltRounds = 10;
-
 const { OAuth2Client } = require('google-auth-library');
 const GOOGLE_CLIENT_ID = require("../../database.json").google_client_id;
 const google_oauth_client = new OAuth2Client(GOOGLE_CLIENT_ID);
 const metadata = require('gcp-metadata');
-
-const fb_api = "https://graph.facebook.com/v2.12/me";
-const fb_api_query = "?fields=name,first_name,last_name,email";
-const fb_api_access_token = "&access_token=";
-
 const fileConfig = require('../../file-handler-config.json');
 const moment = require('moment');
-const rating_types: string[] = [
-	"lessor",
-	"lessee"
-];
-
-const sign_in_methods = [
-	"google",
-	"email",
-	"facebook",
-	"apple"
-]
-const default_page_size: number = 10;
-let aud: any;
 
 @Injectable()
 export class UserService {
-	public static userStates = {
-		created: 1,
-		verified: 2,
-		softDeleted: 3,
-		hardDeleted: 4
-	}
-
 
 	/**
 	 * Returns a User Object containing publicly visible user information
@@ -60,7 +33,7 @@ export class UserService {
 			throw new NotFoundException("User not found");
 		}
 
-		if (result.status_id != UserService.userStates.softDeleted && result.status_id != UserService.userStates.hardDeleted) {
+		if (result.status_id != StaticConsts.userStates.SOFT_DELETED && result.status_id != StaticConsts.userStates.HARD_DELETED) {
 			user = {
 				user_id: result.user_id,
 				first_name: result.first_name,
@@ -123,7 +96,7 @@ export class UserService {
 		// Validate User input:
 		await this.validateRegistrationInput(user);
 
-		if (!method || !sign_in_methods.includes(method)) {
+		if (!method || !StaticConsts.SIGN_IN_METHODS.includes(method)) {
 			throw new BadRequestException("Invalid Sign Up Method");
 		}
 
@@ -132,7 +105,7 @@ export class UserService {
 
 		// Hash password again
 		const plainTextPwd: string = user.password_hash;
-		user.password_hash = bcrypt.hashSync(user.password_hash, saltRounds);
+		user.password_hash = bcrypt.hashSync(user.password_hash, StaticConsts.HASH_SALT_ROUNDS);
 
 		// Create User
 		await Connector.executeQuery(QueryBuilder.createUser(user, method));
@@ -213,7 +186,7 @@ export class UserService {
 		let plainTextPwd: string
 		if (password && password.new_password_hash) {
 			plainTextPwd = password.new_password_hash;
-			password.new_password_hash = bcrypt.hashSync(password.new_password_hash, saltRounds);
+			password.new_password_hash = bcrypt.hashSync(password.new_password_hash, StaticConsts.HASH_SALT_ROUNDS);
 		}
 
 		// Update User information
@@ -242,7 +215,7 @@ export class UserService {
 			throw new BadRequestException("Insufficient Parameter");
 		}
 
-		// Validate user
+		// Validate user wow
 		const validatedUser = await this.validateUser({ session: auth });
 		if (validatedUser.user.user_id != user_id) {
 			throw new UnauthorizedException("Not authorized")
@@ -380,6 +353,10 @@ export class UserService {
 			throw new BadRequestException("Phone number address already registered");
 		}
 
+		user.lessee_rating = 0
+		user.number_of_lessee_ratings = 0
+		user.lessor_rating = 0
+		user.number_of_lessor_ratings = 0
 
 		// Validate date of birth
 		// Check if Birthdate is valid and in acceptable time range
@@ -419,7 +396,7 @@ export class UserService {
 		*/
 
 		// Check if rating_type parameter is valid (if given)
-		if (!(!query.rating_type || (query.rating_type && rating_types.includes(query.rating_type)))) {
+		if (!(!query.rating_type || (query.rating_type && StaticConsts.RATING_TYPES.includes(query.rating_type)))) {
 			throw new BadRequestException("Invalid rating_type parameter in request");
 		}
 
@@ -438,7 +415,7 @@ export class UserService {
 		let numberOfRatings: number;
 		if (query.rating_type) {
 			// If rating_type = "lessor"
-			if (query.rating_type === rating_types[0]) {
+			if (query.rating_type === StaticConsts.RATING_TYPES[0]) {
 				numberOfRatings = user.number_of_lessor_ratings;
 			} else {
 				numberOfRatings = user.number_of_lessee_ratings;
@@ -451,14 +428,14 @@ export class UserService {
 		if (!query.page || isNaN(query.page)) {
 			page = 1;
 		} else {
-			if (query.page > Math.ceil(numberOfRatings / default_page_size)) {
+			if (query.page > Math.ceil(numberOfRatings / StaticConsts.DEFAULT_PAGE_SIZE)) {
 				throw new BadRequestException("Ran our of pages...");
 			} else {
 				page = query.page;
 			}
 		}
 
-		return await Connector.executeQuery(QueryBuilder.getUserRatings(user_id, query.rating_type, query.rating, default_page_size, page));
+		return await Connector.executeQuery(QueryBuilder.getUserRatings(user_id, query.rating_type, query.rating, StaticConsts.DEFAULT_PAGE_SIZE, page));
 	}
 
 	public async rateUser(
@@ -490,7 +467,7 @@ export class UserService {
 			|| !rating.text
 			|| rating.rating > 5
 			|| rating.rating < 1
-			|| !rating_types.includes(rating.rating_type)) {
+			|| !StaticConsts.RATING_TYPES.includes(rating.rating_type)) {
 			throw new BadRequestException("Invalid rating arguments");
 		}
 
@@ -678,7 +655,7 @@ export class UserService {
 		// User token to get Information from facebook API
 		let fb_response: any;
 		try {
-			fb_response = await axios.get(fb_api + fb_api_query + fb_api_access_token + auth.token);
+			fb_response = await axios.get(StaticConsts.FB_API_URL + auth.token);
 		} catch (e) {
 			if (e.request.res.statusCode === 400) {
 				throw new BadRequestException("Invalid Facebook access token");
