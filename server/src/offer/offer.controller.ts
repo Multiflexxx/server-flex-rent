@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Put, Patch, Delete, Query, Body, Post, UseInterceptors, UploadedFiles, Res, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Param, Put, Patch, Delete, Query, Body, Post, UseInterceptors, UploadedFiles, Res, NotFoundException, NotImplementedException } from '@nestjs/common';
 import { OfferService } from './offer.service';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import * as StaticConsts from 'src/util/static-consts';
@@ -65,15 +65,16 @@ export class OfferController {
 	}
 
 	/**
-	 * Returns a set of offers to be shown on the Homepage
-	 * post_code is a required query parameter!
-	 * distance is an optional query parameter
+	 * TODO: IMPlEMENT FILTERS
+	 * Get all ratings for an offer
+	 * @param reqBody body of the request is used for passing authorization details
 	 */
-	@Get()
-	getHomePageOffers(
-		@Query() query: {}
+	@Get('rating/:id')
+	getOfferRating(
+		@Param('id') id: string
 	) {
-		return this.offerService.getHomePageOffers(query);
+		throw new NotImplementedException("Not implemented yet");
+		//return this.offerService.rateOffer(id);
 	}
 
 	/**
@@ -191,14 +192,37 @@ export class OfferController {
 
 	/**
 	 * Rate an offer
-	 * @param id ID of the offer to be rated
 	 * @param reqBody body of the request is used for passing authorization details
 	 */
-	@Post('rate/:id')
+	@Put('rating')
 	rateOffer(
-		@Param('id') id: string,
 		@Body() reqBody: {}
 	) {
-		return this.offerService.rateOffer(id, reqBody);
+		return this.offerService.rateOffer(reqBody);
+	}
+
+	/**
+	 * Update rating of an offer
+	 * @param reqBody body of the request is used for passing authorization details
+	 */
+	@Patch('rating')
+	updateOfferRating(
+		@Body() reqBody: {}
+	) {
+		throw new NotImplementedException();
+		//return this.offerService.rateOffer(reqBody);
+	}
+
+	// NEEDS TO BE LAST IN FILE!
+	/**
+	 * Returns a set of offers to be shown on the Homepage
+	 * post_code is a required query parameter!
+	 * distance is an optional query parameter
+	 */
+	@Get()
+	getHomePageOffers(
+		@Query() query: {}
+	) {
+		return this.offerService.getHomePageOffers(query);
 	}
 }

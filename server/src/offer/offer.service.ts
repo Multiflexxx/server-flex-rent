@@ -1113,19 +1113,26 @@ export class OfferService {
 	 * @param id ID of the offer to be rated
 	 * @param reqBody data to validate user and rating (number between 1 and 5)
 	 */
-	public async rateOffer(id: string, reqBody: {
+	public async rateOffer(reqBody: {
 		session?: {
 			session_id?: string,
 			user_id?: string
 		},
-		request?: Request,
 		rating?: {
+			offer?: Offer,
 			rating: number,
 			headline?: string,
 			rating_text?: string,
 		}
-		// rating?: string
-	}): Promise<Offer> {
+	}): Promise<{
+		rating?: {
+			rating: number,
+			headline?: string,
+			rating_text?: string,
+			last_updated?: Date,
+			user?: User
+		}
+	}> {
 
 		throw new NotImplementedException("NOT IMPLEMENTED YET!");
 
