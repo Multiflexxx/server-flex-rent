@@ -1346,7 +1346,7 @@ export class OfferService {
 
 					// Check if lessor / lesse did not sent request
 					// => Other people who are not lessor / lesse should not see requests!
-					if(dbRequests[0].user_id !== userResponse.user.user_id
+					if (dbRequests[0].user_id !== userResponse.user.user_id
 						&& offer.lessor.user_id !== userResponse.user.user_id) {
 						throw new UnauthorizedException("Unauthorized to see this request");
 					}
@@ -1378,7 +1378,7 @@ export class OfferService {
 					let isLessor = (offer.lessor.user_id === userResponse.user.user_id) ? true : false;
 
 					await Connector.executeQuery(QueryBuilder.updateReadByUser(reqBody.request.request_id, isLessor));
-					
+
 					return o;
 				} else {
 					throw new InternalServerErrorException("Something went wrong...");
@@ -1795,15 +1795,15 @@ export class OfferService {
 			user_id?: string
 		}
 	}): Promise<{
-		number_of_new_requests: number,
-		number_of_new_accepted_requests: number,
-		number_of_new_rejected_requests: number,
-		total_number_of_updates: number
+		lessors_number_of_new_requests: number,
+		lessees_number_of_new_accepted_requests: number,
+		lessees_number_of_new_rejected_requests: number,
+		lessees_total_number_of_updates: number
 	}> {
 		if (!reqBody || !reqBody.session) {
 			throw new BadRequestException("Not a valid request");
 		}
-		
+
 		let userResponse = await this.userService.validateUser({
 			session: {
 				session_id: reqBody.session.session_id,
@@ -1836,10 +1836,10 @@ export class OfferService {
 				StaticConsts.REQUEST_STATUS_REJECTED_BY_LESSOR)))[0]).number_of_new_requests;
 
 		let o = {
-			number_of_new_requests: numberOfNewRequests,
-			number_of_new_accepted_requests: numberOfNewAcceptedRequests,
-			number_of_new_rejected_requests: numberOfNewRejectedRequests,
-			total_number_of_updates: (numberOfNewRequests + numberOfNewAcceptedRequests + numberOfNewRejectedRequests)
+			lessors_number_of_new_requests: numberOfNewRequests,
+			lessees_number_of_new_accepted_requests: numberOfNewAcceptedRequests,
+			lessees_number_of_new_rejected_requests: numberOfNewRejectedRequests,
+			lessees_total_number_of_updates: (numberOfNewAcceptedRequests + numberOfNewRejectedRequests)
 		}
 		return o;
 	}
