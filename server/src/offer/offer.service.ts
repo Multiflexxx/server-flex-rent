@@ -1148,68 +1148,68 @@ export class OfferService {
 
 		//TODO: JOIN requests to check that a user can only rate the offer so often he/she lent it
 		// SEE IDEA of Tristan
-		if (id !== undefined && id !== null && id !== "" && reqBody !== undefined && reqBody !== null) {
-			if (!reqBody.session) {
-				throw new BadRequestException("Not a valid request");
-			}
+		// if (id !== undefined && id !== null && id !== "" && reqBody !== undefined && reqBody !== null) {
+		// 	if (!reqBody.session) {
+		// 		throw new BadRequestException("Not a valid request");
+		// 	}
 
-			// Validate session and user
-			let user = await this.userService.validateUser({
-				session: {
-					session_id: reqBody.session.session_id,
-					user_id: reqBody.session.user_id
-				}
-			});
+		// 	// Validate session and user
+		// 	let user = await this.userService.validateUser({
+		// 		session: {
+		// 			session_id: reqBody.session.session_id,
+		// 			user_id: reqBody.session.user_id
+		// 		}
+		// 	});
 
-			if (user === undefined || user === null) {
-				throw new BadRequestException("Not a valid user/session");
-			}
+		// 	if (user === undefined || user === null) {
+		// 		throw new BadRequestException("Not a valid user/session");
+		// 	}
 
-			// Check if offer exists
-			let validOffer = await this.isValidOfferId(id);
-			if (!validOffer) {
-				throw new BadRequestException("Not a valid offer");
-			}
+		// 	// Check if offer exists
+		// 	let validOffer = await this.isValidOfferId(id);
+		// 	if (!validOffer) {
+		// 		throw new BadRequestException("Not a valid offer");
+		// 	}
 
-			// Get old offer from database (for return)
-			let offer: Offer;
-			try {
-				offer = await this.getOfferById(id);
-			} catch (e) {
-				throw new InternalServerErrorException("Something went wrong...")
-			}
+		// 	// Get old offer from database (for return)
+		// 	let offer: Offer;
+		// 	try {
+		// 		offer = await this.getOfferById(id);
+		// 	} catch (e) {
+		// 		throw new InternalServerErrorException("Something went wrong...")
+		// 	}
 
-			// Check owner of offer
-			if (offer.lessor.user_id === user.user.user_id) {
-				throw new UnauthorizedException("Offer cannot be rated by lessor");
-			}
+		// 	// Check owner of offer
+		// 	if (offer.lessor.user_id === user.user.user_id) {
+		// 		throw new UnauthorizedException("Offer cannot be rated by lessor");
+		// 	}
 
-			let userRating = 0;
-			if (reqBody.rating !== undefined && reqBody.rating !== null) {
-				// Update limit, if given
-				userRating = parseFloat(reqBody.rating);
-				if (isNaN(userRating) || userRating <= StaticConsts.RATING_MIN_FOR_OFFERS || userRating > StaticConsts.RATING_MAX_FOR_OFFERS) {
-					// Not a number
-					throw new BadRequestException("Rating is not a valid number");
-				}
-			}
+		// 	let userRating = 0;
+		// 	if (reqBody.rating !== undefined && reqBody.rating !== null) {
+		// 		// Update limit, if given
+		// 		userRating = parseFloat(reqBody.rating);
+		// 		if (isNaN(userRating) || userRating <= StaticConsts.RATING_MIN_FOR_OFFERS || userRating > StaticConsts.RATING_MAX_FOR_OFFERS) {
+		// 			// Not a number
+		// 			throw new BadRequestException("Rating is not a valid number");
+		// 		}
+		// 	}
 
-			let updatedRating = parseFloat(((offer.rating * offer.number_of_ratings + userRating) / (offer.number_of_ratings + 1)).toFixed(StaticConsts.FLOAT_FIXED_DECIMAL_PLACES));
+		// 	let updatedRating = parseFloat(((offer.rating * offer.number_of_ratings + userRating) / (offer.number_of_ratings + 1)).toFixed(StaticConsts.FLOAT_FIXED_DECIMAL_PLACES));
 
-			try {
-				Connector.executeQuery(QueryBuilder.updateOfferRating({
-					offer_id: id,
-					rating: updatedRating,
-					number_of_ratings: (offer.number_of_ratings + 1)
-				}));
-			} catch (e) {
-				throw new InternalServerErrorException("Something went wrong...");
-			}
+		// 	try {
+		// 		Connector.executeQuery(QueryBuilder.updateOfferRating({
+		// 			offer_id: id,
+		// 			rating: updatedRating,
+		// 			number_of_ratings: (offer.number_of_ratings + 1)
+		// 		}));
+		// 	} catch (e) {
+		// 		throw new InternalServerErrorException("Something went wrong...");
+		// 	}
 
-			return await this.getOfferById(id);
-		} else {
-			throw new BadRequestException("Invalid request");
-		}
+		// 	return await this.getOfferById(id);
+		// } else {
+		// 	throw new BadRequestException("Invalid request");
+		// }
 	}
 
 	/**
