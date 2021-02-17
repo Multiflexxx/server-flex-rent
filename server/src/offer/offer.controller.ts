@@ -67,25 +67,15 @@ export class OfferController {
 	/**
 	 * TODO: IMPlEMENT FILTERS
 	 * Get all ratings for an offer
-	 * @param reqBody body of the request is used for passing authorization details
+	 * @param id ID of the offer
+	 * @Query Query parameters, to filter, and use pagination
 	 */
 	@Get('rating/:id')
 	getOfferRating(
-		@Param('id') id: string
+		@Param('id') id: string,
+		@Query() query: {}
 	) {
-		throw new NotImplementedException("Not implemented yet");
-		//return this.offerService.rateOffer(id);
-	}
-
-	/**
-	 * Returns an offer object containing the offer by ID.
-	 * @param id ID of offer to be found
-	 */
-	@Get(':id')
-	getOfferById(
-		@Param('id') id: string
-	) {
-		return this.offerService.getOfferById(id);
+		return this.offerService.getRatingForOffer(id, query);
 	}
 
 	/**
@@ -192,7 +182,7 @@ export class OfferController {
 
 	/**
 	 * Rate an offer
-	 * @param reqBody body of the request is used for passing authorization details
+	 * @param reqBody body of the request is used for passing authorization details, and rating infos
 	 */
 	@Put('rating')
 	rateOffer(
@@ -203,14 +193,13 @@ export class OfferController {
 
 	/**
 	 * Update rating of an offer
-	 * @param reqBody body of the request is used for passing authorization details
+	 * @param reqBody body of the request is used for passing authorization details and rating infos
 	 */
 	@Patch('rating')
 	updateOfferRating(
 		@Body() reqBody: {}
 	) {
-		throw new NotImplementedException();
-		//return this.offerService.rateOffer(reqBody);
+		return this.offerService.updateOfferRating(reqBody);
 	}
 
 	// NEEDS TO BE LAST IN FILE!
@@ -224,5 +213,16 @@ export class OfferController {
 		@Query() query: {}
 	) {
 		return this.offerService.getHomePageOffers(query);
+	}
+
+	/**
+	 * Returns an offer object containing the offer by ID.
+	 * @param id ID of offer to be found
+	 */
+	@Get(':id')
+	getOfferById(
+		@Param('id') id: string
+	) {
+		return this.offerService.getOfferById(id);
 	}
 }

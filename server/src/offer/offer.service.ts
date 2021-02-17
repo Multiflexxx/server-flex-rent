@@ -1212,6 +1212,49 @@ export class OfferService {
 		// }
 	}
 
+	//TODO
+	public async updateOfferRating(reqBody: {
+		session?: {
+			session_id?: string,
+			user_id?: string
+		},
+		rating?: {
+			offer?: Offer,
+			rating: number,
+			headline?: string,
+			rating_text?: string,
+		}
+	}): Promise<{
+		rating?: {
+			rating: number,
+			headline?: string,
+			rating_text?: string,
+			last_updated?: Date,
+			user?: User
+		}
+	}> {
+		throw new NotImplementedException();
+	}
+
+	//TODO
+	public async getRatingForOffer(
+		id: string,
+		query?: {
+
+		}
+		): Promise<{
+		rating?: {
+			rating: number,
+			headline?: string,
+			rating_text?: string,
+			last_updated?: Date,
+			user?: User
+		}
+	}> {
+		throw new NotImplementedException();
+	}
+
+
 	/**
 	 * Deletes a given offer after user is authenticated
 	 * @param id ID of the offer to be deleted
