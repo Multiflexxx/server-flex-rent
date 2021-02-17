@@ -1020,7 +1020,11 @@ export class QueryBuilder {
 		}
 	}
 
-
+	/**
+	 * Updates the read by lessor / lesse state for a request
+	 * @param requestId Id of the request
+	 * @param isLessor Check if lessor or lesse field is updated
+	 */
 	public static updateReadByUser(requestId: string, isLessor: boolean): Query {
 		if (isLessor) {
 			return {
@@ -1039,6 +1043,13 @@ export class QueryBuilder {
 		}
 	}
 
+	/**
+	 * Returns the requests for a given user id and a given offer id
+	 * This method is used to check if a user can can rate offer 
+	 * or just update the rating or cannot rate offer at all
+	 * @param offerId Id of the offer
+	 * @param userId Id of the user
+	 */
 	public static getRequestByOfferAndUserId(offerId: string, userId: string): Query {
 		return {
 			query: "SELECT request_id, user_id, offer_id, status_id FROM request WHERE offer_id = ? AND user_id = ? AND status_id = ?;",
@@ -1051,7 +1062,11 @@ export class QueryBuilder {
 	}
 
 	/**
-	 * static getRatings
+	 * Returns a Query to get offer ratings
+	 * Is used to check if offer has already been rated by user
+	 * Also it can be used to get all requests for a given offer id, user id or request id
+	 * 
+	 * TODO: Add pagination for get endpoint
 	 */
 	public static getOfferRatings(rating_info: {
 		rated_check?: {
@@ -1095,9 +1110,12 @@ export class QueryBuilder {
 		}
 	}
 
+
 	/**
-	 * Returns a Query to update the offer rating
-	 * @param rating Information needed to update rating for offer
+	 * Returns a query to add rating to offer OR
+	 * returns a query to insert a new rating to offer_rating table if flag insert is true OR
+	 * returns a query to update a rating in offer_rating table if flag insert is false
+	 * @param rating_infos Needed query parameters
 	 */
 	public static updateOfferRating(rating_infos: {
 		rating_in_offer?: {

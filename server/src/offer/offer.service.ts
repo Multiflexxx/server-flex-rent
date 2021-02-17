@@ -1121,13 +1121,11 @@ export class OfferService {
 			rating_text?: string,
 		}
 	}): Promise<{
-		rating?: {
 			rating: number,
 			headline?: string,
 			rating_text?: string,
 			last_updated?: Date,
 			user?: User
-		}
 	}> {
 		if (!reqBody || !reqBody.session || !reqBody.rating || !reqBody.rating.offer) {
 			throw new BadRequestException("Not a valid request");
@@ -1254,10 +1252,33 @@ export class OfferService {
 			}
 		}));
 
-		//TODO: GET RATING FROM METHOD AND RETURN
+		let ratingResponse:Array<{
+			user_id: string,
+			offer_id: string,
+			request_id: string,
+			rating: number,
+			headline: string,
+			rating_text: string,
+			created_at: Date,
+			updated_at: Date
+		}> = await Connector.executeQuery(
+			QueryBuilder.getOfferRatings({rated_check: {
+				offer_id: dbOffer.offer_id,
+				user_id: user.user.user_id
+			}})
+		);
 
-		return null
-		throw new NotImplementedException("NOT IMPLEMENTED YET!");
+		// TODO: Get public user from user endpoint
+		let responseUser = null;
+
+		let response = {
+			headline: (ratingResponse[0].headline == null ? "" : ratingResponse[0].headline),
+			rating_text: (ratingResponse[0].rating_text == null ? "" : ratingResponse[0].rating_text),
+			rating: ratingResponse[0].rating,
+			user: responseUser
+		}
+
+		return response;
 	}
 
 	//TODO
@@ -1273,13 +1294,11 @@ export class OfferService {
 			rating_text?: string,
 		}
 	}): Promise<{
-		rating?: {
-			rating: number,
-			last_updated: Date,
-			user: User
+		rating: number,
 			headline?: string,
 			rating_text?: string,
-		}
+			last_updated?: Date,
+			user?: User
 	}> {
 		throw new NotImplementedException();
 	}
@@ -1291,13 +1310,11 @@ export class OfferService {
 
 		}
 	): Promise<{
-		rating?: {
-			rating: number,
+		rating: number,
 			headline?: string,
 			rating_text?: string,
 			last_updated?: Date,
 			user?: User
-		}
 	}> {
 		throw new NotImplementedException();
 	}
