@@ -475,8 +475,24 @@ export class UserService {
 			if (query.rating_type) {
 				// If rating_type = "lessor"
 				if (query.rating_type === StaticConsts.RATING_TYPES[0]) {
+					if (user.number_of_lessor_ratings === 0) {
+						return {
+							user_ratings: [],
+							current_page: 0,
+							max_page: 0,
+							elements_per_page: StaticConsts.DEFAULT_PAGE_SIZE
+						}
+					}
 					numberOfRatings = user.number_of_lessor_ratings;
 				} else {
+					if (user.number_of_lessee_ratings === 0) {
+						return {
+							user_ratings: [],
+							current_page: 0,
+							max_page: 0,
+							elements_per_page: StaticConsts.DEFAULT_PAGE_SIZE
+						}
+					}
 					numberOfRatings = user.number_of_lessee_ratings;
 				}
 			} else {
@@ -484,13 +500,13 @@ export class UserService {
 			}
 	
 			
-			if (!query.page || isNaN(query.page)) {
+			if (!query.page || isNaN(query.page) || query.page < 1) {
 				page = 1;
 			} else {
 				if (query.page > Math.ceil(numberOfRatings / StaticConsts.DEFAULT_PAGE_SIZE)) {
 					throw new BadRequestException("Ran out of pages...");
 				} else {
-					page = query.page;
+					page = parseInt(query.page);
 				}
 			}
 		} else {
@@ -579,7 +595,7 @@ export class UserService {
 		// Check if user#1 already rated user#2
 		const userPairRating = (await Connector.executeQuery(QueryBuilder.getRating({
 			user_pair: {
-				rating_user_id: auth.session.user_id,
+				rating_owner_id: auth.session.user_id,
 				rated_user_id: rating.user_id,
 				rating_typ: rating.rating_type
 			}
@@ -611,7 +627,7 @@ export class UserService {
 			headline: result.headline,
 			rating_text: result.rating_text,
 			rated_user: await this.getUser(result.rated_user_id),
-			rating_owner: await this.getUser(result.rating_user_id),
+			rating_owner: await this.getUser(result.rating_owner_id),
 			updated_at: result.created_at
 		}
 		return userRating;
@@ -695,9 +711,15 @@ export class UserService {
 		const newUserRating = (await Connector.executeQuery(QueryBuilder.calculateUserRating(user_id)));
 		const lessor_info = newUserRating.filter(x => x.rating_type == "lessor")[0];
 		const lessee_info = newUserRating.filter(x => x.rating_type == "lessee")[0];
+		const ratedUserId: string = newUserRating[0].rated_user_id 
 
 		// Update Rating for user
-		await Connector.executeQuery(QueryBuilder.setNewUserRating(lessor_info.rated_user_id, lessor_info.average, lessor_info.rating_count, lessee_info.average, lessee_info.rating_count));
+		await Connector.executeQuery(QueryBuilder.setNewUserRating(
+			ratedUserId, 
+			!lessor_info ? 0 : lessor_info.average, 
+			!lessor_info ? 0 : lessor_info.rating_count, 
+			!lessee_info ? 0 : lessee_info.average, 
+			!lessee_info ? 0 : lessee_info.rating_count));
 	}
 
 

@@ -890,7 +890,7 @@ export class QueryBuilder {
 		search: {
 			rating_id?: number,
 			user_pair?: {
-				rating_user_id: string,
+				rating_owner_id: string,
 				rated_user_id: string,
 				rating_typ: string
 			},
@@ -899,23 +899,23 @@ export class QueryBuilder {
 	): Query {
 		if (search.rating_id) {
 			return {
-				query: "SELECT * FROM rating WHERE rating_id = ?;",
+				query: "SELECT * FROM user_rating WHERE rating_id = ?;",
 				args: [
 					search.rating_id
 				]
 			}
 		} else if (search.user_pair) {
 			return {
-				query: "SELECT * FROM rating WHERE rating_user_id = ? AND rated_user_id = ? AND rating_type = ?;",
+				query: "SELECT * FROM user_rating WHERE rating_owner_id = ? AND rated_user_id = ? AND rating_type = ?;",
 				args: [
-					search.user_pair.rating_user_id,
+					search.user_pair.rating_owner_id,
 					search.user_pair.rated_user_id,
 					search.user_pair.rating_typ
 				]
 			}
 		} else if (search.rated_user_id) {
 			return {
-				query: "SELECT * FROM rating WHERE rated_user_id = ?",
+				query: "SELECT * FROM user_rating WHERE rated_user_id = ?",
 				args: [
 					search.rated_user_id
 				]
@@ -934,7 +934,7 @@ export class QueryBuilder {
 
 	/**
 	 * Creates a new entry on the DB containing given rating information for a user
-	 * @param rating_user_id 
+	 * @param rating_owner_id 
 	 * @param rating 
 	 */
 	public static createUserRating(
@@ -968,7 +968,7 @@ export class QueryBuilder {
 	 */
 	public static calculateUserRating(user_id: string): Query {
 		return {
-			query: "SELECT rated_user_id, rating_type, count(rating_type) as rating_count, sum(rating) as rating_sum, ROUND((sum(rating) / count(rating_type)), 1) as average FROM rating WHERE rated_user_id = ? GROUP BY rating_type;",
+			query: "SELECT rated_user_id, rating_type, count(rating_type) as rating_count, sum(rating) as rating_sum, ROUND((sum(rating) / count(rating_type)), 1) as average FROM user_rating WHERE rated_user_id = ? GROUP BY rating_type;",
 			args: [
 				user_id
 			]
