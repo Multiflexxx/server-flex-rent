@@ -504,14 +504,20 @@ export class UserService {
 			|| !rating.user_id
 			|| !rating.rating_type
 			|| !rating.rating
-			|| !rating.headline
-			|| !rating.text
 			|| rating.rating > 5
 			|| rating.rating < 1
 			|| !StaticConsts.RATING_TYPES.includes(rating.rating_type)) {
 			throw new BadRequestException("Invalid rating arguments");
 		}
+		
+		// Headline and text logic
+		if((rating.headline == null || rating.headline == undefined)
+			|| (rating.text == null || rating.text == undefined)
+			|| (rating.text.length > 0 && rating.headline.length < 1)) {
+				throw new BadRequestException("Invalid rating arguments");
+		}
 
+			
 		// Check if user to be rated exists
 		const ratedUser = (await Connector.executeQuery(QueryBuilder.getUser({ user_id: rating.user_id })))[0];
 		if (!ratedUser) {
