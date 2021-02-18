@@ -435,7 +435,7 @@ export class UserService {
 	 * @param user_id
 	 * @param query object (optionally) containing a rating_type and a rating 
 	 */
-	public async getUserRatings(user_id: string, query: any, res):
+	public async getUserRatings(user_id: string, query: any):
 		Promise<{
 			user_ratings: UserRating[],
 			current_page: number,
