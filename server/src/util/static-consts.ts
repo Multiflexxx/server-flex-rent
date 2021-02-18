@@ -59,5 +59,5 @@ export const userStates = {
 }
 
 /* ------ RATING ------ */
-export const MAX_RATING_HEADLINE_LENGHT = 400;
-export const MAX_RATING_TEXT_LENGHT = 400;
+export const MAX_RATING_HEADLINE_LENGTH = 400;
+export const MAX_RATING_TEXT_LENGTH = 400;
