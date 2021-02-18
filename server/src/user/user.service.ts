@@ -48,7 +48,8 @@ export class UserService {
 				number_of_lessee_ratings: result.number_of_lessee_ratings,
 				lessor_rating: result.lessor_rating,
 				number_of_lessor_ratings: result.number_of_lessor_ratings,
-				profile_picture: result.profile_picture ? fileConfig.user_image_base_url + result.profile_picture.split(".")[0] + `?refresh=${uuidv4()}` : ""
+				profile_picture: result.profile_picture ? fileConfig.user_image_base_url + result.profile_picture.split(".")[0] + `?refresh=${uuidv4()}` : "",
+				status_id: result.status_id
 			}
 
 			// Add private parameters of user is authenticated
@@ -81,7 +82,8 @@ export class UserService {
 				number_of_lessee_ratings: 0,
 				lessor_rating: 0,
 				number_of_lessor_ratings: 0,
-				profile_picture: result.profile_picture ? fileConfig.user_image_base_url + result.profile_picture.split(".")[0] + `?refresh=${uuidv4()}` : ""
+				profile_picture: result.profile_picture ? fileConfig.user_image_base_url + result.profile_picture.split(".")[0] + `?refresh=${uuidv4()}` : "",
+				status_id: result.status_id
 			}
 		}
 
@@ -228,17 +230,20 @@ export class UserService {
 		}
 
 		// Check if user can even be deleted (cant be deleted when user has open requests etc...)
-		let openRequests = await this.offerService.getRequests({
+		let openLessorRequests: Request[] = await this.offerService.getRequests({
 			session: auth.session,
-		});
+			lessor: true
+		}) as Request[];
+
+		let openLesseeRequests: Request[] = await this.offerService.getRequests({
+			session: auth.session,
+			lessor: false
+		}) as Request[];
 		
-		let temp: Request[] = []
-		if(!(openRequests instanceof Request)) {
-			temp = (openRequests as any[]) as Request[]
-		}
+		let allRequests: Request[] = [...openLessorRequests, ...openLesseeRequests];
 
 		// Cancel deletion process, if user has open requests
-		temp.forEach(a => {
+		allRequests.forEach(a => {
 			if(a.status_id == StaticConsts.REQUEST_STATUS_ACCEPTED_BY_LESSOR || a.status_id == StaticConsts.REQUEST_STATUS_ITEM_LEND_TO_LESSEE)
 				throw new ConflictException("Open Requests must be closed before deleting user");
 		});
@@ -347,6 +352,10 @@ export class UserService {
 
 		} else {
 			throw new BadRequestException("Invalid auth parameters 2");
+		}
+
+		if(user.status_id == StaticConsts.userStates.SOFT_DELETED || user.status_id == StaticConsts.userStates.HARD_DELETED) {
+			throw new NotFoundException("User deleted")
 		}
 
 		return {
