@@ -7,6 +7,6 @@ export interface UserRating {
     headline: string,
     rating_text: string,
     rated_user: User,
-    rating_user: User,
+    rating_owner: User,
     updated_at: Date
 }

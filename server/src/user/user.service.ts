@@ -31,6 +31,10 @@ export class UserService {
 	 */
 	public async getUser(id: string, isAuthenticated?: boolean): Promise<User> {
 
+		if(!id || id === "") {
+			throw new BadRequestException("Invalid Request");
+		}
+
 		let user: User;
 
 		let result = (await Connector.executeQuery(QueryBuilder.getUser({ user_id: id })))[0];
@@ -445,14 +449,17 @@ export class UserService {
 		*/
 
 		// Check if rating_type parameter is valid (if given)
-		if (!(!query.rating_type || (query.rating_type && StaticConsts.RATING_TYPES.includes(query.rating_type)))) {
-			throw new BadRequestException("Invalid rating_type parameter in request");
+		if(query) {
+			if (!(!query.rating_type || (query.rating_type && StaticConsts.RATING_TYPES.includes(query.rating_type)))) {
+				throw new BadRequestException("Invalid rating_type parameter in request");
+			}
+	
+			// Check if rating parameter is valid (if given)
+			if (!(!query.rating || isNaN(query.rating) || (query.rating <= 5 && query.rating >= 1))) {
+				throw new BadRequestException("Invalid rating parameter in request");
+			}
 		}
-
-		// Check if rating parameter is valid (if given)
-		if (!(!query.rating || isNaN(query.rating) || (query.rating <= 5 && query.rating >= 1))) {
-			throw new BadRequestException("Invalid rating parameter in request");
-		}
+		
 
 		// Check if user exists
 		let user: User = await this.getUser(user_id);
@@ -462,34 +469,45 @@ export class UserService {
 
 		// Check paging
 		let numberOfRatings: number;
-		if (query.rating_type) {
-			// If rating_type = "lessor"
-			if (query.rating_type === StaticConsts.RATING_TYPES[0]) {
-				numberOfRatings = user.number_of_lessor_ratings;
+		let page: number;
+
+		if(query) {
+			if (query.rating_type) {
+				// If rating_type = "lessor"
+				if (query.rating_type === StaticConsts.RATING_TYPES[0]) {
+					numberOfRatings = user.number_of_lessor_ratings;
+				} else {
+					numberOfRatings = user.number_of_lessee_ratings;
+				}
 			} else {
-				numberOfRatings = user.number_of_lessee_ratings;
+				numberOfRatings = user.number_of_lessor_ratings + user.number_of_lessee_ratings;
+			}
+	
+			
+			if (!query.page || isNaN(query.page)) {
+				page = 1;
+			} else {
+				if (query.page > Math.ceil(numberOfRatings / StaticConsts.DEFAULT_PAGE_SIZE)) {
+					throw new BadRequestException("Ran out of pages...");
+				} else {
+					page = query.page;
+				}
 			}
 		} else {
+			page = 1;
 			numberOfRatings = user.number_of_lessor_ratings + user.number_of_lessee_ratings;
 		}
-
-		let page: number;
-		if (!query.page || isNaN(query.page)) {
-			page = 1;
-		} else {
-			if (query.page > Math.ceil(numberOfRatings / StaticConsts.DEFAULT_PAGE_SIZE)) {
-				throw new BadRequestException("Ran out of pages...");
-			} else {
-				page = query.page;
-			}
-		}
+		
 
 		const results = await Connector.executeQuery(QueryBuilder.getUserRatings(user_id, query.rating_type, query.rating, StaticConsts.DEFAULT_PAGE_SIZE, page));
 
 		let userRatings: UserRating[] = []
-		results.forEach(async result => {
+		for(let result of results) {
 			userRatings.push(await this.getUserRatingById(result.rating_id))
-		});
+		}
+		// await results.forEach(async result => {
+		// 	userRatings.push(await this.getUserRatingById(result.rating_id))
+		// });
 
 		return {
 			user_ratings: userRatings,
@@ -579,13 +597,13 @@ export class UserService {
 		// and calculate new user rating
 		this.updateUserRating(rating.user_id);
 
-		//
+		// return UserRating object
 		return await this.getUserRatingById(id);
 	}
 
 
 	public async getUserRatingById(rating_id: string): Promise<UserRating> {
-		const result = await Connector.executeQuery(QueryBuilder.getUserRatingById(rating_id));
+		const result = (await Connector.executeQuery(QueryBuilder.getUserRatingById(rating_id)))[0];
 		let userRating: UserRating = {
 			rating_id: result.rating_id,
 			rating_type: result.rating_type,
@@ -593,7 +611,7 @@ export class UserService {
 			headline: result.headline,
 			rating_text: result.rating_text,
 			rated_user: await this.getUser(result.rated_user_id),
-			rating_user: await this.getUser(result.rating_user_id),
+			rating_owner: await this.getUser(result.rating_user_id),
 			updated_at: result.created_at
 		}
 		return userRating;

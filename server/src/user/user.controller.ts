@@ -64,7 +64,7 @@ export class UserController {
      * @param id 
      * @param reqBody 
      */
-    @Delete(':id')
+    @Patch('delete/:id')
     async deleteUser(
         @Param('id') id: string,
         @Body('auth') auth: {
