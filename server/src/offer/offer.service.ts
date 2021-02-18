@@ -1155,10 +1155,10 @@ export class OfferService {
 		}
 
 		// Check if headline or ratingtext are too long
-		if(reqBody.rating.headline !== "" && reqBody.rating.headline.length > StaticConsts.MAX_RATING_HEADLINE_LENGHT) {
+		if(reqBody.rating.headline !== "" && reqBody.rating.headline.length > StaticConsts.MAX_RATING_HEADLINE_LENGTH) {
 			throw new BadRequestException("Headline too long");
 		}
-		if(reqBody.rating.rating_text !== "" && reqBody.rating.rating_text.length > StaticConsts.MAX_RATING_TEXT_LENGHT) {
+		if(reqBody.rating.rating_text !== "" && reqBody.rating.rating_text.length > StaticConsts.MAX_RATING_HEADLINE_LENGTH) {
 			throw new BadRequestException("Rating text too long");
 		}
 
