@@ -364,13 +364,12 @@ export class UserService {
 		}
 	}
 
-	private async getOauthUser(email: string, method: string): Promise<{
-		user: User,
-		session_id: string
-	}> {
-		return null;
-	}
-
+	// private async getOauthUser(email: string, method: string): Promise<{
+	// 	user: User,
+	// 	session_id: string
+	// }> {
+	// 	return null;
+	// }
 
 	/**
 	 * Checks whether user input is valid for registration. Returns true if input is valid, otherwise false
