@@ -484,7 +484,7 @@ export class UserService {
 			}
 	
 			
-			if (!query.page || isNaN(query.page)) {
+			if (!query.page || isNaN(query.page) || query.page < 1) {
 				page = 1;
 			} else {
 				if (query.page > Math.ceil(numberOfRatings / StaticConsts.DEFAULT_PAGE_SIZE)) {
