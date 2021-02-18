@@ -1090,8 +1090,6 @@ export class QueryBuilder {
 	 * Returns a Query to get offer ratings
 	 * Is used to check if offer has already been rated by user
 	 * Also it can be used to get all requests for a given offer id, user id or request id
-	 * 
-	 * TODO: Add pagination for get endpoint
 	 */
 	public static getOfferRatings(rating_info: {
 		rated_check?: {
@@ -1106,7 +1104,8 @@ export class QueryBuilder {
 		},
 		offer_id?: string,
 		request_id?: string,
-		user_id?: string
+		user_id?: string,
+		rating_id?: string
 	}): Query {
 		if (rating_info.rated_check) {
 			return {
@@ -1165,14 +1164,38 @@ export class QueryBuilder {
 					rating_info.user_id
 				]
 			}
+		} else if (rating_info.rating_id) {
+			return {
+				query: "SELECT rating_id, user_id, offer_id, request_id, rating, headline, rating_text, created_at, updated_at FROM offer_rating WHERE rating_id = ?;",
+				args: [
+					rating_info.rating_id
+				]
+			}
 		}
 	}
 
+	/**
+	 * Returns a query to get the number of ratings for a given offer id
+	 * @param offerId Id of the offer
+	 */
 	public static getNumberOfRatingsForOffer(offerId: string): Query {
 		return {
 			query: "SELECT COUNT(rating_id) AS number_of_offer_ratings FROM offer_rating WHERE offer_id = ?;",
 			args: [
 				offerId
+			]
+		}
+	}
+
+	/**
+	 * Returns a query to delete an offer rating by id
+	 * @param ratingId 
+	 */
+	public static deleteOfferRating(ratingId: string): Query {
+		return {
+			query: "DELETE FROM offer_rating WHERE rating_id = ?;",
+			args: [
+				ratingId
 			]
 		}
 	}

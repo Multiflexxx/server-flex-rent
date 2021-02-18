@@ -154,6 +154,17 @@ export class OfferController {
 	}
 
 	/**
+	 * Delete rating using patch because flutter does not support bodies with HTTP delete
+	 * @param reqBody 
+	 */
+	@Patch('delete-rating')
+	deleteRating(
+		@Body() reqBody: {}
+	) {
+		return this.offerService.deleteRating(reqBody);
+	}
+
+	/**
 	 * Update rating of an offer
 	 * @param reqBody body of the request is used for passing authorization details and rating infos
 	 */
