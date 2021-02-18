@@ -255,7 +255,7 @@ export class OfferService {
 		if (query.price_below !== undefined && query.price_below !== null) {
 			if (isNaN(query.price_below)) {
 				priceBelow = parseInt(query.price_below.toString());
-				if (isNaN(priceBelow) || priceBelow <= StaticConsts.CHECK_ZERO) {
+				if (isNaN(priceBelow)) {
 					throw new BadRequestException("Not a valid price");
 				}
 			} else {
@@ -263,16 +263,24 @@ export class OfferService {
 			}
 		}
 
+		if(priceBelow <= StaticConsts.CHECK_ZERO) {
+			throw new BadRequestException("Not a valid price");
+		}
+
 		// Parse rating to number
 		if (query.rating_above !== undefined && query.rating_above !== null) {
 			if (isNaN(query.rating_above)) {
 				ratingAbove = parseInt(query.rating_above.toString());
-				if (isNaN(ratingAbove) || ratingAbove < StaticConsts.RATING_MIN_FOR_OFFERS || ratingAbove > StaticConsts.RATING_MAX_FOR_OFFERS) {
+				if (isNaN(ratingAbove)) {
 					throw new BadRequestException("Not a valid rating");
 				}
 			} else {
 				ratingAbove = query.rating_above;
 			}
+		}
+
+		if(ratingAbove < StaticConsts.RATING_MIN_FOR_OFFERS || ratingAbove > StaticConsts.RATING_MAX_FOR_OFFERS) {
+			throw new BadRequestException("Not a valid rating");
 		}
 
 		let dbOffers: Array<{
@@ -509,6 +517,10 @@ export class OfferService {
 				} else {
 					price = reqBody.offer.price;
 				}
+			}
+
+			if(price <= StaticConsts.CHECK_ZERO) {
+				throw new BadRequestException("Not a valid price");
 			}
 
 			// Check if title is empty
@@ -838,6 +850,10 @@ export class OfferService {
 				}
 			}
 
+			if(price <= StaticConsts.CHECK_ZERO) {
+				throw new BadRequestException("Not a valid price");
+			}
+
 			// Check if title is empty
 			if (reqBody.offer.title === undefined
 				|| reqBody.offer.title === null
@@ -1125,7 +1141,7 @@ export class OfferService {
 			offer?: Offer,
 			rating: number,
 			headline?: string,
-			rating_text?: string,
+			rating_text?: string
 		}
 	}): Promise<OfferRating> {
 		if (!reqBody
@@ -1147,13 +1163,17 @@ export class OfferService {
 		if (reqBody.rating.rating !== undefined && reqBody.rating.rating !== null) {
 			if (isNaN(reqBody.rating.rating)) {
 				userRating = parseInt(reqBody.rating.rating.toString());
-				if (isNaN(userRating) || userRating <= StaticConsts.RATING_MIN_FOR_OFFERS || userRating > StaticConsts.RATING_MAX_FOR_OFFERS) {
+				if (isNaN(userRating)) {
 					throw new BadRequestException("Not a valid rating");
 				}
 			} else {
 				userRating = reqBody.rating.rating;
 			}
 		} else {
+			throw new BadRequestException("Not a valid rating");
+		}
+
+		if(userRating <= StaticConsts.RATING_MIN_FOR_OFFERS || userRating > StaticConsts.RATING_MAX_FOR_OFFERS) {
 			throw new BadRequestException("Not a valid rating");
 		}
 
@@ -1334,13 +1354,17 @@ export class OfferService {
 		if (reqBody.rating.rating !== undefined && reqBody.rating.rating !== null) {
 			if (isNaN(reqBody.rating.rating)) {
 				userRating = parseInt(reqBody.rating.rating.toString());
-				if (isNaN(userRating) || userRating <= StaticConsts.RATING_MIN_FOR_OFFERS || userRating > StaticConsts.RATING_MAX_FOR_OFFERS) {
+				if (isNaN(userRating)) {
 					throw new BadRequestException("Not a valid rating");
 				}
 			} else {
 				userRating = reqBody.rating.rating;
 			}
 		} else {
+			throw new BadRequestException("Not a valid rating");
+		}
+
+		if(userRating <= StaticConsts.RATING_MIN_FOR_OFFERS || userRating > StaticConsts.RATING_MAX_FOR_OFFERS) {
 			throw new BadRequestException("Not a valid rating");
 		}
 
@@ -1430,7 +1454,8 @@ export class OfferService {
 		}
 		//Else: rating exists => Can be updated
 
-		let updatedRatingForOffer = parseFloat(((dbOffer.rating * dbOffer.number_of_ratings + userRating) / (dbOffer.number_of_ratings)).toFixed(StaticConsts.FLOAT_FIXED_DECIMAL_PLACES));
+		let updatedRatingForOffer = parseFloat(((dbOffer.rating * dbOffer.number_of_ratings - ratings[0].rating) / (dbOffer.number_of_ratings - 1)).toFixed(StaticConsts.FLOAT_FIXED_DECIMAL_PLACES));
+		updatedRatingForOffer = parseFloat(((updatedRatingForOffer * dbOffer.number_of_ratings + userRating) / (dbOffer.number_of_ratings)).toFixed(StaticConsts.FLOAT_FIXED_DECIMAL_PLACES));
 
 		// Insert rating into database
 		await Connector.executeQuery(QueryBuilder.updateOfferRating({
@@ -1511,12 +1536,16 @@ export class OfferService {
 		if (query.rating !== undefined && query.rating !== null) {
 			if (isNaN(query.rating)) {
 				ratingFilterNumber = parseInt(query.rating.toString());
-				if (isNaN(ratingFilterNumber) || ratingFilterNumber <= StaticConsts.RATING_MIN_FOR_OFFERS || ratingFilterNumber > StaticConsts.RATING_MAX_FOR_OFFERS) {
+				if (isNaN(ratingFilterNumber)) {
 					throw new BadRequestException("Not a valid rating number");
 				}
 			} else {
 				ratingFilterNumber = query.rating;
 			}
+		}
+
+		if(ratingFilterNumber <= StaticConsts.RATING_MIN_FOR_OFFERS || ratingFilterNumber > StaticConsts.RATING_MAX_FOR_OFFERS) {
+			throw new BadRequestException("Not a valid rating number");
 		}
 
 		// Check if offer exists
@@ -1598,6 +1627,93 @@ export class OfferService {
 			current_page: page,
 			max_page: Math.ceil(numberOfRatings / StaticConsts.DEFAULT_PAGE_SIZE),
 			elements_per_page: StaticConsts.DEFAULT_PAGE_SIZE
+		}
+
+		return response;
+	}
+
+	/**
+	 * Deletes a rating by a given rating (id is used)
+	 * @param reqBody session for authentication and rating object for id
+	 */
+	public async deleteRating(reqBody: {
+		session?: {
+			session_id: string,
+			user_id: string
+		},
+		rating?: OfferRating
+	}): Promise<OfferRating> {
+		if (!reqBody
+			|| !reqBody.session
+			|| !reqBody.session.session_id
+			|| !reqBody.session.user_id
+			|| !reqBody.rating
+		) {
+			throw new BadRequestException("Not a valid request");
+		}
+
+		// Validate session and user
+		let user = await this.userService.validateUser({
+			session: {
+				session_id: reqBody.session.session_id,
+				user_id: reqBody.session.user_id
+			}
+		});
+
+		if (user === undefined || user === null) {
+			throw new BadRequestException("Not a valid user/session");
+		}
+
+		let dbRatings: Array<{
+			rating_id: string,
+			user_id: string,
+			offer_id: string,
+			request_id: string,
+			rating: number,
+			headline: string,
+			rating_text: string,
+			created_at: Date,
+			updated_at: Date
+		}> = await Connector.executeQuery(QueryBuilder.getOfferRatings({
+			rating_id: reqBody.rating.rating_id
+		}));
+
+		// Check if rating is valid
+		if(dbRatings.length <= StaticConsts.CHECK_ZERO) {
+			throw new BadRequestException("Not a valid offer rating");
+		}
+
+		// Check owner of rating
+		if (dbRatings[0].user_id !== user.user.user_id) {
+			throw new ForbiddenException("Only lessor can delete rating");
+		}
+
+		let offer = await this.getOfferById(dbRatings[0].offer_id);
+
+		// calculate new rating for offer
+		let updatedRatingForOffer = parseFloat(((offer.rating * offer.number_of_ratings - dbRatings[0].rating) / (offer.number_of_ratings - 1)).toFixed(StaticConsts.FLOAT_FIXED_DECIMAL_PLACES));
+		
+		// Insert rating into database
+		await Connector.executeQuery(QueryBuilder.updateOfferRating({
+			rating_in_offer: {
+				offer_id: dbRatings[0].offer_id,
+				rating: updatedRatingForOffer,
+				number_of_ratings: (offer.number_of_ratings - 1)
+			}
+		}));
+
+		// delete rating from database
+		await Connector.executeQuery(QueryBuilder.deleteOfferRating(dbRatings[0].rating_id));
+
+		// TODO: Get public user from user endpoint
+		let responseUser = null;
+
+		let response = {
+			rating_id: dbRatings[0].rating_id,
+			headline: (dbRatings[0].headline == null ? "" : dbRatings[0].headline),
+			rating_text: (dbRatings[0].rating_text == null ? "" : dbRatings[0].rating_text),
+			rating: dbRatings[0].rating,
+			rating_owner: responseUser
 		}
 
 		return response;
