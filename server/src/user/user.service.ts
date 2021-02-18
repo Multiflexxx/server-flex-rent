@@ -511,7 +511,7 @@ export class UserService {
 
 		return {
 			user_ratings: userRatings,
-			current_page: page,
+			current_page: page as number,
 			max_page: Math.ceil(numberOfRatings / StaticConsts.DEFAULT_PAGE_SIZE),
 			elements_per_page: StaticConsts.DEFAULT_PAGE_SIZE
 		};
