@@ -435,7 +435,7 @@ export class UserService {
 	 * @param user_id
 	 * @param query object (optionally) containing a rating_type and a rating 
 	 */
-	public async getUserRatings(user_id: string, query: any):
+	public async getUserRatings(user_id: string, query: any, res):
 		Promise<{
 			user_ratings: UserRating[],
 			current_page: number,
@@ -475,8 +475,24 @@ export class UserService {
 			if (query.rating_type) {
 				// If rating_type = "lessor"
 				if (query.rating_type === StaticConsts.RATING_TYPES[0]) {
+					if (user.number_of_lessor_ratings === 0) {
+						return {
+							user_ratings: [],
+							current_page: 0,
+							max_page: 0,
+							elements_per_page: StaticConsts.DEFAULT_PAGE_SIZE
+						}
+					}
 					numberOfRatings = user.number_of_lessor_ratings;
 				} else {
+					if (user.number_of_lessee_ratings === 0) {
+						return {
+							user_ratings: [],
+							current_page: 0,
+							max_page: 0,
+							elements_per_page: StaticConsts.DEFAULT_PAGE_SIZE
+						}
+					}
 					numberOfRatings = user.number_of_lessee_ratings;
 				}
 			} else {
