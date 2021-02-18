@@ -58,3 +58,6 @@ export const userStates = {
     HARD_DELETED: 4
 }
 
+/* ------ RATING ------ */
+export const MAX_RATING_HEADLINE_LENGHT = 400;
+export const MAX_RATING_TEXT_LENGHT = 400;
