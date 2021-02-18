@@ -3,6 +3,7 @@ import { UserService } from './user.service';
 import { User } from './user.model';
 import { response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { UserRating } from './user-rating.model';
 
 @Controller('user')
 export class UserController {
@@ -63,7 +64,7 @@ export class UserController {
      * @param id 
      * @param reqBody 
      */
-    @Delete(':id')
+    @Patch('delete/:id')
     async deleteUser(
         @Param('id') id: string,
         @Body('auth') auth: {
@@ -166,11 +167,9 @@ export class UserController {
             rating: number,
             headline: string,
             text: string
-        },
-        @Res() res: any
-    ): Promise<void> {
-        await this.userService.rateUser(auth, rating);
-        res.status(201).send();
+        }
+    ): Promise<UserRating> {
+        return await this.userService.rateUser(auth, rating);
     }
 
 
