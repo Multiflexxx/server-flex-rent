@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Put, Body, Patch, Delete, Req, Post, Res, Query, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Param, Put, Body, Patch, Delete, Req, Post, Res, Query, UseInterceptors, UploadedFile, Response } from '@nestjs/common';
 import { UserService } from './user.service';
 import { User } from './user.model';
 import { response } from 'express';
@@ -181,9 +181,10 @@ export class UserController {
     @Get('rating/:id')
     async getUserRatings(
         @Param('id') user_id,
-        @Query() query
+        @Query() query,
+        @Response() res
     ): Promise<any> {
-        return await this.userService.getUserRatings(user_id, query);
+        return await this.userService.getUserRatings(user_id, query, res);
     }
 
 
