@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, InternalServerErrorException, BadRequestException, UnauthorizedException, MethodNotAllowedException, NotImplementedException, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, NotFoundException, InternalServerErrorException, BadRequestException, UnauthorizedException, MethodNotAllowedException, NotImplementedException, ForbiddenException, Inject, forwardRef } from '@nestjs/common';
 import { Connector } from 'src/util/database/connector';
 import { QueryBuilder } from 'src/util/database/query-builder';
 import { FileHandler } from 'src/util/file-handler/file-handler'
@@ -12,6 +12,7 @@ import { UserService } from 'src/user/user.service';
 import { User } from 'src/user/user.model';
 import { Request } from './request.model';
 import * as StaticConsts from 'src/util/static-consts';
+import { OfferRating } from './offer-rating.model';
 
 const BASE_OFFER_LINK = require('../../file-handler-config.json').offer_image_base_url;
 
@@ -1111,82 +1112,495 @@ export class OfferService {
 		}
 	}
 
+
 	/**
-	 * Returns an offer after rating the offer
-	 * @param id ID of the offer to be rated
-	 * @param reqBody data to validate user and rating (number between 1 and 5)
+	 * Used to rate offers
 	 */
-	public async rateOffer(id: string, reqBody: {
+	public async rateOffer(reqBody: {
 		session?: {
 			session_id?: string,
 			user_id?: string
 		},
-		rating?: string
-	}): Promise<Offer> {
-		//TODO: JOIN requests to check that a user can only rate the offer so often he/she lent it
-		// SEE IDEA of Tristan
-		if (id !== undefined && id !== null && id !== "" && reqBody !== undefined && reqBody !== null) {
-			if (!reqBody.session) {
-				throw new BadRequestException("Not a valid request");
-			}
-
-			// Validate session and user
-			let user = await this.userService.validateUser({
-				session: {
-					session_id: reqBody.session.session_id,
-					user_id: reqBody.session.user_id
-				}
-			});
-
-			if (user === undefined || user === null) {
-				throw new BadRequestException("Not a valid user/session");
-			}
-
-			// Check if offer exists
-			let validOffer = await this.isValidOfferId(id);
-			if (!validOffer) {
-				throw new BadRequestException("Not a valid offer");
-			}
-
-			// Get old offer from database (for return)
-			let offer: Offer;
-			try {
-				offer = await this.getOfferById(id);
-			} catch (e) {
-				throw new InternalServerErrorException("Something went wrong...")
-			}
-
-			// Check owner of offer
-			if (offer.lessor.user_id === user.user.user_id) {
-				throw new UnauthorizedException("Offer cannot be rated by lessor");
-			}
-
-			let userRating = 0;
-			if (reqBody.rating !== undefined && reqBody.rating !== null) {
-				// Update limit, if given
-				userRating = parseFloat(reqBody.rating);
-				if (isNaN(userRating) || userRating <= StaticConsts.RATING_MIN_FOR_OFFERS || userRating > StaticConsts.RATING_MAX_FOR_OFFERS) {
-					// Not a number
-					throw new BadRequestException("Rating is not a valid number");
-				}
-			}
-
-			let updatedRating = parseFloat(((offer.rating * offer.number_of_ratings + userRating) / (offer.number_of_ratings + 1)).toFixed(StaticConsts.FLOAT_FIXED_DECIMAL_PLACES));
-
-			try {
-				Connector.executeQuery(QueryBuilder.updateOfferRating({
-					offer_id: id,
-					rating: updatedRating,
-					number_of_ratings: (offer.number_of_ratings + 1)
-				}));
-			} catch (e) {
-				throw new InternalServerErrorException("Something went wrong...");
-			}
-
-			return await this.getOfferById(id);
-		} else {
-			throw new BadRequestException("Invalid request");
+		rating?: {
+			offer?: Offer,
+			rating: number,
+			headline?: string,
+			rating_text?: string,
 		}
+	}): Promise<OfferRating> {
+		if (!reqBody
+			|| !reqBody.session
+			|| !reqBody.session.session_id
+			|| !reqBody.session.user_id
+			|| !reqBody.rating
+			|| !reqBody.rating.offer
+			|| !reqBody.rating.offer.offer_id
+			|| reqBody.rating.headline === undefined
+			|| reqBody.rating.rating_text == undefined
+			|| !reqBody.rating.rating
+		) {
+			throw new BadRequestException("Not a valid request");
+		}
+
+		// Check if rating value is valid
+		let userRating = 0;
+		if (reqBody.rating.rating !== undefined && reqBody.rating.rating !== null) {
+			if (isNaN(reqBody.rating.rating)) {
+				userRating = parseInt(reqBody.rating.rating.toString());
+				if (isNaN(userRating) || userRating <= StaticConsts.RATING_MIN_FOR_OFFERS || userRating > StaticConsts.RATING_MAX_FOR_OFFERS) {
+					throw new BadRequestException("Not a valid rating");
+				}
+			} else {
+				userRating = reqBody.rating.rating;
+			}
+		} else {
+			throw new BadRequestException("Not a valid rating");
+		}
+
+		// Check if headline is given if rating test is given
+		if (reqBody.rating.rating_text !== "" && (!reqBody.rating.headline || reqBody.rating.headline === "")) {
+			throw new BadRequestException("Headline is required if text is given");
+		}
+
+		// Check if headline or ratingtext are too long
+		if (reqBody.rating.headline !== "" && reqBody.rating.headline.length > StaticConsts.MAX_RATING_HEADLINE_LENGTH) {
+			throw new BadRequestException("Headline too long");
+		}
+		if (reqBody.rating.rating_text !== "" && reqBody.rating.rating_text.length > StaticConsts.MAX_RATING_HEADLINE_LENGTH) {
+			throw new BadRequestException("Rating text too long");
+		}
+
+		// Validate session and user
+		let user = await this.userService.validateUser({
+			session: {
+				session_id: reqBody.session.session_id,
+				user_id: reqBody.session.user_id
+			}
+		});
+
+		if (user === undefined || user === null) {
+			throw new BadRequestException("Not a valid user/session");
+		}
+
+		// Check if offer exists
+		let validOffer = await this.isValidOfferId(reqBody.rating.offer.offer_id);
+		if (!validOffer) {
+			throw new BadRequestException("Not a valid offer");
+		}
+
+		// offer from database
+		let dbOffer: Offer;
+		try {
+			dbOffer = await this.getOfferById(reqBody.rating.offer.offer_id);
+		} catch (e) {
+			throw new InternalServerErrorException("Something went wrong...")
+		}
+
+		// Check owner of offer
+		if (dbOffer.lessor.user_id === user.user.user_id) {
+			throw new ForbiddenException("Offer cannot be rated by lessor");
+		}
+
+		// Check if user made an offer request
+		let requestsForOffer: Array<{
+			request_id: string,
+			user_id: string,
+			offer_id: string,
+			status_id: number
+		}> = await Connector.executeQuery(
+			QueryBuilder.getRequestByOfferAndUserId(
+				reqBody.rating.offer.offer_id,
+				reqBody.session.user_id
+			));
+
+		if (requestsForOffer.length === StaticConsts.CHECK_ZERO) {
+			throw new ForbiddenException("Cannot rate offers without a valid offer request");
+		}
+
+		let ratings: Array<{
+			rating_id: string,
+			user_id: string,
+			offer_id: string,
+			request_id: string,
+			rating: number,
+			headline: string,
+			rating_text: string,
+			created_at: Date,
+			updated_at: Date
+		}> = await Connector.executeQuery(
+			QueryBuilder.getOfferRatings({
+				rated_check: {
+					offer_id: reqBody.rating.offer.offer_id,
+					user_id: user.user.user_id
+				}
+			})
+		);
+
+		// Check if rating exists for given user and offer
+		if (ratings.length !== StaticConsts.CHECK_ZERO) {
+			throw new ForbiddenException("Cannot rate offers without a valid offer request");
+		}
+
+		let updatedRatingForOffer = parseFloat(((dbOffer.rating * dbOffer.number_of_ratings + userRating) / (dbOffer.number_of_ratings + 1)).toFixed(StaticConsts.FLOAT_FIXED_DECIMAL_PLACES));
+
+		// Insert rating into database
+		await Connector.executeQuery(QueryBuilder.updateOfferRating({
+			rating_in_offer: {
+				offer_id: dbOffer.offer_id,
+				rating: updatedRatingForOffer,
+				number_of_ratings: (dbOffer.number_of_ratings + 1)
+			}
+		}));
+
+		let ratingId = uuid();
+		await Connector.executeQuery(QueryBuilder.updateOfferRating({
+			rating_in_offer_ratings: {
+				insert: true,
+				rating_id: ratingId,
+				offer_id: dbOffer.offer_id,
+				user_id: user.user.user_id,
+				request_id: requestsForOffer[0].request_id,
+				rating: reqBody.rating.rating,
+				headline: (reqBody.rating.headline ? reqBody.rating.headline : ""),
+				rating_text: (reqBody.rating.rating_text ? reqBody.rating.rating_text : "")
+			}
+		}));
+
+		let ratingResponse: Array<{
+			user_id: string,
+			rating_id: string,
+			offer_id: string,
+			request_id: string,
+			rating: number,
+			headline: string,
+			rating_text: string,
+			created_at: Date,
+			updated_at: Date
+		}> = await Connector.executeQuery(
+			QueryBuilder.getOfferRatings({
+				rated_check: {
+					offer_id: dbOffer.offer_id,
+					user_id: user.user.user_id
+				}
+			})
+		);
+
+		// TODO: Get public user from user endpoint
+		let responseUser = null;
+
+		let response = {
+			rating_id: ratingResponse[0].rating_id,
+			headline: (ratingResponse[0].headline == null ? "" : ratingResponse[0].headline),
+			rating_text: (ratingResponse[0].rating_text == null ? "" : ratingResponse[0].rating_text),
+			rating: ratingResponse[0].rating,
+			rating_owner: responseUser
+		}
+
+		return response;
+	}
+
+	/**
+	 * Updates the rating for a given offer
+	 * @param reqBody 
+	 */
+	public async updateOfferRating(reqBody: {
+		session?: {
+			session_id: string,
+			user_id: string
+		},
+		rating?: {
+			offer: Offer,
+			rating: number,
+			headline?: string,
+			rating_text?: string,
+		}
+	}): Promise<OfferRating> {
+		if (!reqBody
+			|| !reqBody.session
+			|| !reqBody.session.session_id
+			|| !reqBody.session.user_id
+			|| !reqBody.rating
+			|| !reqBody.rating.offer
+			|| !reqBody.rating.offer.offer_id
+			|| reqBody.rating.headline === undefined
+			|| reqBody.rating.rating_text == undefined
+			|| !reqBody.rating.rating
+		) {
+			throw new BadRequestException("Not a valid request");
+		}
+
+		// Check if rating value is valid
+		let userRating = 0;
+		if (reqBody.rating.rating !== undefined && reqBody.rating.rating !== null) {
+			if (isNaN(reqBody.rating.rating)) {
+				userRating = parseInt(reqBody.rating.rating.toString());
+				if (isNaN(userRating) || userRating <= StaticConsts.RATING_MIN_FOR_OFFERS || userRating > StaticConsts.RATING_MAX_FOR_OFFERS) {
+					throw new BadRequestException("Not a valid rating");
+				}
+			} else {
+				userRating = reqBody.rating.rating;
+			}
+		} else {
+			throw new BadRequestException("Not a valid rating");
+		}
+
+		// Check if headline is given if rating test is given
+		if (reqBody.rating.rating_text !== "" && (!reqBody.rating.headline || reqBody.rating.headline === "")) {
+			throw new BadRequestException("Headline is required if text is given");
+		}
+
+		// Check if headline or ratingtext are too long
+		if (reqBody.rating.headline !== "" && reqBody.rating.headline.length > StaticConsts.MAX_RATING_HEADLINE_LENGTH) {
+			throw new BadRequestException("Headline too long");
+		}
+		if (reqBody.rating.rating_text !== "" && reqBody.rating.rating_text.length > StaticConsts.MAX_RATING_HEADLINE_LENGTH) {
+			throw new BadRequestException("Rating text too long");
+		}
+
+		// Validate session and user
+		let user = await this.userService.validateUser({
+			session: {
+				session_id: reqBody.session.session_id,
+				user_id: reqBody.session.user_id
+			}
+		});
+
+		if (user === undefined || user === null) {
+			throw new BadRequestException("Not a valid user/session");
+		}
+
+		// Check if offer exists
+		let validOffer = await this.isValidOfferId(reqBody.rating.offer.offer_id);
+		if (!validOffer) {
+			throw new BadRequestException("Not a valid offer");
+		}
+
+		// offer from database
+		let dbOffer: Offer;
+		try {
+			dbOffer = await this.getOfferById(reqBody.rating.offer.offer_id);
+		} catch (e) {
+			throw new InternalServerErrorException("Something went wrong...")
+		}
+
+		// Check owner of offer
+		if (dbOffer.lessor.user_id === user.user.user_id) {
+			throw new ForbiddenException("Offer cannot be rated by lessor");
+		}
+
+		// Check if user made an offer request
+		let requestsForOffer: Array<{
+			request_id: string,
+			user_id: string,
+			offer_id: string,
+			status_id: number
+		}> = await Connector.executeQuery(
+			QueryBuilder.getRequestByOfferAndUserId(
+				reqBody.rating.offer.offer_id,
+				reqBody.session.user_id
+			));
+
+		if (requestsForOffer.length === StaticConsts.CHECK_ZERO) {
+			throw new ForbiddenException("Cannot rate offers without a valid offer request");
+		}
+
+		let ratings: Array<{
+			rating_id: string,
+			user_id: string,
+			offer_id: string,
+			request_id: string,
+			rating: number,
+			headline: string,
+			rating_text: string,
+			created_at: Date,
+			updated_at: Date
+		}> = await Connector.executeQuery(
+			QueryBuilder.getOfferRatings({
+				rated_check: {
+					offer_id: reqBody.rating.offer.offer_id,
+					user_id: user.user.user_id
+				}
+			})
+		);
+
+		// Check no if rating exists for given user and offer
+		if (ratings.length === StaticConsts.CHECK_ZERO) {
+			// Create a rating if update is used to update a non exisiting rating
+			return await this.rateOffer(reqBody);
+		}
+		//Else: rating exists => Can be updated
+
+		let updatedRatingForOffer = parseFloat(((dbOffer.rating * dbOffer.number_of_ratings + userRating) / (dbOffer.number_of_ratings)).toFixed(StaticConsts.FLOAT_FIXED_DECIMAL_PLACES));
+
+		// Insert rating into database
+		await Connector.executeQuery(QueryBuilder.updateOfferRating({
+			rating_in_offer: {
+				offer_id: dbOffer.offer_id,
+				rating: updatedRatingForOffer,
+				number_of_ratings: dbOffer.number_of_ratings
+			}
+		}));
+
+		await Connector.executeQuery(QueryBuilder.updateOfferRating({
+			rating_in_offer_ratings: {
+				insert: false,
+				offer_id: dbOffer.offer_id,
+				user_id: user.user.user_id,
+				request_id: requestsForOffer[0].request_id,
+				rating: reqBody.rating.rating,
+				headline: (reqBody.rating.headline ? reqBody.rating.headline : ""),
+				rating_text: (reqBody.rating.rating_text ? reqBody.rating.rating_text : "")
+			}
+		}));
+
+		let ratingResponse: Array<{
+			user_id: string,
+			rating_id: string,
+			offer_id: string,
+			request_id: string,
+			rating: number,
+			headline: string,
+			rating_text: string,
+			created_at: Date,
+			updated_at: Date
+		}> = await Connector.executeQuery(
+			QueryBuilder.getOfferRatings({
+				rated_check: {
+					offer_id: dbOffer.offer_id,
+					user_id: user.user.user_id
+				}
+			})
+		);
+
+		// TODO: Get public user from user endpoint
+		let responseUser = null;
+
+		let response = {
+			rating_id: ratingResponse[0].rating_id,
+			headline: (ratingResponse[0].headline == null ? "" : ratingResponse[0].headline),
+			rating_text: (ratingResponse[0].rating_text == null ? "" : ratingResponse[0].rating_text),
+			rating: ratingResponse[0].rating,
+			user: responseUser
+		}
+
+		return response;
+	}
+
+	/**
+	 * Get ratings for a given offer id
+	 * @param id Offer id
+	 * @param query object (optionally) containing a page and / or a rating 
+	 */
+	public async getRatingForOffer(id: string,
+		query?: {
+			rating?: number,
+			page?: number
+		}
+	): Promise<{
+		offer_ratings: Array<OfferRating>,
+		current_page: number,
+		max_page: number,
+		elements_per_page: number
+	}> {
+		if (id === undefined || id === null || id === "") {
+			throw new BadRequestException("No offer id given");
+		}
+
+		// Check if rating value is valid
+		let ratingFilterNumber: number = undefined;
+		if (query.rating !== undefined && query.rating !== null) {
+			if (isNaN(query.rating)) {
+				ratingFilterNumber = parseInt(query.rating.toString());
+				if (isNaN(ratingFilterNumber) || ratingFilterNumber <= StaticConsts.RATING_MIN_FOR_OFFERS || ratingFilterNumber > StaticConsts.RATING_MAX_FOR_OFFERS) {
+					throw new BadRequestException("Not a valid rating number");
+				}
+			} else {
+				ratingFilterNumber = query.rating;
+			}
+		}
+
+		// Check if offer exists
+		let validOffer = await this.isValidOfferId(id);
+		if (!validOffer) {
+			throw new BadRequestException("Not a valid offer");
+		}
+
+		// offer from database
+		let dbOffer: Offer;
+		try {
+			dbOffer = await this.getOfferById(id);
+		} catch (e) {
+			throw new InternalServerErrorException("Something went wrong...")
+		}
+
+		let numberOfRatings = ((await Connector.executeQuery(QueryBuilder.getNumberOfRatingsForOffer(dbOffer.offer_id)))[0].number_of_offer_ratings);
+
+		// Return if no ratings available
+		if (numberOfRatings === StaticConsts.CHECK_ZERO) {
+			return {
+				offer_ratings: [],
+				current_page: 0,
+				max_page: 0,
+				elements_per_page: StaticConsts.DEFAULT_PAGE_SIZE
+			}
+		}
+
+		// Paging
+		let page: number;
+		if (!query.page || isNaN(query.page) || query.page <= StaticConsts.CHECK_ZERO) {
+			page = 1;
+		} else {
+			if (parseInt(query.page.toString()) > Math.ceil(numberOfRatings / StaticConsts.DEFAULT_PAGE_SIZE)) {
+				throw new BadRequestException("Ran out of pages...");
+			} else {
+				page = parseInt(query.page.toString());
+			}
+		}
+
+		// Get filtered ratings from DB
+		let dbRatings: Array<{
+			rating_id: string,
+			user_id: string,
+			offer_id: string,
+			request_id: string,
+			rating: number,
+			headline: string,
+			rating_text: string,
+			created_at: Date,
+			updated_at: Date
+		}> = await Connector.executeQuery(QueryBuilder.getOfferRatings({
+			ratings_with_pages: {
+				offer_id: dbOffer.offer_id,
+				rating: ratingFilterNumber,
+				page: page,
+				page_size: StaticConsts.DEFAULT_PAGE_SIZE
+			}
+		}));
+
+		let responseArray: Array<OfferRating> = [];
+		for (let i = 0; i < dbRatings.length; i++) {
+			// TODO get User by user ID
+			let userOfRating = null;
+
+			let o: OfferRating = {
+				rating_id: dbRatings[i].rating_id,
+				rating: dbRatings[i].rating,
+				headline: (dbRatings[i].headline === null ? "" : dbRatings[i].headline),
+				rating_text: (dbRatings[i].rating_text === null ? "" : dbRatings[i].rating_text),
+				last_updated: dbRatings[i].updated_at,
+				rating_owner: userOfRating
+			}
+			responseArray.push(o);
+		}
+
+		let response = {
+			offer_ratings: responseArray,
+			current_page: page,
+			max_page: Math.ceil(numberOfRatings / StaticConsts.DEFAULT_PAGE_SIZE),
+			elements_per_page: StaticConsts.DEFAULT_PAGE_SIZE
+		}
+
+		return response;
 	}
 
 	/**
