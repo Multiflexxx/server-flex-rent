@@ -182,9 +182,8 @@ export class UserController {
     async getUserRatings(
         @Param('id') user_id,
         @Query() query,
-        @Response() res
     ): Promise<any> {
-        return await this.userService.getUserRatings(user_id, query, res);
+        return await this.userService.getUserRatings(user_id, query);
     }
 
 
