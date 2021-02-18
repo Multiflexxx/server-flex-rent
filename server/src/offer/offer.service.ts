@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, InternalServerErrorException, BadRequestException, UnauthorizedException, MethodNotAllowedException, NotImplementedException } from '@nestjs/common';
+import { Injectable, NotFoundException, InternalServerErrorException, BadRequestException, UnauthorizedException, MethodNotAllowedException, NotImplementedException, Inject, forwardRef } from '@nestjs/common';
 import { Connector } from 'src/util/database/connector';
 import { QueryBuilder } from 'src/util/database/query-builder';
 import { FileHandler } from 'src/util/file-handler/file-handler'
@@ -17,7 +17,10 @@ const BASE_OFFER_LINK = require('../../file-handler-config.json').offer_image_ba
 
 @Injectable()
 export class OfferService {
-	constructor(private readonly userService: UserService) { }
+	constructor(
+		@Inject(forwardRef(() => UserService))
+		private readonly userService: UserService
+	) { }
 
 	/**
 	 * Returns five best offers, best lessors, and latest offers
