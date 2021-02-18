@@ -8,6 +8,7 @@ import { FileHandler } from 'src/util/file-handler/file-handler';
 import * as StaticConsts from 'src/util/static-consts';
 import { OfferService } from 'src/offer/offer.service';
 import { Request } from 'src/offer/request.model';
+import { UserRating } from './user-rating.model';
 
 const axios = require('axios');
 const bcrypt = require('bcrypt');
@@ -29,6 +30,10 @@ export class UserService {
 	 * @param id ID of user
 	 */
 	public async getUser(id: string, isAuthenticated?: boolean): Promise<User> {
+
+		if(!id || id === "") {
+			throw new BadRequestException("Invalid Request");
+		}
 
 		let user: User;
 
@@ -430,21 +435,31 @@ export class UserService {
 	 * @param user_id
 	 * @param query object (optionally) containing a rating_type and a rating 
 	 */
-	public async getUserRatings(user_id: string, query: any): Promise<any> {
+	public async getUserRatings(user_id: string, query: any):
+		Promise<{
+			user_ratings: UserRating[],
+			current_page: number,
+			max_page: number,
+			elements_per_page: number
+		}> 
+	{
 		/* Possible query params:
 			type = "lessee" / "lessor"
 			rating = 1...5
 		*/
 
 		// Check if rating_type parameter is valid (if given)
-		if (!(!query.rating_type || (query.rating_type && StaticConsts.RATING_TYPES.includes(query.rating_type)))) {
-			throw new BadRequestException("Invalid rating_type parameter in request");
+		if(query) {
+			if (!(!query.rating_type || (query.rating_type && StaticConsts.RATING_TYPES.includes(query.rating_type)))) {
+				throw new BadRequestException("Invalid rating_type parameter in request");
+			}
+	
+			// Check if rating parameter is valid (if given)
+			if (!(!query.rating || isNaN(query.rating) || (query.rating <= 5 && query.rating >= 1))) {
+				throw new BadRequestException("Invalid rating parameter in request");
+			}
 		}
-
-		// Check if rating parameter is valid (if given)
-		if (!(!query.rating || isNaN(query.rating) || (query.rating <= 5 && query.rating >= 1))) {
-			throw new BadRequestException("Invalid rating parameter in request");
-		}
+		
 
 		// Check if user exists
 		let user: User = await this.getUser(user_id);
@@ -454,29 +469,52 @@ export class UserService {
 
 		// Check paging
 		let numberOfRatings: number;
-		if (query.rating_type) {
-			// If rating_type = "lessor"
-			if (query.rating_type === StaticConsts.RATING_TYPES[0]) {
-				numberOfRatings = user.number_of_lessor_ratings;
+		let page: number;
+
+		if(query) {
+			if (query.rating_type) {
+				// If rating_type = "lessor"
+				if (query.rating_type === StaticConsts.RATING_TYPES[0]) {
+					numberOfRatings = user.number_of_lessor_ratings;
+				} else {
+					numberOfRatings = user.number_of_lessee_ratings;
+				}
 			} else {
-				numberOfRatings = user.number_of_lessee_ratings;
+				numberOfRatings = user.number_of_lessor_ratings + user.number_of_lessee_ratings;
+			}
+	
+			
+			if (!query.page || isNaN(query.page)) {
+				page = 1;
+			} else {
+				if (query.page > Math.ceil(numberOfRatings / StaticConsts.DEFAULT_PAGE_SIZE)) {
+					throw new BadRequestException("Ran out of pages...");
+				} else {
+					page = query.page;
+				}
 			}
 		} else {
+			page = 1;
 			numberOfRatings = user.number_of_lessor_ratings + user.number_of_lessee_ratings;
 		}
+		
 
-		let page: number;
-		if (!query.page || isNaN(query.page)) {
-			page = 1;
-		} else {
-			if (query.page > Math.ceil(numberOfRatings / StaticConsts.DEFAULT_PAGE_SIZE)) {
-				throw new BadRequestException("Ran our of pages...");
-			} else {
-				page = query.page;
-			}
+		const results = await Connector.executeQuery(QueryBuilder.getUserRatings(user_id, query.rating_type, query.rating, StaticConsts.DEFAULT_PAGE_SIZE, page));
+
+		let userRatings: UserRating[] = []
+		for(let result of results) {
+			userRatings.push(await this.getUserRatingById(result.rating_id))
 		}
+		// await results.forEach(async result => {
+		// 	userRatings.push(await this.getUserRatingById(result.rating_id))
+		// });
 
-		return await Connector.executeQuery(QueryBuilder.getUserRatings(user_id, query.rating_type, query.rating, StaticConsts.DEFAULT_PAGE_SIZE, page));
+		return {
+			user_ratings: userRatings,
+			current_page: page,
+			max_page: Math.ceil(numberOfRatings / StaticConsts.DEFAULT_PAGE_SIZE),
+			elements_per_page: StaticConsts.DEFAULT_PAGE_SIZE
+		};
 	}
 
 	public async rateUser(
@@ -513,8 +551,9 @@ export class UserService {
 		// Headline and text logic
 		if((rating.headline == null || rating.headline == undefined)
 			|| (rating.text == null || rating.text == undefined)
-			|| (rating.text.length > 0 && rating.headline.length < 1)) {
-				throw new BadRequestException("Invalid rating arguments");
+			|| (rating.text.length > 0 && rating.headline.length < 1)
+			|| (rating.text.length > StaticConsts.MAX_RATING_TEXT_LENGTH || rating.headline.length > StaticConsts.MAX_RATING_HEADLINE_LENGTH)) {
+				throw new BadRequestException("Invalid rating arguments (text)");
 		}
 
 			
@@ -532,7 +571,7 @@ export class UserService {
 
 		// Make sure user doesn't rate themselves
 		if (auth.session.user_id === rating.user_id) {
-			throw new BadRequestException("Users can't rate themselves");
+			throw new ConflictException("Users can't rate themselves");
 		}
 
 		// user#1 = user who rates
@@ -547,15 +586,35 @@ export class UserService {
 		})))[0];
 
 		if (userPairRating) {
-			throw new BadRequestException("Already rated user");
+			throw new ConflictException("Already rated user");
 		}
 
 		// User can be rated
 		// Create new rating 
-		await Connector.executeQuery(QueryBuilder.createUserRating(auth.session.user_id, rating));
+		const id = uuidv4();
+		await Connector.executeQuery(QueryBuilder.createUserRating(id, auth.session.user_id, rating));
 
 		// and calculate new user rating
 		this.updateUserRating(rating.user_id);
+
+		// return UserRating object
+		return await this.getUserRatingById(id);
+	}
+
+
+	public async getUserRatingById(rating_id: string): Promise<UserRating> {
+		const result = (await Connector.executeQuery(QueryBuilder.getUserRatingById(rating_id)))[0];
+		let userRating: UserRating = {
+			rating_id: result.rating_id,
+			rating_type: result.rating_type,
+			rating: result.rating,
+			headline: result.headline,
+			rating_text: result.rating_text,
+			rated_user: await this.getUser(result.rated_user_id),
+			rating_owner: await this.getUser(result.rating_user_id),
+			updated_at: result.created_at
+		}
+		return userRating;
 	}
 
 	/**

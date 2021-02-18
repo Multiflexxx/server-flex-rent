@@ -923,13 +923,23 @@ export class QueryBuilder {
 		}
 	}
 
+	public static getUserRatingById(rating_id: string): Query {
+		return {
+			query: "SELECT * FROM user_rating WHERE rating_id = ?;",
+			args: [
+				rating_id
+			]
+		}
+	}
+
 	/**
 	 * Creates a new entry on the DB containing given rating information for a user
 	 * @param rating_user_id 
 	 * @param rating 
 	 */
 	public static createUserRating(
-		rating_user_id: string,
+		id: string,
+		rating_owner_id: string,
 		rating: {
 			user_id: string,
 			rating_type: string,
@@ -939,9 +949,10 @@ export class QueryBuilder {
 		}
 	): Query {
 		return {
-			query: "INSERT INTO rating (rating_user_id, rated_user_id, rating_type, rating, headline, rating_text, created_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_DATE);",
+			query: "INSERT INTO user_rating (rating_id, rating_owner_id, rated_user_id, rating_type, rating, headline, rating_text, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_DATE);",
 			args: [
-				rating_user_id,
+				id,
+				rating_owner_id,
 				rating.user_id,
 				rating.rating_type,
 				rating.rating,
@@ -992,7 +1003,7 @@ export class QueryBuilder {
 	 * @param rating 
 	 */
 	public static getUserRatings(user_id: string, rating_type?: string, rating?: string, page_size?: number, page?: number): Query {
-		let query = "SELECT * FROM rating WHERE rated_user_id = ?";
+		let query = "SELECT * FROM user_rating WHERE rated_user_id = ?";
 		let args: any[] = [user_id];
 
 		if (rating_type) {
