@@ -12,6 +12,7 @@ import { UserService } from 'src/user/user.service';
 import { User } from 'src/user/user.model';
 import { Request } from './request.model';
 import * as StaticConsts from 'src/util/static-consts';
+import { OfferRating } from './offer-rating.model';
 
 const BASE_OFFER_LINK = require('../../file-handler-config.json').offer_image_base_url;
 
@@ -1126,14 +1127,7 @@ export class OfferService {
 			headline?: string,
 			rating_text?: string,
 		}
-	}): Promise<{
-		rating_id: string,
-		rating: number,
-		headline?: string,
-		rating_text?: string,
-		last_updated?: Date,
-		rating_owner?: User
-	}> {
+	}): Promise<OfferRating> {
 		if (!reqBody
 			|| !reqBody.session
 			|| !reqBody.session.session_id
@@ -1320,14 +1314,7 @@ export class OfferService {
 			headline?: string,
 			rating_text?: string,
 		}
-	}): Promise<{
-		rating_id: string,
-		rating: number,
-		headline?: string,
-		rating_text?: string,
-		last_updated?: Date,
-		rating_owner?: User
-	}> {
+	}): Promise<OfferRating> {
 		if (!reqBody
 			|| !reqBody.session
 			|| !reqBody.session.session_id
