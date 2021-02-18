@@ -162,7 +162,7 @@ export class QueryBuilder {
 		}
 	}
 
-	
+
 	public static updateSoftDeletedUserInfo(user_id: string): Query {
 		return {
 			query: "UPDATE soft_deleted_user SET status_id = ?, deletion_date = DATE_ADD(CURRENT_DATE(), INTERVAL 1 WEEK) WHERE user_id = ?;",
@@ -1093,7 +1093,7 @@ export class QueryBuilder {
 	}): Query {
 		if (rating_info.rated_check) {
 			return {
-				query: "SELECT user_id, offer_id, request_id, rating, headline, rating_text, created_at, updated_at FROM offer_rating WHERE offer_id = ? AND user_id = ?;",
+				query: "SELECT rating_id, user_id, offer_id, request_id, rating, headline, rating_text, created_at, updated_at FROM offer_rating WHERE offer_id = ? AND user_id = ?;",
 				args: [
 					rating_info.rated_check.offer_id,
 					rating_info.rated_check.user_id
@@ -1102,21 +1102,21 @@ export class QueryBuilder {
 		}
 		else if (rating_info.offer_id) {
 			return {
-				query: "SELECT user_id, offer_id, request_id, rating, headline, rating_text, created_at, updated_at FROM offer_rating WHERE offer_id = ?;",
+				query: "SELECT rating_id, user_id, offer_id, request_id, rating, headline, rating_text, created_at, updated_at FROM offer_rating WHERE offer_id = ?;",
 				args: [
 					rating_info.offer_id
 				]
 			}
 		} else if (rating_info.request_id) {
 			return {
-				query: "SELECT user_id, offer_id, request_id, rating, headline, rating_text, created_at, updated_at FROM offer_rating WHERE request_id = ?;",
+				query: "SELECT rating_id, user_id, offer_id, request_id, rating, headline, rating_text, created_at, updated_at FROM offer_rating WHERE request_id = ?;",
 				args: [
 					rating_info.request_id
 				]
 			}
 		} else if (rating_info.user_id) {
 			return {
-				query: "SELECT user_id, offer_id, request_id, rating, headline, rating_text, created_at, updated_at FROM offer_rating WHERE user_id = ?;",
+				query: "SELECT rating_id, user_id, offer_id, request_id, rating, headline, rating_text, created_at, updated_at FROM offer_rating WHERE user_id = ?;",
 				args: [
 					rating_info.user_id
 				]
@@ -1144,7 +1144,8 @@ export class QueryBuilder {
 			request_id: string,
 			rating: number,
 			headline: string,
-			rating_text: string
+			rating_text: string,
+			rating_id?: string // Only used for insert
 		}
 	}): Query {
 		if (rating_infos.rating_in_offer) {
@@ -1161,8 +1162,9 @@ export class QueryBuilder {
 			if (rating_infos.rating_in_offer_ratings.insert) {
 				// Insert new rating
 				return {
-					query: "INSERT INTO offer_rating (offer_id, user_id, request_id, rating, headline, rating_text, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW());",
+					query: "INSERT INTO offer_rating (rating_id, offer_id, user_id, request_id, rating, headline, rating_text, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW());",
 					args: [
+						rating_infos.rating_in_offer_ratings.rating_id,
 						rating_infos.rating_in_offer_ratings.offer_id,
 						rating_infos.rating_in_offer_ratings.user_id,
 						rating_infos.rating_in_offer_ratings.request_id,
@@ -1173,14 +1175,19 @@ export class QueryBuilder {
 				}
 			} else {
 				// Update existing rating
-				// TODO
 				return {
-					query: "",
-					args: []
+					query: "UPDATE offer_rating SET rating = ?, headline = ?, rating_text = ?, updated_at = NOW() WHERE offer_id = ? AND user_id = ? AND request_id = ?;",
+					args: [
+						rating_infos.rating_in_offer_ratings.rating,
+						rating_infos.rating_in_offer_ratings.headline,
+						rating_infos.rating_in_offer_ratings.rating_text,
+						rating_infos.rating_in_offer_ratings.offer_id,
+						rating_infos.rating_in_offer_ratings.user_id,
+						rating_infos.rating_in_offer_ratings.request_id,
+					]
 				}
 			}
 		}
-
 	}
 
 	/**
