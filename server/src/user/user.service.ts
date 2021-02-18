@@ -490,7 +490,7 @@ export class UserService {
 				if (query.page > Math.ceil(numberOfRatings / StaticConsts.DEFAULT_PAGE_SIZE)) {
 					throw new BadRequestException("Ran out of pages...");
 				} else {
-					page = query.page;
+					page = query.page as number;
 				}
 			}
 		} else {
