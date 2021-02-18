@@ -1422,7 +1422,7 @@ export class OfferService {
 				}
 			})
 		);
-		
+
 		// Check no if rating exists for given user and offer
 		if (ratings.length === StaticConsts.CHECK_ZERO) {
 			// Create a rating if update is used to update a non exisiting rating
@@ -1486,22 +1486,122 @@ export class OfferService {
 		return response;
 	}
 
-	//TODO
-	public async getRatingForOffer(
-		id: string,
+	/**
+	 * Get ratings for a given offer id
+	 * @param id Offer id
+	 * @param query object (optionally) containing a page and / or a rating 
+	 */
+	public async getRatingForOffer(id: string,
 		query?: {
-
+			rating?: number,
+			page?: number
 		}
 	): Promise<{
-		rating: number,
-		headline?: string,
-		rating_text?: string,
-		last_updated?: Date,
-		user?: User
+		offer_ratings: Array<OfferRating>,
+		current_page: number,
+		max_page: number,
+		elements_per_page: number
 	}> {
-		throw new NotImplementedException();
-	}
+		if (id === undefined || id === null || id === "") {
+			throw new BadRequestException("No offer id given");
+		}
 
+		// Check if rating value is valid
+		let ratingFilterNumber: number = undefined;
+		if (query.rating !== undefined && query.rating !== null) {
+			if (isNaN(query.rating)) {
+				ratingFilterNumber = parseInt(query.rating.toString());
+				if (isNaN(ratingFilterNumber) || ratingFilterNumber <= StaticConsts.RATING_MIN_FOR_OFFERS || ratingFilterNumber > StaticConsts.RATING_MAX_FOR_OFFERS) {
+					throw new BadRequestException("Not a valid rating number");
+				}
+			} else {
+				ratingFilterNumber = query.rating;
+			}
+		}
+
+		// Check if offer exists
+		let validOffer = await this.isValidOfferId(id);
+		if (!validOffer) {
+			throw new BadRequestException("Not a valid offer");
+		}
+
+		// offer from database
+		let dbOffer: Offer;
+		try {
+			dbOffer = await this.getOfferById(id);
+		} catch (e) {
+			throw new InternalServerErrorException("Something went wrong...")
+		}
+
+		let numberOfRatings = ((await Connector.executeQuery(QueryBuilder.getNumberOfRatingsForOffer(dbOffer.offer_id)))[0].number_of_offer_ratings);
+
+		// Return if no ratings available
+		if (numberOfRatings === StaticConsts.CHECK_ZERO) {
+			return {
+				offer_ratings: [],
+				current_page: 0,
+				max_page: 0,
+				elements_per_page: StaticConsts.DEFAULT_PAGE_SIZE
+			}
+		}
+
+		// Paging
+		let page: number;
+		if (!query.page || isNaN(query.page) || query.page <= StaticConsts.CHECK_ZERO) {
+			page = 1;
+		} else {
+			if (parseInt(query.page.toString()) > Math.ceil(numberOfRatings / StaticConsts.DEFAULT_PAGE_SIZE)) {
+				throw new BadRequestException("Ran out of pages...");
+			} else {
+				page = parseInt(query.page.toString());
+			}
+		}
+
+		// Get filtered ratings from DB
+		let dbRatings: Array<{
+			rating_id: string,
+			user_id: string,
+			offer_id: string,
+			request_id: string,
+			rating: number,
+			headline: string,
+			rating_text: string,
+			created_at: Date,
+			updated_at: Date
+		}> = await Connector.executeQuery(QueryBuilder.getOfferRatings({
+			ratings_with_pages: {
+				offer_id: dbOffer.offer_id,
+				rating: ratingFilterNumber,
+				page: page,
+				page_size: StaticConsts.DEFAULT_PAGE_SIZE
+			}
+		}));
+
+		let responseArray: Array<OfferRating> = [];
+		for (let i = 0; i < dbRatings.length; i++) {
+			// TODO get User by user ID
+			let userOfRating = null;
+
+			let o: OfferRating = {
+				rating_id: dbRatings[i].rating_id,
+				rating: dbRatings[i].rating,
+				headline: (dbRatings[i].headline === null ? "" : dbRatings[i].headline),
+				rating_text: (dbRatings[i].rating_text === null ? "" : dbRatings[i].rating_text),
+				last_updated: dbRatings[i].updated_at,
+				rating_owner: userOfRating
+			}
+			responseArray.push(o);
+		}
+
+		let response = {
+			offer_ratings: responseArray,
+			current_page: page,
+			max_page: Math.ceil(numberOfRatings / StaticConsts.DEFAULT_PAGE_SIZE),
+			elements_per_page: StaticConsts.DEFAULT_PAGE_SIZE
+		}
+
+		return response;
+	}
 
 	/**
 	 * Deletes a given offer after user is authenticated

@@ -1098,6 +1098,12 @@ export class QueryBuilder {
 			offer_id: string,
 			user_id: string
 		},
+		ratings_with_pages?: {
+			offer_id: string,
+			page?: number,
+			page_size?: number,
+			rating?: number
+		},
 		offer_id?: string,
 		request_id?: string,
 		user_id?: string
@@ -1110,8 +1116,35 @@ export class QueryBuilder {
 					rating_info.rated_check.user_id
 				]
 			}
-		}
-		else if (rating_info.offer_id) {
+		} else if (rating_info.ratings_with_pages) {
+			let query = "SELECT rating_id, user_id, offer_id, request_id, rating, headline, rating_text, created_at, updated_at FROM offer_rating WHERE offer_id = ? ";
+			let args: Array<any> = [
+				rating_info.ratings_with_pages.offer_id
+			]
+
+			if (rating_info.ratings_with_pages.rating) {
+				query += " AND rating = ? ";
+				args.push(rating_info.ratings_with_pages.rating);
+			}
+
+			if (rating_info.ratings_with_pages.page_size && rating_info.ratings_with_pages.page) {
+				query += " LIMIT ? OFFSET ? ";
+				args.push(rating_info.ratings_with_pages.page_size);
+				args.push(rating_info.ratings_with_pages.page_size * (rating_info.ratings_with_pages.page - 1));
+			} else {
+				query += " LIMIT ? OFFSET ? ";
+				args.push(StaticConsts.USER_RATING_DEFAULT_LIMIT);
+				args.push(StaticConsts.USER_RATING_DEFAULT_OFFSET);
+			}
+
+			query += ";";
+
+			return {
+				query: query,
+				args: args
+
+			}
+		} else if (rating_info.offer_id) {
 			return {
 				query: "SELECT rating_id, user_id, offer_id, request_id, rating, headline, rating_text, created_at, updated_at FROM offer_rating WHERE offer_id = ?;",
 				args: [
@@ -1132,6 +1165,15 @@ export class QueryBuilder {
 					rating_info.user_id
 				]
 			}
+		}
+	}
+
+	public static getNumberOfRatingsForOffer(offerId: string): Query {
+		return {
+			query: "SELECT COUNT(rating_id) AS number_of_offer_ratings FROM offer_rating WHERE offer_id = ?;",
+			args: [
+				offerId
+			]
 		}
 	}
 
