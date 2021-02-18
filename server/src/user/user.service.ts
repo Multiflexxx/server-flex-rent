@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException, InternalServerErrorException, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, InternalServerErrorException, UnauthorizedException, ConflictException, Inject, forwardRef } from '@nestjs/common';
 import { User } from './user.model';
 import { Connector } from 'src/util/database/connector';
 import * as EmailValidator from 'email-validator';
@@ -19,7 +19,10 @@ const moment = require('moment');
 
 @Injectable()
 export class UserService {
-	constructor(private readonly offerService: OfferService) {}
+	constructor(
+		@Inject(forwardRef(() => OfferService))
+		private readonly offerService: OfferService
+	) {}
 
 	/**
 	 * Returns a User Object containing publicly visible user information
