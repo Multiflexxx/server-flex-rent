@@ -1309,8 +1309,7 @@ export class OfferService {
 			})
 		);
 
-		// TODO: Get public user from user endpoint
-		let responseUser = null;
+		let responseUser = await this.userService.getUser(user.user.user_id, StaticConsts.userDetailLevel.CONTRACT);
 
 		let response = {
 			rating_id: ratingResponse[0].rating_id,
@@ -1505,8 +1504,7 @@ export class OfferService {
 			})
 		);
 
-		// TODO: Get public user from user endpoint
-		let responseUser = null;
+		let responseUser = await this.userService.getUser(user.user.user_id, StaticConsts.userDetailLevel.CONTRACT);
 
 		let response = {
 			rating_id: ratingResponse[0].rating_id,
@@ -1617,9 +1615,9 @@ export class OfferService {
 
 		let responseArray: Array<OfferRating> = [];
 		for (let i = 0; i < dbRatings.length; i++) {
-			// TODO get User by user ID
-			let userOfRating = null;
-
+			
+			let userOfRating = await this.userService.getUser(dbRatings[0].user_id, StaticConsts.userDetailLevel.CONTRACT);
+			
 			let o: OfferRating = {
 				rating_id: dbRatings[i].rating_id,
 				rating: dbRatings[i].rating,
@@ -1716,8 +1714,7 @@ export class OfferService {
 			}
 		}));
 
-		// TODO: Get public user from user endpoint
-		let responseUser = null;
+		let responseUser = await this.userService.getUser(dbRatings[0].user_id, StaticConsts.userDetailLevel.CONTRACT);
 
 		let response = {
 			rating_id: dbRatings[0].rating_id,
@@ -1884,7 +1881,7 @@ export class OfferService {
 
 					let responseUser: User;
 					try {
-						responseUser = await this.userService.getUser(dbRequests[0].user_id, StaticConsts.userDetailLevel.PUBLIC);
+						responseUser = await this.userService.getUser(dbRequests[0].user_id, StaticConsts.userDetailLevel.CONTRACT);
 					} catch (e) {
 						throw new InternalServerErrorException("Something went wrong");
 					}
@@ -2026,7 +2023,7 @@ export class OfferService {
 	/**
 	 * Handles everything which is needed to make the whole lend/borrow process possible
 	 * Returns an update request
-	 * @param reqBody TODO
+	 * @param reqBody session of user and a valid request object
 	 */
 	public async handleRequests(reqBody: {
 		session?: {
@@ -2476,15 +2473,6 @@ export class OfferService {
 				} catch (error) {
 					throw error;
 				}
-
-				// Remove attributes that shall not be displayed in frontend!
-				delete lessor.date_of_birth;
-				delete lessor.email;
-				delete lessor.lessee_rating;
-				delete lessor.number_of_lessee_ratings;
-				delete lessor.password_hash;
-				delete lessor.phone_number;
-				delete lessor.place_id;
 
 				if (pictureUUIDList.length > StaticConsts.CHECK_ZERO) {
 					let pictureLinks: Array<string> = [];
