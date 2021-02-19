@@ -57,6 +57,11 @@ export const userStates = {
     SOFT_DELETED: 3,
     HARD_DELETED: 4
 }
+export const userDetailLevel = {
+	PUBLIC: 1,
+	CONTRACT: 2,
+	COMPLETE: 3
+}
 
 /* ------ RATING ------ */
 export const MAX_RATING_HEADLINE_LENGTH = 400;
