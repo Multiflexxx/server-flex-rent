@@ -9,6 +9,8 @@ import * as StaticConsts from 'src/util/static-consts';
 import { OfferService } from 'src/offer/offer.service';
 import { Request } from 'src/offer/request.model';
 import { UserRating } from './user-rating.model';
+import { EmailHandler } from 'src/util/email/email-handler';
+import { uuid } from 'uuidv4';
 
 const axios = require('axios');
 const bcrypt = require('bcrypt');
@@ -17,6 +19,7 @@ const GOOGLE_CLIENT_ID = require("../../database.json").google_client_id;
 const google_oauth_client = new OAuth2Client(GOOGLE_CLIENT_ID);
 const fileConfig = require('../../file-handler-config.json');
 const moment = require('moment');
+const cryptoRandomString = require('crypto-random-string');
 
 @Injectable()
 export class UserService {
@@ -417,6 +420,124 @@ export class UserService {
 		if (!user.first_name || !user.last_name || !user.password_hash) {
 			throw new BadRequestException("Missing arguments");
 		}
+	}
+
+	/**
+	 * Creates a password reset request for a user (by email, if user exists)
+	 * Note: No error is thrown if user doesn't exist
+	 * @param email user's email
+	 */
+	public async requestPasswordReset(email: string) {
+		if(!email) {
+			throw new BadRequestException("Invalid Request Parameter");
+		}
+
+		let result = (await Connector.executeQuery(QueryBuilder.getUser({ email: email })))[0]
+		if(!result) {
+			return;
+		}
+
+		let resetCode: string = await this.createPasswordResetToken(result.user_id)
+
+		EmailHandler.sendPasswordResetEmail(email, result.first_name, resetCode);
+	}
+
+	/**
+	 * Generates a token and creates a password reset request on the DB
+	 * @param user_id User to create password request for
+	 */
+	public async createPasswordResetToken(user_id: string): Promise<string> {
+		
+		const resetCode: string = cryptoRandomString({length: 6, type: 'alphanumeric'}).toUpperCase();
+		const token: string = uuidv4();
+		
+		// Delete old password reset request
+		await this.deletePasswordResetToken(user_id);
+		
+		// Create Password Reset Request on DB
+		await Connector.executeQuery(QueryBuilder.createPasswordResetRequest(user_id, resetCode, token))
+		
+		return resetCode;
+	}
+
+	/**
+	 * Deletes all password reset requests for a given user
+	 * @param user_id User_id of the user
+	 */
+	public async deletePasswordResetToken(user_id: string) {
+		// Delete all (old) password reset requests of the user
+		await Connector.executeQuery(QueryBuilder.deletePasswordResetRequests(user_id))
+	}
+
+	/**
+	 * Verifies the 6 characters alphanumeric reset code and returns a uuid4 token that authorized one (1) password reset
+	 * @param email User's email
+	 * @param resetCode 6 characters alphanumeric reset code
+	 */
+	public async verifyPasswordResetCode(email: string, resetCode: string): Promise<{email: string, token: string}> {
+
+		if(!email || !resetCode) {
+			throw new BadRequestException("Invalid request parameter");
+		}
+
+		// Get user
+		let user = (await Connector.executeQuery(QueryBuilder.getUser({ email: email })))[0];
+		if(!user) {
+			throw new NotFoundException("User not Found");
+		}
+
+		// Get token
+		let request = (await Connector.executeQuery(QueryBuilder.getPasswordResetRequest(user.user_id, resetCode)))[0];
+
+		if(!request) {
+			throw new UnauthorizedException("Wrong reset Code");
+		}
+
+		// Delete request from DB
+		// await Connector.executeQuery(QueryBuilder.deletePasswordResetRequests(user.user_id));
+
+		return {
+			email: email,
+			token: request.token
+		};
+	}
+
+	public async resetPassword(email: string, token: string, newPwd: string): Promise<{
+		user: User,
+		session_id: string
+	}> {
+
+		if(!email || !token || !newPwd) {
+			throw new BadRequestException("Invalid Request parameters");
+		}
+
+		// Get user with email
+		let user: any = (await Connector.executeQuery(QueryBuilder.getUser({email: email})))[0];
+		if(!user) {
+			throw new NotFoundException("User not found");
+		}
+
+		// Get reset request
+		let resetRequest: any = (await Connector.executeQuery(QueryBuilder.getPasswordResetRequestWithToken(user.user_id, token)))[0];
+		if(!resetRequest) {
+			throw new UnauthorizedException("Invalid token");
+		}
+
+		// Hash password
+		const pwdHash: string = bcrypt.hashSync(newPwd, StaticConsts.HASH_SALT_ROUNDS);
+
+		// Set new password
+		await Connector.executeQuery(QueryBuilder.setPassword(user.user_id, pwdHash));
+
+		// Delete request from DB
+		await Connector.executeQuery(QueryBuilder.deletePasswordResetRequests(user.user_id));
+
+		return this.validateUser({
+			login: { 
+				email: email, 
+				password_hash: newPwd 
+			}
+		});
 	}
 
 	/**
