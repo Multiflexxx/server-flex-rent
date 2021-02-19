@@ -1261,17 +1261,6 @@ export class OfferService {
 			throw new ForbiddenException("Cannot rate offers without a valid offer request");
 		}
 
-		let updatedRatingForOffer = parseFloat(((dbOffer.rating * dbOffer.number_of_ratings + userRating) / (dbOffer.number_of_ratings + 1)).toFixed(StaticConsts.FLOAT_FIXED_DECIMAL_PLACES));
-
-		// Insert rating into database
-		await Connector.executeQuery(QueryBuilder.updateOfferRating({
-			rating_in_offer: {
-				offer_id: dbOffer.offer_id,
-				rating: updatedRatingForOffer,
-				number_of_ratings: (dbOffer.number_of_ratings + 1)
-			}
-		}));
-
 		let ratingId = uuid();
 		await Connector.executeQuery(QueryBuilder.updateOfferRating({
 			rating_in_offer_ratings: {
@@ -1283,6 +1272,21 @@ export class OfferService {
 				rating: reqBody.rating.rating,
 				headline: (reqBody.rating.headline ? reqBody.rating.headline : ""),
 				rating_text: (reqBody.rating.rating_text ? reqBody.rating.rating_text : "")
+			}
+		}));
+
+		let updatedRating: Array<{
+			arithmetic_mean: number,
+			number_of_ratings: number
+		}> = await Connector.executeQuery(QueryBuilder.calculateOfferRatingByOfferId(dbOffer.offer_id));
+		
+
+		// Insert rating into database
+		await Connector.executeQuery(QueryBuilder.updateOfferRating({
+			rating_in_offer: {
+				offer_id: dbOffer.offer_id,
+				rating: (updatedRating[0].arithmetic_mean == null ? 0 : updatedRating[0].arithmetic_mean),
+				number_of_ratings: updatedRating[0].number_of_ratings
 			}
 		}));
 
@@ -1453,19 +1457,7 @@ export class OfferService {
 			// Create a rating if update is used to update a non exisiting rating
 			return await this.rateOffer(reqBody);
 		}
-		//Else: rating exists => Can be updated
-
-		let updatedRatingForOffer = parseFloat(((dbOffer.rating * dbOffer.number_of_ratings - ratings[0].rating) / (dbOffer.number_of_ratings - 1)).toFixed(StaticConsts.FLOAT_FIXED_DECIMAL_PLACES));
-		updatedRatingForOffer = parseFloat(((updatedRatingForOffer * dbOffer.number_of_ratings + userRating) / (dbOffer.number_of_ratings)).toFixed(StaticConsts.FLOAT_FIXED_DECIMAL_PLACES));
-
-		// Insert rating into database
-		await Connector.executeQuery(QueryBuilder.updateOfferRating({
-			rating_in_offer: {
-				offer_id: dbOffer.offer_id,
-				rating: updatedRatingForOffer,
-				number_of_ratings: dbOffer.number_of_ratings
-			}
-		}));
+		//Else: rating exists => Can be updated	
 
 		await Connector.executeQuery(QueryBuilder.updateOfferRating({
 			rating_in_offer_ratings: {
@@ -1476,6 +1468,21 @@ export class OfferService {
 				rating: reqBody.rating.rating,
 				headline: (reqBody.rating.headline ? reqBody.rating.headline : ""),
 				rating_text: (reqBody.rating.rating_text ? reqBody.rating.rating_text : "")
+			}
+		}));
+
+		let updatedRating: Array<{
+			arithmetic_mean: number,
+			number_of_ratings: number
+		}> = await Connector.executeQuery(QueryBuilder.calculateOfferRatingByOfferId(dbOffer.offer_id));
+		
+
+		// Insert rating into database
+		await Connector.executeQuery(QueryBuilder.updateOfferRating({
+			rating_in_offer: {
+				offer_id: dbOffer.offer_id,
+				rating: (updatedRating[0].arithmetic_mean == null ? 0 : updatedRating[0].arithmetic_mean),
+				number_of_ratings: updatedRating[0].number_of_ratings
 			}
 		}));
 
@@ -1692,20 +1699,22 @@ export class OfferService {
 
 		let offer = await this.getOfferById(dbRatings[0].offer_id);
 
-		// calculate new rating for offer
-		let updatedRatingForOffer = parseFloat(((offer.rating * offer.number_of_ratings - dbRatings[0].rating) / (offer.number_of_ratings - 1)).toFixed(StaticConsts.FLOAT_FIXED_DECIMAL_PLACES));
+		// delete rating from database
+		await Connector.executeQuery(QueryBuilder.deleteOfferRating(dbRatings[0].rating_id));
+
+		let updatedRating: Array<{
+			arithmetic_mean: number,
+			number_of_ratings: number
+		}> = await Connector.executeQuery(QueryBuilder.calculateOfferRatingByOfferId(offer.offer_id));
 		
 		// Insert rating into database
 		await Connector.executeQuery(QueryBuilder.updateOfferRating({
 			rating_in_offer: {
-				offer_id: dbRatings[0].offer_id,
-				rating: updatedRatingForOffer,
-				number_of_ratings: (offer.number_of_ratings - 1)
+				offer_id: offer.offer_id,
+				rating: (updatedRating[0].arithmetic_mean == null ? 0 : updatedRating[0].arithmetic_mean),
+				number_of_ratings: updatedRating[0].number_of_ratings
 			}
 		}));
-
-		// delete rating from database
-		await Connector.executeQuery(QueryBuilder.deleteOfferRating(dbRatings[0].rating_id));
 
 		// TODO: Get public user from user endpoint
 		let responseUser = null;
