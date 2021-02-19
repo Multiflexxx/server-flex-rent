@@ -102,6 +102,11 @@ export class UserController {
         return await this.userService.validateUser(auth);
     }
 
+    /**
+     * Request a password reset for a user by email
+     * Sends out a 6 characters alphanumeric code to the user's email (if user exists)
+     * @param email Email of the user
+     */
     @Post('password-reset/request')
     async requestPasswordReset(
         @Body('email') email: string
@@ -109,6 +114,11 @@ export class UserController {
         await this.userService.requestPasswordReset(email);
     }
 
+    /**
+     * Checks if the reset code is valid and provides a token that authorized a password reset once
+     * @param email Email of the user
+     * @param reset_code 6 characters alphanumeric code
+     */
     @Post('password-reset/verify-code')
     async verifyPasswordResetToken(
         @Body('email') email: string,
@@ -117,6 +127,12 @@ export class UserController {
         return await this.userService.verifyPasswordResetCode(email, reset_code); 
     }
 
+    /**
+     * Resets a user's email given their email, a new password and a valid reset token
+     * @param email the user's email
+     * @param token reset token (uuid v4)
+     * @param new_password new Password
+     */
     @Post('password-reset/reset')
     async resetPassword(
         @Body('email') email: string,

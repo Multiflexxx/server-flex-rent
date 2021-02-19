@@ -460,7 +460,7 @@ export class UserService {
 	 */
 	public async createPasswordResetToken(user_id: string): Promise<string> {
 		
-		const resetCode: string = cryptoRandomString({length: 6, type: 'alphanumeric'});
+		const resetCode: string = cryptoRandomString({length: 6, type: 'alphanumeric'}).toUpperCase();
 		const token: string = uuidv4();
 		
 		// Delete old password reset request
