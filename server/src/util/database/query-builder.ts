@@ -1122,6 +1122,80 @@ export class QueryBuilder {
 		}
 	}
 
+	/**
+	 * Creates a password reset request for a given user with a given token that is valid for 1 hour
+	 * @param user_id User 
+	 * @param resetCode Alphanumeric 6 character resetCode (upper case)
+	 */
+	public static createPasswordResetRequest(user_id: string, resetCode: string, token: string): Query {
+		return {
+			query: "INSERT INTO user_password_reset (reset_code, user_id, token, valid_until) VALUES (?, ?, ?, DATE_ADD(CURRENT_DATE(), INTERVAL 1 HOUR));",
+			args: [
+				resetCode,
+				user_id,
+				token
+			]
+		}
+	}
+
+	/**
+	 * Returns the results for a users password reset requests with a certain token
+	 * @param user_id User
+	 * @param resetCode Alphanumeric 6 character resetCode (upper case)
+	 */
+	public static getPasswordResetRequest(user_id: string, resetCode: string): Query {
+		return {
+			query: "SELECT * FROM user_password_reset WHERE user_id = ? AND reset_code = ? AND CURRENT_DATE() < valid_until;",
+			args: [
+				user_id,
+				resetCode
+			]
+		}
+	}
+
+	public static getPasswordResetRequestWithToken(user_id: string, token: string): Query {
+		return {
+			query: "SELECT * FROM user_password_reset WHERE user_id = ? AND token = ? AND CURRENT_DATE() < valid_until;",
+			args: [
+				user_id,
+				token
+			]
+		}
+	}
+
+	/**
+	 * Deletes all password reset requests for a given user
+	 * @param user_id 
+	 */
+	public static deletePasswordResetRequests(user_id: string): Query {
+		return {
+			query: "DELETE FROM user_password_reset WHERE user_id = ?;",
+			args: [
+				user_id
+			]
+		}
+	}
+	
+	/**
+	 * Delete all expired password reset requests across all users
+	 */
+	public static deleteExpiredPasswordResetRequests(): Query {
+		return {
+			query: "DELETE FROM user_password_reset WHERE CURRENT_DATE() > valid_until;",
+			args: []
+		}
+	}
+
+	public static setPassword(user_id, password_hash): Query {
+		return {
+			query: "UPDATE user SET password_hash = ? WHERE user_id = ?;",
+			args: [
+				password_hash,
+				user_id
+			]
+		}
+	}
+
 	public static testQuery() {
 		return {
 			query: "SELECT * FROM place WHERE place_id < 4;",

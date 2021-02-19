@@ -1,7 +1,6 @@
 import { Controller, Get, Param, Put, Body, Patch, Delete, Req, Post, Res, Query, UseInterceptors, UploadedFile, Response } from '@nestjs/common';
 import { UserService } from './user.service';
 import { User } from './user.model';
-import { response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UserRating } from './user-rating.model';
 
@@ -101,6 +100,30 @@ export class UserController {
         session_id: string
     }> {
         return await this.userService.validateUser(auth);
+    }
+
+    @Post('password-reset/request')
+    async requestPasswordReset(
+        @Body('email') email: string
+    ): Promise<void> {
+        await this.userService.requestPasswordReset(email);
+    }
+
+    @Post('password-reset/verify-code')
+    async verifyPasswordResetToken(
+        @Body('email') email: string,
+        @Body('reset_code') reset_code: string 
+    ) {
+        return await this.userService.verifyPasswordResetCode(email, reset_code); 
+    }
+
+    @Post('password-reset/reset')
+    async resetPassword(
+        @Body('email') email: string,
+        @Body('token') token: string,
+        @Body('new_password') new_password: string
+    ) {
+        return await this.userService.resetPassword(email, token, new_password);
     }
 
 
