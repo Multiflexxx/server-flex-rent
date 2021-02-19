@@ -1267,6 +1267,19 @@ export class QueryBuilder {
 	}
 
 	/**
+	 * Calculates the arithmetic mean and the number of ratings for a given offer id
+	 * @param offerId Id of the offer
+	 */
+	public static calculateOfferRatingByOfferId(offerId: string): Query {
+		return {
+			query: "SELECT (SUM(rating) / COUNT(rating_id)) AS arithmetic_mean, COUNT(rating_id) AS number_of_ratings FROM offer_rating WHERE offer_id = ?",
+			args: [
+				offerId
+			]
+		}
+	}
+
+	/**
 	 * Returns the number of requests with a created timestamp greater than the last update
 	 * for a given status and user
 	 * @param userId Id of user to get request numbers for
