@@ -28,23 +28,26 @@ export class UserService {
 	/**
 	 * Returns a User Object containing publicly visible user information
 	 * @param id ID of user
+	 * @param detailLevel
 	 */
-	public async getUser(id: string, isAuthenticated?: boolean): Promise<User> {
+	public async getUser(id: string, detailLevel?: number): Promise<User> {
+
+		if(!detailLevel) {
+			detailLevel = StaticConsts.userDetailLevel.PUBLIC
+		}
 
 		if(!id || id === "") {
 			throw new BadRequestException("Invalid Request");
 		}
-
-		let user: User;
 
 		let result = (await Connector.executeQuery(QueryBuilder.getUser({ user_id: id })))[0];
 		if (!result) {
 			throw new NotFoundException("User not found");
 		}
 
-		if (result.status_id != StaticConsts.userStates.SOFT_DELETED && result.status_id != StaticConsts.userStates.HARD_DELETED) {
-			user = {
-				user_id: result.user_id,
+		
+		let user: User = {
+			user_id: result.user_id,
 				first_name: result.first_name,
 				last_name: result.last_name,
 				verified: (result.verified === 1 ? true : false),
@@ -55,41 +58,27 @@ export class UserService {
 				number_of_lessor_ratings: result.number_of_lessor_ratings,
 				profile_picture: result.profile_picture ? fileConfig.user_image_base_url + result.profile_picture.split(".")[0] + `?refresh=${uuidv4()}` : "",
 				status_id: result.status_id
+		};
+
+		if(detailLevel === StaticConsts.userDetailLevel.CONTRACT || detailLevel === StaticConsts.userDetailLevel.COMPLETE) {
+			// Get post code and city name by place_id
+			let place = (await Connector.executeQuery(QueryBuilder.getPlace({ place_id: user.place_id })))[0];
+
+			if (!place) {
+				throw new InternalServerErrorException("User with unkown place");
 			}
 
-			// Add private parameters of user is authenticated
-			if (isAuthenticated) {
-				user.email = result.email;
-				user.phone_number = result.phone_number;
-				user.street = result.street;
-				user.house_number = result.house_number;
-				user.date_of_birth = result.date_of_birth;
-				user.password_hash = result.password_hash;
+			user.post_code = place.post_code;
+			user.city = place.name;
+		}
 
-				// Get post code and city name by place_id
-				result = (await Connector.executeQuery(QueryBuilder.getPlace({ place_id: user.place_id })))[0];
-
-				if (!result) {
-					throw new InternalServerErrorException("Something went wrong...");
-				}
-
-				user.post_code = result.post_code;
-				user.city = result.name;
-			}
-		} else {
-			user = {
-				user_id: result.user_id,
-				first_name: "Deleted",
-				last_name: "User",
-				verified: false,
-				place_id: 0,
-				lessee_rating: 0,
-				number_of_lessee_ratings: 0,
-				lessor_rating: 0,
-				number_of_lessor_ratings: 0,
-				profile_picture: result.profile_picture ? fileConfig.user_image_base_url + result.profile_picture.split(".")[0] + `?refresh=${uuidv4()}` : "",
-				status_id: result.status_id
-			}
+		if(detailLevel === StaticConsts.userDetailLevel.COMPLETE) {
+			user.email = result.email;
+			user.phone_number = result.phone_number;
+			user.street = result.street;
+			user.house_number = result.house_number;
+			user.date_of_birth = result.date_of_birth;
+			user.password_hash = result.password_hash;
 		}
 
 		return user;
@@ -312,7 +301,7 @@ export class UserService {
 			let result = (await Connector.executeQuery(QueryBuilder.getUser({ email: auth.login.email })))[0];
 
 			if (result && result.user_id) {
-				user = await this.getUser(result.user_id, true);
+				user = await this.getUser(result.user_id, StaticConsts.userDetailLevel.COMPLETE);
 			} else {
 				throw new UnauthorizedException("Email and Password don't match");
 			}
@@ -336,7 +325,7 @@ export class UserService {
 				throw new UnauthorizedException("Invalid session.");
 			}
 
-			user = await this.getUser(result.user_id, true);
+			user = await this.getUser(result.user_id, StaticConsts.userDetailLevel.COMPLETE);
 
 		} else if (auth.oauth && auth.oauth.email && auth.oauth.method) {
 			// Authenticate using oauth flow (Email and method)
@@ -345,7 +334,7 @@ export class UserService {
 			if (!result || !result.user_id) {
 				throw new NotFoundException("No user with that sign in info and oauth method");
 			} else {
-				user = await this.getUser(result.user_id, true);
+				user = await this.getUser(result.user_id, StaticConsts.userDetailLevel.COMPLETE);
 			}
 
 			// ,, any old sessions
@@ -699,7 +688,7 @@ export class UserService {
 		// Update User with new path
 		await Connector.executeQuery(QueryBuilder.changeProfilePicture(user_id, fileName));
 
-		return await this.getUser(user_id, true);
+		return await this.getUser(user_id, StaticConsts.userDetailLevel.COMPLETE);
 	}
 
 	/**

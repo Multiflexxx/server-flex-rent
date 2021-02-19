@@ -1342,7 +1342,7 @@ export class OfferService {
 
 					let responseUser: User;
 					try {
-						responseUser = await this.userService.getUser(dbRequests[0].user_id, false);
+						responseUser = await this.userService.getUser(dbRequests[0].user_id, StaticConsts.userDetailLevel.PUBLIC);
 					} catch (e) {
 						throw new InternalServerErrorException("Something went wrong");
 					}
@@ -1930,7 +1930,7 @@ export class OfferService {
 				// Lessor is now a user!
 				let lessor: User;
 				try {
-					lessor = await this.userService.getUser(offerList[i].user_id, true);
+					lessor = await this.userService.getUser(offerList[i].user_id, StaticConsts.userDetailLevel.CONTRACT);
 				} catch (error) {
 					throw error;
 				}
