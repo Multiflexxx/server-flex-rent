@@ -28,6 +28,7 @@ export class UserService {
 	/**
 	 * Returns a User Object containing publicly visible user information
 	 * @param id ID of user
+	 * @param detailLevel userDetailLevel taken from Constants: PUBLIC, CONTRACT, COMPLETE
 	 */
 	public async getUser(id: string, isAuthenticated?: boolean): Promise<User> {
 
