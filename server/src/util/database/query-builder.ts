@@ -1379,6 +1379,75 @@ export class QueryBuilder {
 		}
 	}
 
+	public static setEmailValidationToken(user_id: string, token: string): Query {
+		return {
+			query: "UPDATE user SET email_validation_token = ? WHERE user_id = ?;",
+			args: [
+				token, 
+				user_id
+			]
+		}
+	}
+
+	public static setPhoneValidationToken(user_id: string, token: string): Query {
+		return {
+			query: "UPDATE user SET phone_number_validation_token = ? WHERE user_id = ?;",
+			args: [
+				token, 
+				user_id
+			]
+		}
+	}
+
+	public static getUserByEmailValidationToken(user_id: string, token: string): Query {
+		return {
+			query: "SELECT * FROM user WHERE user_id = ? AND email_validation_token = ?;",
+			args: [
+				user_id,
+				token
+			]
+		}
+	}
+
+	public static getUserByPhoneValidationToken(user_id: string, token: string): Query {
+		return {
+			query: "SELECT * FROM user WHERE user_id = ? AND phone_number_validation_token = ?;",
+			args: [
+				user_id,
+				token
+			]
+		}
+	}
+
+	public static setEmailToVerified(user_id: string, value: boolean = true): Query {
+		return {
+			query: "UPDATE user SET is_email_verified = ? WHERE user_id = ?;",
+			args: [
+				value, 
+				user_id
+			]
+		}
+	}
+
+	public static setPhoneToVerified(user_id: string, value: boolean = true): Query {
+		return {
+			query: "UPDATE user SET is_phone_number_verified = ? WHERE user_id = ?;",
+			args: [
+				value, 
+				user_id
+			]
+		}
+	}
+
+	public static updateUserVerifiedStatus(user_id: string): Query {
+		return {
+			query: "UPDATE user SET verified = TRUE WHERE is_email_verified = TRUE AND is_phone_number_verified = TRUE AND user_id = ?;",
+			args: [
+				user_id
+			]
+		}
+	}
+
 	public static testQuery() {
 		return {
 			query: "SELECT * FROM place WHERE place_id < 4;",
