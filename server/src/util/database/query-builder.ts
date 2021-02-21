@@ -155,7 +155,7 @@ export class QueryBuilder {
 	 */
 	public static transferUserInfo(user_id: string): Query {
 		return {
-			query: "INSERT INTO soft_deleted_user (user_id, first_name, last_name, email, phone_number, password_hash, verified, place_id, street, house_number, lessee_rating, lessor_rating, number_of_lessee_ratings, number_of_lessor_ratings, date_of_birth, profile_picture, sign_in_method, status_id, deletion_date) SELECT * FROM user WHERE user_id = ?;",
+			query: "INSERT INTO soft_deleted_user (user_id, first_name, last_name, email, phone_number, password_hash, verified, place_id, street, house_number, lessee_rating, lessor_rating, number_of_lessee_ratings, number_of_lessor_ratings, date_of_birth, profile_picture, sign_in_method, status_id, deletion_date, email_validation_token, phone_number_validation_token, is_email_verified, is_phone_number_verified) SELECT * FROM user WHERE user_id = ?;",
 			args: [
 				user_id
 			]
