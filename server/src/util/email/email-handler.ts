@@ -20,10 +20,11 @@ export class EmailHandler {
     public static async sendVerificationEmail(
         recipient: string,
         userName: string,
-        link: string):
+        path: string):
         Promise<EmailResponse> {
 
-            const subject: string = "Bestätige jetzt deine FlexRent Email-Adresse";
+        const subject: string = "Bestätige jetzt deine FlexRent Email-Adresse";
+        const link: string = `${EmailHandler.transporterConfig.base_url}${path}`
 
         // Email Body
         let htmlBody = `<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><style> .btn {background-color: #9C27B0; border: none; color: #fff; padding: 7px 16px; text-align: center; text-decoration: none; display: inline-block; } .btn:hover {background-color: rgba(156, 39, 176, 0.90); } .main {background-color: #202020; width: 50%; margin: 0 auto; padding: 25px;} a {margin-top: 10px;} body {background-color: #000000; color: #fff; font-family: 'Roboto', sans-serif;} </style><link href="http://fonts.googleapis.com/css?family=Roboto" rel="stylesheet" type="text/css"></head><body><div class="main"><h3>Hallo ${userName},</h3><p>bitte bestätige Deine E-Mail-Adresse:</p><a href="${link}" class="btn">Bestätigen</a><br><p>Alternativ kannst Du auch diese URL in deinen Webbrowser kopieren und<br>die Seite öffnen:<br><br>${link}<br><br>Wir wünschen Dir viel Spaß bei der Nutzung!<br><br>Dein Multiflexxx-Team</p></div></body></html>`;

@@ -20,6 +20,7 @@ const google_oauth_client = new OAuth2Client(GOOGLE_CLIENT_ID);
 const fileConfig = require('../../file-handler-config.json');
 const moment = require('moment');
 const cryptoRandomString = require('crypto-random-string');
+const emailConfig = require('../../email.json');
 
 @Injectable()
 export class UserService {
@@ -133,9 +134,8 @@ export class UserService {
 		await Connector.executeQuery(QueryBuilder.setPhoneValidationToken(user.user_id, phoneToken));
 
 		// Send validation Email
-		const baseUrl: string = "localhost:3000";
-		let emailValidationUrl: string = `${baseUrl}/user/validate-email/${user.user_id}?token=${emailToken}`;
-		EmailHandler.sendVerificationEmail(user.email, user.first_name, emailValidationUrl);
+		let emailValidationPath: string = `/user/validate-email/${user.user_id}?token=${emailToken}`;
+		EmailHandler.sendVerificationEmail(user.email, user.first_name, emailValidationPath);
 
 		// TODO: Send SMS
 	}
