@@ -282,4 +282,13 @@ export class UserController {
     ): Promise<any> {
         return await this.userService.uploadProfilePicture(user_id, session_id, image);
     }
+
+    @Post('test')
+    async testFunction(
+        @Body('user_id_from') user_id_from: string,
+        @Body('user_id_for') user_id_for: string,
+        @Body('rating_type') rating_type: string
+    ) {
+        return await  this.userService.getPairUserRatings(user_id_from, user_id_for, rating_type);
+    }
 }
