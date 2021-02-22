@@ -263,7 +263,7 @@ export class OfferService {
 			}
 		}
 
-		if(priceBelow <= StaticConsts.CHECK_ZERO) {
+		if (priceBelow <= StaticConsts.CHECK_ZERO) {
 			throw new BadRequestException("Not a valid price");
 		}
 
@@ -279,7 +279,7 @@ export class OfferService {
 			}
 		}
 
-		if(ratingAbove < StaticConsts.RATING_MIN_FOR_OFFERS || ratingAbove > StaticConsts.RATING_MAX_FOR_OFFERS) {
+		if (ratingAbove < StaticConsts.RATING_MIN_FOR_OFFERS || ratingAbove > StaticConsts.RATING_MAX_FOR_OFFERS) {
 			throw new BadRequestException("Not a valid rating");
 		}
 
@@ -519,7 +519,7 @@ export class OfferService {
 				}
 			}
 
-			if(price <= StaticConsts.CHECK_ZERO) {
+			if (price <= StaticConsts.CHECK_ZERO) {
 				throw new BadRequestException("Not a valid price");
 			}
 
@@ -850,7 +850,7 @@ export class OfferService {
 				}
 			}
 
-			if(price <= StaticConsts.CHECK_ZERO) {
+			if (price <= StaticConsts.CHECK_ZERO) {
 				throw new BadRequestException("Not a valid price");
 			}
 
@@ -1089,18 +1089,11 @@ export class OfferService {
 			//also it should be almost impossible to guess the id [security])
 			let requestUuid = uuid();
 
-			// Remove attributes that shall not be displayed in frontend!
-			delete user.user.date_of_birth;
-			delete user.user.email;
-			delete user.user.lessee_rating;
-			delete user.user.number_of_lessee_ratings;
-			delete user.user.password_hash;
-			delete user.user.phone_number;
-			delete user.user.place_id;
+			let responseUser = await this.userService.getUser(user.user.user_id, StaticConsts.userDetailLevel.CONTRACT);
 
 			let request: Request = {
 				request_id: requestUuid,
-				user: user.user,
+				user: responseUser,
 				offer: offer,
 				status_id: StaticConsts.REQUEST_STATUS_OPEN,
 				date_range: {
@@ -1112,7 +1105,11 @@ export class OfferService {
 					).format("YYYY-MM-DD"))
 				},
 				message: (reqBody.message === undefined || reqBody.message === null) ? "" : reqBody.message,
-				qr_code_id: ""
+				qr_code_id: "",
+				new_update: false,
+				lessor_rating: null,
+				lessee_rating: null,
+				offer_rating: null
 			}
 
 			try {
@@ -1173,7 +1170,7 @@ export class OfferService {
 			throw new BadRequestException("Not a valid rating");
 		}
 
-		if(userRating <= StaticConsts.RATING_MIN_FOR_OFFERS || userRating > StaticConsts.RATING_MAX_FOR_OFFERS) {
+		if (userRating <= StaticConsts.RATING_MIN_FOR_OFFERS || userRating > StaticConsts.RATING_MAX_FOR_OFFERS) {
 			throw new BadRequestException("Not a valid rating");
 		}
 
@@ -1279,7 +1276,7 @@ export class OfferService {
 			arithmetic_mean: number,
 			number_of_ratings: number
 		}> = await Connector.executeQuery(QueryBuilder.calculateOfferRatingByOfferId(dbOffer.offer_id));
-		
+
 
 		// Insert rating into database
 		await Connector.executeQuery(QueryBuilder.updateOfferRating({
@@ -1368,7 +1365,7 @@ export class OfferService {
 			throw new BadRequestException("Not a valid rating");
 		}
 
-		if(userRating <= StaticConsts.RATING_MIN_FOR_OFFERS || userRating > StaticConsts.RATING_MAX_FOR_OFFERS) {
+		if (userRating <= StaticConsts.RATING_MIN_FOR_OFFERS || userRating > StaticConsts.RATING_MAX_FOR_OFFERS) {
 			throw new BadRequestException("Not a valid rating");
 		}
 
@@ -1474,7 +1471,6 @@ export class OfferService {
 			arithmetic_mean: number,
 			number_of_ratings: number
 		}> = await Connector.executeQuery(QueryBuilder.calculateOfferRatingByOfferId(dbOffer.offer_id));
-		
 
 		// Insert rating into database
 		await Connector.executeQuery(QueryBuilder.updateOfferRating({
@@ -1551,7 +1547,7 @@ export class OfferService {
 			}
 		}
 
-		if(ratingFilterNumber <= StaticConsts.RATING_MIN_FOR_OFFERS || ratingFilterNumber > StaticConsts.RATING_MAX_FOR_OFFERS) {
+		if (ratingFilterNumber <= StaticConsts.RATING_MIN_FOR_OFFERS || ratingFilterNumber > StaticConsts.RATING_MAX_FOR_OFFERS) {
 			throw new BadRequestException("Not a valid rating number");
 		}
 
@@ -1615,9 +1611,9 @@ export class OfferService {
 
 		let responseArray: Array<OfferRating> = [];
 		for (let i = 0; i < dbRatings.length; i++) {
-			
+
 			let userOfRating = await this.userService.getUser(dbRatings[0].user_id, StaticConsts.userDetailLevel.CONTRACT);
-			
+
 			let o: OfferRating = {
 				rating_id: dbRatings[i].rating_id,
 				rating: dbRatings[i].rating,
@@ -1686,7 +1682,7 @@ export class OfferService {
 		}));
 
 		// Check if rating is valid
-		if(dbRatings.length <= StaticConsts.CHECK_ZERO) {
+		if (dbRatings.length <= StaticConsts.CHECK_ZERO) {
 			throw new BadRequestException("Not a valid offer rating");
 		}
 
@@ -1704,7 +1700,7 @@ export class OfferService {
 			arithmetic_mean: number,
 			number_of_ratings: number
 		}> = await Connector.executeQuery(QueryBuilder.calculateOfferRatingByOfferId(offer.offer_id));
-		
+
 		// Insert rating into database
 		await Connector.executeQuery(QueryBuilder.updateOfferRating({
 			rating_in_offer: {
@@ -1903,6 +1899,13 @@ export class OfferService {
 						qrCodeValue = (dbRequests[0].qr_code_id === null) ? "" : dbRequests[0].qr_code_id;
 					}
 
+					// Get User Ratings
+					let lesseeRating = null;
+					let lessorRating = null;
+
+					// Get offerratings for user + offer id
+					let offerRating: OfferRating = await this.getOfferRatingByOfferIdAndUserId(dbRequests[0].offer_id, dbRequests[0].user_id);
+
 					let o: Request = {
 						request_id: dbRequests[0].request_id,
 						user: responseUser,
@@ -1913,7 +1916,11 @@ export class OfferService {
 							to_date: dbRequests[0].to_date
 						},
 						message: dbRequests[0].message,
-						qr_code_id: qrCodeValue
+						qr_code_id: qrCodeValue,
+						offer_rating: offerRating,
+						lessee_rating: lesseeRating,
+						lessor_rating: lessorRating,
+						new_update: false
 					}
 
 					// Check if lessor sent request or lessee
@@ -1979,15 +1986,6 @@ export class OfferService {
 					}
 				}
 
-				// Remove attributes that shall not be displayed in frontend!
-				delete userResponse.user.date_of_birth;
-				delete userResponse.user.email;
-				delete userResponse.user.lessee_rating;
-				delete userResponse.user.number_of_lessee_ratings;
-				delete userResponse.user.password_hash;
-				delete userResponse.user.phone_number;
-				delete userResponse.user.place_id;
-
 				for (let i = 0; i < dbRequests.length; i++) {
 					let offer: Offer;
 
@@ -1996,6 +1994,12 @@ export class OfferService {
 					} catch (error) {
 						throw new InternalServerErrorException("Something went wrong...");
 					}
+
+					let isLessor = (offer.lessor.user_id === userResponse.user.user_id) ? true : false;
+
+					// Check who has update via user id an offer id
+					let newUpdateVal = ((await Connector.executeQuery(QueryBuilder.hasOfferRequestUpdate(dbRequests[i].request_id, isLessor)))[0]).has_read;
+					let newUpdate = !(newUpdateVal == StaticConsts.CHECK_ZERO ? false : true);
 
 					// Remove QR-Code from list
 					let o: Request = {
@@ -2008,7 +2012,11 @@ export class OfferService {
 							to_date: dbRequests[i].to_date
 						},
 						message: dbRequests[i].message,
-						qr_code_id: ''
+						qr_code_id: '',
+						lessee_rating: null,
+						lessor_rating: null,
+						offer_rating: null,
+						new_update: newUpdate
 					}
 
 					response.push(o);
@@ -2383,6 +2391,48 @@ export class OfferService {
 			lessees_number_of_new_rejected_requests: numberOfNewRejectedRequests,
 			lessees_total_number_of_updates: (numberOfNewAcceptedRequests + numberOfNewRejectedRequests)
 		}
+		return o;
+	}
+
+	/**
+	 * Returns the rating for a given offer id and user id
+	 * @param offerId Id of the offer
+	 * @param userId Id of the user
+	 */
+	private async getOfferRatingByOfferIdAndUserId(offerId: string, userId: string): Promise<OfferRating> {
+		// Get filtered ratings from DB
+		let dbRatings: Array<{
+			rating_id: string,
+			user_id: string,
+			offer_id: string,
+			request_id: string,
+			rating: number,
+			headline: string,
+			rating_text: string,
+			created_at: Date,
+			updated_at: Date
+		}> = await Connector.executeQuery(QueryBuilder.getOfferRatings({
+			rated_check: {
+				offer_id: offerId,
+				user_id: userId
+			}
+		}));
+
+		// No ratings found
+		if(dbRatings.length <= StaticConsts.CHECK_ZERO) {
+			return null;
+		}
+		let userOfRating = await this.userService.getUser(dbRatings[0].user_id, StaticConsts.userDetailLevel.CONTRACT);
+
+		let o: OfferRating = {
+			rating_id: dbRatings[0].rating_id,
+			rating: dbRatings[0].rating,
+			headline: (dbRatings[0].headline === null ? "" : dbRatings[0].headline),
+			rating_text: (dbRatings[0].rating_text === null ? "" : dbRatings[0].rating_text),
+			updated_at: dbRatings[0].updated_at,
+			rating_owner: userOfRating
+		}
+
 		return o;
 	}
 
