@@ -1900,8 +1900,8 @@ export class OfferService {
 					}
 
 					// Get User Ratings
-					let lesseeRating = null;
-					let lessorRating = null;
+					let lesseeRating = await this.userService.getPairUserRatings(offer.lessor.user_id, dbRequests[0].user_id, StaticConsts.RATING_TYPES[1]);
+					let lessorRating = await this.userService.getPairUserRatings(dbRequests[0].user_id, offer.lessor.user_id, StaticConsts.RATING_TYPES[0]);
 
 					// Get offerratings for user + offer id
 					let offerRating: OfferRating = await this.getOfferRatingByOfferIdAndUserId(dbRequests[0].offer_id, dbRequests[0].user_id);
