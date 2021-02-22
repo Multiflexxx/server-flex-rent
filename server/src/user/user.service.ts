@@ -810,6 +810,17 @@ export class UserService {
 		return userRating;
 	}
 
+
+	public async getPairUserRatings(user_id_from: string, user_id_for: string): Promise<UserRating[]> {
+		let results = await Connector.executeQuery(QueryBuilder.getUserRatingsByPair(user_id_from, user_id_for));
+
+		if(!results || results.length === 0) {
+			return []
+		}
+		
+		return results;
+	}
+
 	/**
 	 * Returns the local storage path of a requested user's profile picture
 	 * @param user_id 
