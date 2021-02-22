@@ -1031,12 +1031,13 @@ export class QueryBuilder {
 		}
 	}
 
-	public static getUserRatingsByPair(user_id_from: string, user_id_for: string): Query {
+	public static getUserRatingsByPair(user_id_from: string, user_id_for: string, rating_type: string): Query {
 		return {
-			query: "SELECT * FROM user_rating WHERE rating_owner_id = ? AND rated_user_id = ?;",
+			query: "SELECT * FROM user_rating WHERE rating_owner_id = ? AND rated_user_id = ? AND rating_type = ?;",
 			args: [
 				user_id_from,
-				user_id_for
+				user_id_for,
+				rating_type
 			]
 		}
 	}

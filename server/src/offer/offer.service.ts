@@ -1900,8 +1900,8 @@ export class OfferService {
 					}
 
 					// Get User Ratings
-					let lesseeRating = null;
-					let lessorRating = null;
+					let lesseeRating = await this.userService.getPairUserRatings(offer.lessor.user_id, dbRequests[0].user_id, StaticConsts.RATING_TYPES[1]);
+					let lessorRating = await this.userService.getPairUserRatings(dbRequests[0].user_id, offer.lessor.user_id, StaticConsts.RATING_TYPES[0]);
 
 					// Get offerratings for user + offer id
 					let offerRating: OfferRating = await this.getOfferRatingByOfferIdAndUserId(dbRequests[0].offer_id, dbRequests[0].user_id);
@@ -1998,8 +1998,14 @@ export class OfferService {
 					let isLessor = (offer.lessor.user_id === userResponse.user.user_id) ? true : false;
 
 					// Check who has update via user id an offer id
-					let newUpdateVal = ((await Connector.executeQuery(QueryBuilder.hasOfferRequestUpdate(dbRequests[i].request_id, isLessor)))[0]).has_read;
-					let newUpdate = !(newUpdateVal == StaticConsts.CHECK_ZERO ? false : true);
+					let newUpdateVal = await Connector.executeQuery(QueryBuilder.hasOfferRequestUpdate(dbRequests[i].request_id, isLessor));
+
+					let newUpdate = false;
+					if (newUpdateVal.length <= StaticConsts.CHECK_ZERO) {
+						newUpdate = false;
+					} else {
+						newUpdate = !(newUpdateVal[0].has_read == StaticConsts.CHECK_ZERO ? false : true);
+					}
 
 					// Remove QR-Code from list
 					let o: Request = {
@@ -2419,7 +2425,7 @@ export class OfferService {
 		}));
 
 		// No ratings found
-		if(dbRatings.length <= StaticConsts.CHECK_ZERO) {
+		if (dbRatings.length <= StaticConsts.CHECK_ZERO) {
 			return null;
 		}
 		let userOfRating = await this.userService.getUser(dbRatings[0].user_id, StaticConsts.userDetailLevel.CONTRACT);
