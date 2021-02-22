@@ -113,6 +113,9 @@ export class UserService {
 		// Create User
 		await Connector.executeQuery(QueryBuilder.createUser(user, method));
 
+		// Send out verification Email and SMS
+		await this.startValidationProcess(user);
+
 		// Create Session for User and return user + new session
 		return await this.validateUser({
 			login: {
@@ -120,6 +123,21 @@ export class UserService {
 				password_hash: plainTextPwd
 			}
 		});
+	}
+
+	public async startValidationProcess(user: User) {
+		// Set Email and Phone validation tokens
+		const emailToken: string = uuidv4();
+		const phoneToken: string = cryptoRandomString({length: 6, type: 'alphanumeric'}).toUpperCase();
+		await Connector.executeQuery(QueryBuilder.setEmailValidationToken(user.user_id, emailToken));
+		await Connector.executeQuery(QueryBuilder.setPhoneValidationToken(user.user_id, phoneToken));
+
+		// Send validation Email
+		const baseUrl: string = "localhost:3000";
+		let emailValidationUrl: string = `${baseUrl}/user/validate-email/${user.user_id}?token=${emailToken}`;
+		EmailHandler.sendVerificationEmail(user.email, user.first_name, emailValidationUrl);
+
+		// TODO: Send SMS
 	}
 
 	/**
@@ -421,6 +439,55 @@ export class UserService {
 			throw new BadRequestException("Missing arguments");
 		}
 	}
+
+
+	/**
+	 * Sets a user's email validation status to validated, if token is valid
+	 * @param user_id user id
+	 * @param token validation token (uuid v4)
+	 */
+	public async validateEmail(user_id: string, token: string) {
+		if(!user_id || !token) {
+			throw new BadRequestException("Invalid request parameters");
+		}
+
+		// Check if token is valid
+		let user = (await Connector.executeQuery(QueryBuilder.getUserByEmailValidationToken(user_id, token)))[0];
+		if(!user) {
+			throw new NotFoundException("Invalid user id or token");
+		}
+
+		// Set email to validated to user
+		await Connector.executeQuery(QueryBuilder.setEmailToVerified(user.user_id));
+		await Connector.executeQuery(QueryBuilder.updateUserVerifiedStatus(user_id));
+
+		return;
+	}
+
+	/**
+	 * Sets a user's phone number validation status to validated, if token is valid
+	 * @param user_id user id
+	 * @param token validation token 6 characters alphanumeric
+	 */
+	public async validatePhone(user_id: string, token: string) {
+		if(!user_id || !token) {
+			throw new BadRequestException("Invalid request parameters");
+		}
+
+		// Check if token is valid
+		let user = (await Connector.executeQuery(QueryBuilder.getUserByPhoneValidationToken(user_id, token)))[0];
+		if(!user) {
+			throw new NotFoundException("Invalid user id or token");
+		}
+
+		// Set email to validated to user
+		await Connector.executeQuery(QueryBuilder.setPhoneToVerified(user.user_id));
+		await Connector.executeQuery(QueryBuilder.updateUserVerifiedStatus(user_id));
+
+		return;
+	}
+
+	
 
 	/**
 	 * Creates a password reset request for a user (by email, if user exists)

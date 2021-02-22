@@ -142,6 +142,27 @@ export class UserController {
         return await this.userService.resetPassword(email, token, new_password);
     }
 
+    /**
+     * Sets a user's email to validated if provided a valid token / user combination
+     * /user/validate-email/<user_id>?token=<token-uuidv4>
+     * @param token validation token (uuid v4)
+     * @param query 
+     */
+    @Get('validate-email/:user_id')
+    async validateEmail(
+        @Param('user_id') user_id: string,
+        @Query() query
+    ) {
+        await this.userService.validateEmail(user_id, query.token);
+    }
+
+    @Get('validate-phone/:token')
+    async validatePhone(
+        @Param('token') token: string,
+        @Query() query
+    ) {
+        await this.userService.validatePhone(query.user_id, token);
+    }
 
     /**
      * Authenticate user with google credentials
@@ -190,7 +211,6 @@ export class UserController {
      * Used for creating new user ratings
      * @param auth Auth details of the user rating someone
      * @param rating Ratings details
-     * @param res 
      */
     @Post('rating')
     async rateUser(
