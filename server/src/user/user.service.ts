@@ -821,6 +821,26 @@ export class UserService {
 		return results;
 	}
 
+	public async updateUserRatingById(
+		auth: {
+			session: {
+				user_id: string,
+				session_id: string
+			}
+		},
+		rating_id: string
+	): Promise<UserRating> {
+		const validatedUser = await this.validateUser({ session: auth.session });
+		const oldUserRating: UserRating = await this.getUserRatingById(rating_id);
+
+		if(validatedUser.user.user_id != oldUserRating.rating_owner.user_id) {
+
+		}
+		
+		
+		return null;
+	}
+
 	/**
 	 * Returns the local storage path of a requested user's profile picture
 	 * @param user_id 
