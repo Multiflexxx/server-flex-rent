@@ -1306,6 +1306,36 @@ export class QueryBuilder {
 	}
 
 	/**
+	 * Returns a query to check if lessor / lesse has an update on a given offer
+	 * @param userId ID of user
+	 * @param offerId ID of offer
+	 * @param lessor check for lessor / lesse
+	 */
+	public static hasOfferRequestUpdate(requestId: string, lessor: boolean): Query {
+		if (lessor) {
+			return {
+				query: "SELECT read_by_lessor AS has_read FROM request WHERE (request.status_id = ? OR request.status_id = ? OR request.status_id = ?) AND request_id = ?;",
+				args: [
+					StaticConsts.REQUEST_STATUS_OPEN,
+					StaticConsts.REQUEST_STATUS_ACCEPTED_BY_LESSOR,
+					StaticConsts.REQUEST_STATUS_REJECTED_BY_LESSOR,
+					requestId
+				]
+			}
+		} else {
+			return {
+				query: "SELECT read_by_lessee AS has_read FROM request WHERE (request.status_id = ? OR request.status_id = ? OR request.status_id = ?) AND request_id = ?;",
+				args: [
+					StaticConsts.REQUEST_STATUS_OPEN,
+					StaticConsts.REQUEST_STATUS_ACCEPTED_BY_LESSOR,
+					StaticConsts.REQUEST_STATUS_REJECTED_BY_LESSOR,
+					requestId
+				]
+			}
+		}
+	}
+
+	/**
 	 * Creates a password reset request for a given user with a given token that is valid for 1 hour
 	 * @param user_id User 
 	 * @param resetCode Alphanumeric 6 character resetCode (upper case)
@@ -1358,7 +1388,7 @@ export class QueryBuilder {
 			]
 		}
 	}
-	
+
 	/**
 	 * Delete all expired password reset requests across all users
 	 */
