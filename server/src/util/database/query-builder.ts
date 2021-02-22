@@ -1031,6 +1031,16 @@ export class QueryBuilder {
 		}
 	}
 
+	public static getUserRatingsByPair(user_id_from: string, user_id_for: string): Query {
+		return {
+			query: "SELECT * FROM user_rating WHERE rating_owner_id = ? AND rated_user_id = ?;",
+			args: [
+				user_id_from,
+				user_id_for
+			]
+		}
+	}
+
 	/**
 	 * Used to close offers after a timeout happens
 	 */
