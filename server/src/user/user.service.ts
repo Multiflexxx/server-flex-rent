@@ -813,13 +813,15 @@ export class UserService {
 
 
 	public async getPairUserRatings(user_id_from: string, user_id_for: string, rating_type?: string): Promise<UserRating> {
-		let results = (await Connector.executeQuery(QueryBuilder.getUserRatingsByPair(user_id_from, user_id_for, rating_type)))[0];
+		let result = (await Connector.executeQuery(QueryBuilder.getUserRatingsByPair(user_id_from, user_id_for, rating_type)))[0];
 
-		if(!results) {
+		if(!result) {
 			return null;
 		}
+
+		const userRating: UserRating = await this.getUserRatingById(result.rating_id)
 		
-		return results;
+		return userRating;
 	}
 
 	/**
