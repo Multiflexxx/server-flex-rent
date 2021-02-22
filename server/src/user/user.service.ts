@@ -617,7 +617,8 @@ export class UserService {
 			user_ratings: UserRating[],
 			current_page: number,
 			max_page: number,
-			elements_per_page: number
+			elements_per_page: number,
+
 		}> 
 	{
 		/* Possible query params:
@@ -811,11 +812,11 @@ export class UserService {
 	}
 
 
-	public async getPairUserRatings(user_id_from: string, user_id_for: string): Promise<UserRating[]> {
-		let results = await Connector.executeQuery(QueryBuilder.getUserRatingsByPair(user_id_from, user_id_for));
+	public async getPairUserRatings(user_id_from: string, user_id_for: string, rating_type?: string): Promise<UserRating> {
+		let results = (await Connector.executeQuery(QueryBuilder.getUserRatingsByPair(user_id_from, user_id_for, rating_type)))[0];
 
-		if(!results || results.length === 0) {
-			return []
+		if(!results) {
+			return null;
 		}
 		
 		return results;
