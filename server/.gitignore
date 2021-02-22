@@ -36,6 +36,4 @@ lerna-debug.log*
 #Custom
 geo/ 
 database.json
-package-lock.json
 file-handler-config.json
-
