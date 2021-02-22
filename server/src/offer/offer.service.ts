@@ -2004,7 +2004,7 @@ export class OfferService {
 					if (newUpdateVal.length <= StaticConsts.CHECK_ZERO) {
 						newUpdate = false;
 					} else {
-						newUpdate = (newUpdateVal[0].has_read == StaticConsts.CHECK_ZERO ? false : true);
+						newUpdate = !(newUpdateVal[0].has_read == StaticConsts.CHECK_ZERO ? false : true);
 					}
 
 					// Remove QR-Code from list
