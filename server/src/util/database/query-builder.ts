@@ -2,7 +2,6 @@ import { User } from "src/user/user.model";
 import { Query } from "./query.model";
 import { Request } from "src/offer/request.model";
 const moment = require('moment');
-import { UserService } from "src/user/user.service";
 import * as StaticConsts from 'src/util/static-consts';
 
 export class QueryBuilder {
@@ -831,7 +830,7 @@ export class QueryBuilder {
 	}): Query {
 		if (request_info.request_id) {
 			return {
-				query: "SELECT request_id, user_id, offer_id, request.status_id as status_id, from_date, to_date, message, qr_code_id FROM request WHERE request_id = ? ORDER BY created_at DESC;",
+				query: "SELECT request_id, user_id, offer_id, request.status_id as status_id, from_date, to_date, message, qr_code_id FROM request WHERE request_id = ? ORDER BY updated_at, from_date DESC;",
 				args: [
 					request_info.request_id
 				]
@@ -840,7 +839,7 @@ export class QueryBuilder {
 			if (request_info.status_code) {
 				if (request_info.lessor) {
 					return {
-						query: "SELECT request_id, request.user_id, request.offer_id, request.status_id as status_id, from_date, to_date, message, qr_code_id FROM request INNER JOIN offer ON request.offer_id = offer.offer_id WHERE offer.user_id = ? AND ( request.status_id >= ? OR request.status_id = ? ) ORDER BY request.created_at DESC;",
+						query: "SELECT request_id, request.user_id, request.offer_id, request.status_id as status_id, from_date, to_date, message, qr_code_id FROM request INNER JOIN offer ON request.offer_id = offer.offer_id WHERE offer.user_id = ? AND ( request.status_id >= ? OR request.status_id = ? ) ORDER BY request.updated_at, request.from_date DESC;",
 						args: [
 							request_info.user_id,
 							request_info.status_code,
@@ -849,7 +848,7 @@ export class QueryBuilder {
 					}
 				} else {
 					return {
-						query: "SELECT request_id, user_id, offer_id, request.status_id as status_id, from_date, to_date, message, qr_code_id, created_at FROM request WHERE user_id = ? AND (request.status_id >= ? OR request.status_id = ?)  ORDER BY created_at DESC;",
+						query: "SELECT request_id, user_id, offer_id, request.status_id as status_id, from_date, to_date, message, qr_code_id, created_at FROM request WHERE user_id = ? AND (request.status_id >= ? OR request.status_id = ?)  ORDER BY request.updated_at, request.from_date DESC;",
 						args: [
 							request_info.user_id,
 							request_info.status_code,
@@ -861,7 +860,7 @@ export class QueryBuilder {
 			} else {
 				if (request_info.lessor) {
 					return {
-						query: "SELECT request_id, request.user_id, request.offer_id, request.status_id as status_id, from_date, to_date, message, qr_code_id FROM request INNER JOIN offer ON request.offer_id = offer.offer_id WHERE offer.user_id = ? AND (request.status_id < ? AND request.status_id != ?) ORDER BY request.created_at DESC;",
+						query: "SELECT request_id, request.user_id, request.offer_id, request.status_id as status_id, from_date, to_date, message, qr_code_id FROM request INNER JOIN offer ON request.offer_id = offer.offer_id WHERE offer.user_id = ? AND (request.status_id < ? AND request.status_id != ?) ORDER BY request.updated_at, request.from_date DESC;",
 						args: [
 							request_info.user_id,
 							StaticConsts.REQUEST_STATUS_ITEM_RETURNED_TO_LESSOR,
@@ -870,7 +869,7 @@ export class QueryBuilder {
 					}
 				} else {
 					return {
-						query: "SELECT request_id, user_id, offer_id, request.status_id as status_id, from_date, to_date, message, qr_code_id FROM request WHERE user_id = ? AND (request.status_id < ? AND request.status_id != ?) ORDER BY created_at DESC;",
+						query: "SELECT request_id, user_id, offer_id, request.status_id as status_id, from_date, to_date, message, qr_code_id FROM request WHERE user_id = ? AND (request.status_id < ? AND request.status_id != ?) ORDER BY request.updated_at, request.from_date DESC;",
 						args: [
 							request_info.user_id,
 							StaticConsts.REQUEST_STATUS_ITEM_RETURNED_TO_LESSOR,
@@ -1413,7 +1412,7 @@ export class QueryBuilder {
 		return {
 			query: "UPDATE user SET email_validation_token = ? WHERE user_id = ?;",
 			args: [
-				token, 
+				token,
 				user_id
 			]
 		}
@@ -1423,7 +1422,7 @@ export class QueryBuilder {
 		return {
 			query: "UPDATE user SET phone_number_validation_token = ? WHERE user_id = ?;",
 			args: [
-				token, 
+				token,
 				user_id
 			]
 		}
@@ -1453,7 +1452,7 @@ export class QueryBuilder {
 		return {
 			query: "UPDATE user SET is_email_verified = ? WHERE user_id = ?;",
 			args: [
-				value, 
+				value,
 				user_id
 			]
 		}
@@ -1463,7 +1462,7 @@ export class QueryBuilder {
 		return {
 			query: "UPDATE user SET is_phone_number_verified = ? WHERE user_id = ?;",
 			args: [
-				value, 
+				value,
 				user_id
 			]
 		}
