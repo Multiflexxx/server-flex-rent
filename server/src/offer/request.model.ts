@@ -1,4 +1,6 @@
 import { User } from "src/user/user.model"
+import { UserRating } from "../user/user-rating.model"
+import { OfferRating } from "./offer-rating.model"
 import { Offer } from "./offer.model"
 
 export interface Request {
@@ -11,5 +13,9 @@ export interface Request {
         to_date?: Date
     },
     message?: string,
-    qr_code_id?: string
+    qr_code_id?: string,
+    lessor_rating?: UserRating,
+    lessee_rating?: UserRating,
+    offer_rating?: OfferRating,
+    new_update?: boolean
 }
