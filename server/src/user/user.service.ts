@@ -21,6 +21,8 @@ const fileConfig = require('../../file-handler-config.json');
 const moment = require('moment');
 const cryptoRandomString = require('crypto-random-string');
 const emailConfig = require('../../email.json');
+const speakeasy = require('speakeasy');
+const QRCode = require('qrcode');
 
 @Injectable()
 export class UserService {
@@ -1091,5 +1093,37 @@ export class UserService {
 				method: "facebook"
 			}
 		});
+	}
+
+
+	public async register2fa(user_id: string) {
+		const user: User = await this.getUser(user_id, StaticConsts.userDetailLevel.PUBLIC)
+		const secret = speakeasy.generateSecret({
+			length: 20,
+			name: `FlexRent (${user.first_name} ${user.last_name})`,
+			issuer: 'FlexRent'
+		});
+
+		return {
+			message: 'TFA Auth needs to be verified',
+			tempSecret: secret.base32,
+			tfaURL: secret.otpauth_url
+		}
+	}
+
+	public async check2faToken(user_id: string, token: string) {
+		let tempSecret: string = "IM2UM4R6K5CEEUSTMFZSCOCAHJHT6NCJ";
+		let verified: boolean = await speakeasy.totp.verify({
+			secret: tempSecret,
+			encoding: 'base32',
+			token: token
+		})
+
+		if(!verified) {
+			throw new UnauthorizedException("Wrong token");
+		}
+
+		return await this.getUser(user_id, StaticConsts.userDetailLevel.COMPLETE);
+
 	}
 }

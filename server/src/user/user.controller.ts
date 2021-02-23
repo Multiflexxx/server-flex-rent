@@ -323,12 +323,18 @@ export class UserController {
         return await this.userService.uploadProfilePicture(user_id, session_id, image);
     }
 
-    @Post('test')
+    @Post('test/:id')
     async testFunction(
-        @Body('user_id_from') user_id_from: string,
-        @Body('user_id_for') user_id_for: string,
-        @Body('rating_type') rating_type: string
+        @Param('id') user_id
     ) {
-        return await  this.userService.getPairUserRatings(user_id_from, user_id_for, rating_type);
+        return await this.userService.register2fa(user_id);
+    }
+
+    @Post('test2/:id')
+    async test2Function(
+        @Param('id') user_id: string,
+        @Body('token') token: string
+    ) {
+        return await this.userService.check2faToken(user_id, token);
     }
 }
