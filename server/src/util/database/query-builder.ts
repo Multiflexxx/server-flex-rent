@@ -96,7 +96,7 @@ export class QueryBuilder {
 	): Query {
 		if (user_info.user_id) {
 			return {
-				query: "SELECT * FROM user WHERE user_id = ?;",
+				query: "SELECT *, 2fa_secret as tfa_secret FROM user WHERE user_id = ?;",
 				args: [
 					user_info.user_id
 				]
@@ -1514,6 +1514,36 @@ export class QueryBuilder {
 		return {
 			query: "UPDATE user SET verified = TRUE WHERE is_email_verified = TRUE AND is_phone_number_verified = TRUE AND user_id = ?;",
 			args: [
+				user_id
+			]
+		}
+	}
+
+	public static update2FaSecret(user_id: string, secret: string): Query {
+		return {
+			query: "UPDATE user SET 2fa_secret = ? WHERE user_id = ?;",
+			args: [
+				secret,
+				user_id
+			]
+		}
+	}
+
+	public static registerTrustedDevice2FA(user_id: string, device_id: string, device_name: string): Query {
+		return {
+			query: "INSERT trusted_device_2fa (user_id, device_id, device_name) VALUES (?, ?, ?);",
+			args: [
+				user_id,
+				device_id, 
+				device_name
+			]
+		}
+	}
+	public static deleteTrustedDevice(user_id: string, device_id: string): Query {
+		return {
+			query: "DELETE FROM trusted_device_2fa WHERE trusted_device_id = ? AND user_id = ?;",
+			args: [
+				device_id,
 				user_id
 			]
 		}

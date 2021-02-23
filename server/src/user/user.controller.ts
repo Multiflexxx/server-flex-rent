@@ -326,9 +326,18 @@ export class UserController {
 
     @Post('test/:id')
     async testFunction(
-        @Param('id') user_id
+        @Param('id') user_id,
+        @Body('auth') auth: {
+            session: {
+                user_id: string,
+                session_id: string
+            }
+        },
+        @Body('trusted_device') trusted_device?: {
+            device_name: string
+        }
     ) {
-        return await this.userService.register2fa(user_id);
+        return await this.userService.register2Fa(user_id, auth, trusted_device);
     }
 
     @Post('test2/:id')

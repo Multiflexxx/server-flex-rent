@@ -1085,34 +1085,130 @@ export class UserService {
 	}
 
 
-	public async register2fa(user_id: string) {
-		const user: User = await this.getUser(user_id, StaticConsts.userDetailLevel.PUBLIC)
+	/**
+	 * Activate 2FA authentication for a given user, add trusted device if given
+	 * @param user_id ID of user who wants to register 2FA
+	 * @param auth authentication object (session)
+	 * @param trusted_device optional parameter, if user wants to add a trusted device
+	 */
+	public async register2Fa(
+		user_id: string, 
+		auth: {
+			session: {
+				user_id: string,
+				session_id: string
+			}
+		},
+		trusted_device?: {
+			device_name: string
+		}
+	): Promise<{ 
+		tfaURL: string,
+		trusted_device_id: string
+	}> {
+		
+		// Validate session
+		const validatedUser = await this.validateUser(auth)
+
+		if(validatedUser.user.user_id === user_id) {
+			throw new UnauthorizedException("Not authorized");
+		}
+
+		//  Generate the 2FA secret
 		const secret = speakeasy.generateSecret({
-			length: 20,
-			name: `FlexRent (${user.first_name} ${user.last_name})`,
+			length: 64,
+			name: `FlexRent (${validatedUser.user.first_name} ${validatedUser.user.last_name})`,
 			issuer: 'FlexRent'
 		});
 
+		// Write secret to DB
+		await Connector.executeQuery(QueryBuilder.update2FaSecret(user_id, secret.base32));
+
+		// Register trusted device (if exists)
+		let deviceId: string;
+		if(trusted_device) {
+			deviceId = await this.registerTrustedDevice(user_id, trusted_device.device_name, auth);
+		}
+		
+
 		return {
-			message: 'TFA Auth needs to be verified',
-			tempSecret: secret.base32,
-			tfaURL: secret.otpauth_url
+			tfaURL: secret.otpauth_url,
+			trusted_device_id: !deviceId ? "" : deviceId
 		}
 	}
 
+
+	/**
+	 * Checks whether a 2FA token is valid
+	 * @param user_id Id of the user
+	 * @param token 2FA token (6 digits)
+	 */
 	public async check2faToken(user_id: string, token: string) {
-		let tempSecret: string = "IM2UM4R6K5CEEUSTMFZSCOCAHJHT6NCJ";
+		const user = (await Connector.executeQuery(QueryBuilder.getUser({user_id: user_id})))[0];
+
 		let verified: boolean = await speakeasy.totp.verify({
-			secret: tempSecret,
+			secret: user.tfa_secret,
 			encoding: 'base32',
 			token: token
-		})
+		});
 
 		if(!verified) {
 			throw new UnauthorizedException("Wrong token");
 		}
 
 		return await this.getUser(user_id, StaticConsts.userDetailLevel.COMPLETE);
+	}
 
+	
+	/**
+	 * Registers a device with a given name and returns a device Id for that device
+	 * @param user_id user that registers the device
+	 * @param device_name Name of the device (e.g. "Tristan's S20")
+	 * @param auth authorization (session)
+	 */
+	public async registerTrustedDevice(
+		user_id: string, 
+		device_name: string,
+		auth: {
+			session: {
+				session_id: string,
+				user_id: string
+			}
+		}
+	): Promise<string> {
+		// Validate credentials / auth parameter
+		const validatedUser = await this.validateUser(auth);
+
+		if(user_id != validatedUser.user.user_id) {
+			throw new UnauthorizedException("Not authorized");
+		}
+
+		const deviceId: string = uuidv4();
+		await Connector.executeQuery(QueryBuilder.registerTrustedDevice2FA(user_id, deviceId, device_name));
+
+
+		return deviceId;
+	}
+
+	public async removeTrustedDevice(
+		user_id: string,
+		auth: {
+			session: {
+				session_id: string,
+				user_id: string
+			}
+		},
+		device_id: string
+	) {
+		// Validate session
+		const validatedUser = await this.validateUser(auth);
+
+		if(validatedUser.user.user_id != user_id) {
+			throw new UnauthorizedException("Not authorized");
+		}
+
+		// Get trusted Device
+		
+		// Delete Trusted Device
 	}
 }
