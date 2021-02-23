@@ -1,9 +1,8 @@
-import { Controller, Get, Param, Put, Body, Patch, Delete, Req, Post, Res, Query, UseInterceptors, UploadedFile, Response, RequestMappingMetadata } from '@nestjs/common';
+import { Controller, Get, Param, Put, Body, Patch, Delete, Req, Post, Res, Query, UseInterceptors, UploadedFile, Response } from '@nestjs/common';
 import { UserService } from './user.service';
 import { User } from './user.model';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UserRating } from './user-rating.model';
-import { RATING_MAX_FOR_OFFERS } from 'src/util/static-consts';
 
 @Controller('user')
 export class UserController {
