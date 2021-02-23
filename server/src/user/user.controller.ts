@@ -1,8 +1,9 @@
-import { Controller, Get, Param, Put, Body, Patch, Delete, Req, Post, Res, Query, UseInterceptors, UploadedFile, Response } from '@nestjs/common';
+import { Controller, Get, Param, Put, Body, Patch, Delete, Req, Post, Res, Query, UseInterceptors, UploadedFile, Response, RequestMappingMetadata } from '@nestjs/common';
 import { UserService } from './user.service';
 import { User } from './user.model';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UserRating } from './user-rating.model';
+import { RATING_MAX_FOR_OFFERS } from 'src/util/static-consts';
 
 @Controller('user')
 export class UserController {
@@ -243,6 +244,46 @@ export class UserController {
         @Query() query,
     ): Promise<any> {
         return await this.userService.getUserRatings(user_id, query);
+    }
+
+
+    /**
+     * Updates a user rating
+     * @param auth auth object (session)
+     * @param rating parameters for the rating object
+     * @param rating_id rating to be updated
+     */
+    @Patch('rating/:id')
+    async updateUserRating(
+        @Body('auth') auth: {
+            session: {
+                user_id: string,
+                session_id: string
+            }
+        },
+        @Body('rating') rating: {
+            user_id: string,
+            rating_type: string,
+            rating: number,
+            headline: string,
+            text: string
+        },
+        @Param('id') rating_id: string 
+    ): Promise<UserRating> {
+        return await this.userService.updateUserRatingById(auth, rating, rating_id);
+    }
+    
+    @Patch('rating/delete/:id')
+    async deleteUserRating(
+        @Body('auth') auth: {
+            session: {
+                user_id: string,
+                session_id: string
+            }
+        },
+        @Param('id') rating_id: string
+    ): Promise<UserRating> {
+        return await this.userService.deleteUserRating(auth, rating_id);
     }
 
 

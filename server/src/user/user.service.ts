@@ -824,7 +824,71 @@ export class UserService {
 		return userRating;
 	}
 
+	/**
+	 * Updates a user rating given sufficient authorization and valid rating arguments
+	 * @param auth auth object (session)
+	 * @param rating parameters for the rating object
+	 * @param rating_id rating_id of the rating to be updated
+	 */
 	public async updateUserRatingById(
+		auth: {
+			session: {
+				user_id: string,
+				session_id: string
+			}
+		},
+		rating: {
+            user_id: string,
+            rating_type: string,
+            rating: number,
+            headline: string,
+            text: string
+        },
+		rating_id: string
+	): Promise<UserRating> {
+
+		// Verify session and user
+		const validatedUser = await this.validateUser({ session: auth.session });
+		const oldUserRating: UserRating = await this.getUserRatingById(rating_id);
+
+		if(validatedUser.user.user_id != oldUserRating.rating_owner.user_id) {
+			throw new UnauthorizedException("Not authorized")
+		}
+
+		// Verify user rating input
+		// Check if rating is still for same user
+		if(oldUserRating.rated_user.user_id != rating.user_id) {
+			throw new BadRequestException("Invalid Request")
+		}
+
+		// Check rating arguments
+		if (!rating
+			|| !rating.user_id
+			|| !rating.rating_type
+			|| !rating.rating
+			|| rating.rating > 5
+			|| rating.rating < 1
+			|| !StaticConsts.RATING_TYPES.includes(rating.rating_type)) {
+			throw new BadRequestException("Invalid rating arguments");
+		}
+		
+		// Headline and text logic
+		if((rating.headline == null || rating.headline == undefined)
+			|| (rating.text == null || rating.text == undefined)
+			|| (rating.text.length > 0 && rating.headline.length < 1)
+			|| (rating.text.length > StaticConsts.MAX_RATING_TEXT_LENGTH || rating.headline.length > StaticConsts.MAX_RATING_HEADLINE_LENGTH)) {
+				throw new BadRequestException("Invalid rating arguments (text)");
+		}
+
+		// Seems valid, let's update
+		await Connector.executeQuery(QueryBuilder.updateUserRatingById(rating_id, rating));
+
+		const newUserRating: UserRating = await this.getUserRatingById(rating_id);
+
+		return newUserRating;
+	}
+
+	public async deleteUserRating(
 		auth: {
 			session: {
 				user_id: string,
@@ -833,15 +897,17 @@ export class UserService {
 		},
 		rating_id: string
 	): Promise<UserRating> {
+		// Verify session and user
 		const validatedUser = await this.validateUser({ session: auth.session });
-		const oldUserRating: UserRating = await this.getUserRatingById(rating_id);
+		const userRating: UserRating = await this.getUserRatingById(rating_id);
 
-		if(validatedUser.user.user_id != oldUserRating.rating_owner.user_id) {
-
+		if(validatedUser.user.user_id != userRating.rating_owner.user_id) {
+			throw new UnauthorizedException("Not authorized")
 		}
-		
-		
-		return null;
+
+		// delete the rating
+		await Connector.executeQuery(QueryBuilder.deleteUserRatingById(rating_id));
+		return userRating;
 	}
 
 	/**
