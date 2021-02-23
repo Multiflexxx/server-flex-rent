@@ -961,6 +961,37 @@ export class QueryBuilder {
 		}
 	}
 
+	public static updateUserRatingById(
+		rating_id: string,
+		rating: {
+			user_id: string,
+			rating_type: string,
+			rating: number,
+			headline: string,
+			text: string
+		}
+	): Query {
+		return {
+			query: "UPDATE user_rating SET rating_type = ?, rating = ?, headline = ?, rating_text = ? WHERE rating_id = ?;",
+			args: [
+				rating.rating_type,
+				rating.rating,
+				rating.headline,
+				rating.text,
+				rating_id
+			]
+		}
+	}
+
+	public static deleteUserRatingById(rating_id: string) {
+		return {
+			query: "DELETE FROM user_rating WHERE rating_id = ?;",
+			args: [
+				rating_id
+			]
+		}
+	}
+
 	/**
 	 * Calculates a user's lessor and lessee rating, can be used together with setNewUserRating
 	 * @param user_id 
