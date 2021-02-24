@@ -21,6 +21,8 @@ const fileConfig = require('../../file-handler-config.json');
 const moment = require('moment');
 const cryptoRandomString = require('crypto-random-string');
 const emailConfig = require('../../email.json');
+const speakeasy = require('speakeasy');
+const QRCode = require('qrcode');
 
 @Injectable()
 export class UserService {
@@ -825,6 +827,103 @@ export class UserService {
 	}
 
 	/**
+	 * Updates a user rating given sufficient authorization and valid rating arguments
+	 * @param auth auth object (session)
+	 * @param rating parameters for the rating object
+	 * @param rating_id rating_id of the rating to be updated
+	 */
+	public async updateUserRatingById(
+		auth: {
+			session: {
+				user_id: string,
+				session_id: string
+			}
+		},
+		rating: {
+            user_id: string,
+            rating_type: string,
+            rating: number,
+            headline: string,
+            text: string
+        },
+		rating_id: string
+	): Promise<UserRating> {
+
+		// Verify session and user
+		const validatedUser = await this.validateUser({ session: auth.session });
+		const oldUserRating: UserRating = await this.getUserRatingById(rating_id);
+
+		if(validatedUser.user.user_id != oldUserRating.rating_owner.user_id) {
+			throw new UnauthorizedException("Not authorized")
+		}
+
+		// Verify user rating input
+		// Check if rating is still for same user
+		if(oldUserRating.rated_user.user_id != rating.user_id) {
+			throw new BadRequestException("Invalid Request")
+		}
+
+		// Check rating arguments
+		if (!rating
+			|| !rating.user_id
+			|| !rating.rating_type
+			|| !rating.rating
+			|| rating.rating > 5
+			|| rating.rating < 1
+			|| !StaticConsts.RATING_TYPES.includes(rating.rating_type)) {
+			throw new BadRequestException("Invalid rating arguments");
+		}
+		
+		// Headline and text logic
+		if((rating.headline == null || rating.headline == undefined)
+			|| (rating.text == null || rating.text == undefined)
+			|| (rating.text.length > 0 && rating.headline.length < 1)
+			|| (rating.text.length > StaticConsts.MAX_RATING_TEXT_LENGTH || rating.headline.length > StaticConsts.MAX_RATING_HEADLINE_LENGTH)) {
+				throw new BadRequestException("Invalid rating arguments (text)");
+		}
+
+		// Seems valid, let's update
+		await Connector.executeQuery(QueryBuilder.updateUserRatingById(rating_id, rating));
+
+		// Update the users rating 
+		await this.updateUserRating(oldUserRating.rated_user.user_id);
+
+		// Get the updated User rating
+		const newUserRating: UserRating = await this.getUserRatingById(rating_id);
+
+		return newUserRating;
+	}
+
+	public async deleteUserRating(
+		auth: {
+			session: {
+				user_id: string,
+				session_id: string
+			}
+		},
+		rating_id: string
+	): Promise<UserRating> {
+		// Verify session and user
+		const validatedUser = await this.validateUser({ session: auth.session });
+		const userRating: UserRating = await this.getUserRatingById(rating_id);
+
+		if(validatedUser.user.user_id != userRating.rating_owner.user_id) {
+			throw new UnauthorizedException("Not authorized")
+		}
+
+		// delete the rating
+		await Connector.executeQuery(QueryBuilder.deleteUserRatingById(rating_id));
+
+		// Update user rating
+		await this.updateUserRating(validatedUser.user.user_id);
+
+		// Update the rated user with new rating information (-1 rating)
+		userRating.rated_user = await this.getUser(userRating.rated_user.user_id)
+		
+		return userRating;
+	}
+
+	/**
 	 * Returns the local storage path of a requested user's profile picture
 	 * @param user_id 
 	 */
@@ -994,5 +1093,37 @@ export class UserService {
 				method: "facebook"
 			}
 		});
+	}
+
+
+	public async register2fa(user_id: string) {
+		const user: User = await this.getUser(user_id, StaticConsts.userDetailLevel.PUBLIC)
+		const secret = speakeasy.generateSecret({
+			length: 20,
+			name: `FlexRent (${user.first_name} ${user.last_name})`,
+			issuer: 'FlexRent'
+		});
+
+		return {
+			message: 'TFA Auth needs to be verified',
+			tempSecret: secret.base32,
+			tfaURL: secret.otpauth_url
+		}
+	}
+
+	public async check2faToken(user_id: string, token: string) {
+		let tempSecret: string = "IM2UM4R6K5CEEUSTMFZSCOCAHJHT6NCJ";
+		let verified: boolean = await speakeasy.totp.verify({
+			secret: tempSecret,
+			encoding: 'base32',
+			token: token
+		})
+
+		if(!verified) {
+			throw new UnauthorizedException("Wrong token");
+		}
+
+		return await this.getUser(user_id, StaticConsts.userDetailLevel.COMPLETE);
+
 	}
 }

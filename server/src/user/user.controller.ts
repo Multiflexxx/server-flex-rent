@@ -247,6 +247,46 @@ export class UserController {
 
 
     /**
+     * Updates a user rating
+     * @param auth auth object (session)
+     * @param rating parameters for the rating object
+     * @param rating_id rating to be updated
+     */
+    @Patch('rating/:id')
+    async updateUserRating(
+        @Body('auth') auth: {
+            session: {
+                user_id: string,
+                session_id: string
+            }
+        },
+        @Body('rating') rating: {
+            user_id: string,
+            rating_type: string,
+            rating: number,
+            headline: string,
+            text: string
+        },
+        @Param('id') rating_id: string 
+    ): Promise<UserRating> {
+        return await this.userService.updateUserRatingById(auth, rating, rating_id);
+    }
+    
+    @Patch('rating/delete/:id')
+    async deleteUserRating(
+        @Body('auth') auth: {
+            session: {
+                user_id: string,
+                session_id: string
+            }
+        },
+        @Param('id') rating_id: string
+    ): Promise<UserRating> {
+        return await this.userService.deleteUserRating(auth, rating_id);
+    }
+
+
+    /**
      * Send the profile picture of a user as a response
      * @param user_id 
      * @param response 
@@ -283,12 +323,18 @@ export class UserController {
         return await this.userService.uploadProfilePicture(user_id, session_id, image);
     }
 
-    @Post('test')
+    @Post('test/:id')
     async testFunction(
-        @Body('user_id_from') user_id_from: string,
-        @Body('user_id_for') user_id_for: string,
-        @Body('rating_type') rating_type: string
+        @Param('id') user_id
     ) {
-        return await  this.userService.getPairUserRatings(user_id_from, user_id_for, rating_type);
+        return await this.userService.register2fa(user_id);
+    }
+
+    @Post('test2/:id')
+    async test2Function(
+        @Param('id') user_id: string,
+        @Body('token') token: string
+    ) {
+        return await this.userService.check2faToken(user_id, token);
     }
 }
