@@ -4,6 +4,8 @@ import { User } from './user.model';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UserRating } from './user-rating.model';
 import { RATING_MAX_FOR_OFFERS } from 'src/util/static-consts';
+import { UserSession } from './user-session.model';
+import { TrustedDevice } from './trusted-device.model';
 
 @Controller('user')
 export class UserController {
@@ -44,11 +46,8 @@ export class UserController {
     @Patch()
     async updateUser(
         @Body('auth') auth: {
-            session: {
-                session_id: string,
-                user_id: string
-            }
-        },
+			session: UserSession
+		},
         @Body('user') user: User,
         @Body('password') password?: {
             old_password_hash: string,
@@ -68,11 +67,8 @@ export class UserController {
     async deleteUser(
         @Param('id') id: string,
         @Body('auth') auth: {
-            session: {
-                session_id: string,
-                user_id: string
-            }
-        },
+			session: UserSession
+		},
         @Res() response
     ) {
         await this.userService.softDeleteUser(id, auth);
@@ -91,10 +87,7 @@ export class UserController {
                 email: string,
                 password_hash: string
             },
-            session?: {
-                session_id: string,
-                user_id: string
-            }
+            session?: UserSession
         }
     ): Promise<{
         user: User,
@@ -216,11 +209,8 @@ export class UserController {
     @Post('rating')
     async rateUser(
         @Body('auth') auth: {
-            session: {
-                session_id: string,
-                user_id: string
-            }
-        },
+			session: UserSession
+		},
         @Body('rating') rating: {
             user_id: string,
             rating_type: string,
@@ -246,6 +236,16 @@ export class UserController {
         return await this.userService.getUserRatings(user_id, query);
     }
 
+    
+    @Patch('rating/delete/:id')
+    async deleteUserRating(
+        @Body('auth') auth: {
+			session: UserSession
+		},
+        @Param('id') rating_id?: string
+    ): Promise<UserRating> {
+        return await this.userService.deleteUserRating(auth, rating_id);
+    }
 
     /**
      * Updates a user rating
@@ -256,11 +256,8 @@ export class UserController {
     @Patch('rating/:id')
     async updateUserRating(
         @Body('auth') auth: {
-            session: {
-                user_id: string,
-                session_id: string
-            }
-        },
+			session: UserSession
+		},
         @Body('rating') rating: {
             user_id: string,
             rating_type: string,
@@ -271,19 +268,6 @@ export class UserController {
         @Param('id') rating_id: string 
     ): Promise<UserRating> {
         return await this.userService.updateUserRatingById(auth, rating, rating_id);
-    }
-    
-    @Patch('rating/delete/:id')
-    async deleteUserRating(
-        @Body('auth') auth: {
-            session: {
-                user_id: string,
-                session_id: string
-            }
-        },
-        @Param('id') rating_id: string
-    ): Promise<UserRating> {
-        return await this.userService.deleteUserRating(auth, rating_id);
     }
 
 
@@ -324,27 +308,138 @@ export class UserController {
         return await this.userService.uploadProfilePicture(user_id, session_id, image);
     }
 
-    @Post('test/:id')
-    async testFunction(
-        @Param('id') user_id,
+
+    /**
+     * Entry point to register 2FA for a users account. Returns an URL that can be scanned by Google Authenticator.
+     * @param user_id User initiating the request
+     * @param auth authentication object (session)
+     * @param trusted_device Option to add a trusted device
+     */
+    @Post('tfa/register/:id')
+    async register2FA(
+        @Param('id') user_id: string,
         @Body('auth') auth: {
-            session: {
-                user_id: string,
-                session_id: string
-            }
+            session: UserSession
         },
         @Body('trusted_device') trusted_device?: {
-            device_name: string
-        }
+			device_name: string
+		}
     ) {
         return await this.userService.register2Fa(user_id, auth, trusted_device);
     }
 
-    @Post('test2/:id')
-    async test2Function(
+    /**
+     * Takes in a login attempt and a 2FA token. Validates the token, if token is valid, returns a user and session
+     * @param user_id 
+     * @param auth authentication object (login)
+     * @param token 2FA token (6 digits)
+     */
+    @Post('tfa/validate-token/:id')
+    async check2FaToken(
         @Param('id') user_id: string,
+        @Body('auth') auth: {
+            login: {
+				email: string,
+				password_hash: string
+			}
+        },
         @Body('token') token: string
-    ) {
-        return await this.userService.check2faToken(user_id, token);
+    ): Promise<{
+        user: User,
+		session_id: string
+    }> {
+        return await this.userService.check2FaToken(user_id, auth, token);
     }
+
+
+    /**
+     * Registers a trusted device for a user, so 2FA won't be required for every login
+     * @param user_id id of the user
+     * @param device_name Device name, if none is passed is set to "2FA Device #12AB"
+     * @param auth authentication object (session)
+     */
+    @Post('tfa/trusted-device/register/:id')
+    async registerTrustedDevice(
+        @Param('id') user_id: string,
+        @Body('auth') auth: {
+            session: UserSession
+        },
+        @Body('device_name') device_name?: string,
+    ): Promise<TrustedDevice> {
+        return await this.userService.registerTrustedDevice(user_id, auth, device_name)
+    }
+
+    /**
+     * Removes a trusted device from the user's trusted device list
+     * @param user_id id of the user
+     * @param auth authentication object (session)
+     * @param device_id id of the device to be removed
+     */
+    @Post('tfa/trusted-device/remove/:id')
+    async removeTrustedDevice(
+        @Param('id') user_id: string,
+        @Body('auth') auth: {
+            session: UserSession
+        },
+        @Body('device_id') device_id: string
+    ): Promise<TrustedDevice> {
+        return await this.userService.removeTrustedDevice(user_id, auth, device_id);
+    }
+
+
+    /**
+     * Returns all registered trusted devices for a user
+     * @param user_id Id of the user
+     * @param auth authentication object (session)
+     */
+    @Post('tfa/trusted-device/all/:id')
+    async getAllTrustedDevices(
+        @Param('id') user_id: string,
+        @Body('auth') auth: {
+            session: UserSession
+        }
+    ): Promise<TrustedDevice[]> {
+        return await this.userService.getAllTrustedDevicesForUser(user_id, auth);
+    }
+
+
+    /**
+     * Returns a registered trusted device by id
+     * @param user_id Id of the user
+     * @param auth authentication object (session)
+     * @param device_id Id of the registered device
+     */
+    @Post('tfa/trusted-device/:id')
+    async getTrustedDeviceByDeviceId(
+        @Param('id') user_id: string,
+        @Body('auth') auth: {
+            session: UserSession
+        },
+        @Body('device_id') device_id: string
+    ): Promise<TrustedDevice> {
+        return await this.userService.getTrustedDevice(user_id, auth, device_id);
+    }
+
+
+
+    // @Post('test2/:id')
+    // async test2Function(
+    //     @Param('id') user_id: string,
+    //     @Body('token') token: string
+    // ) {
+    //     // return await this.userService.check2faToken(user_id, token);
+    // }
+
+    // @Post('test/:id')
+    // async testFunction(
+    //     @Param('id') user_id,
+    //     @Body('auth') auth: {
+	// 		session: UserSession
+	// 	},
+    //     @Body('trusted_device') trusted_device?: {
+    //         device_name: string
+    //     }
+    // ) {
+    //     return await this.userService.register2Fa(user_id, auth, trusted_device);
+    // }
 }

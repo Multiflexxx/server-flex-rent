@@ -11,6 +11,8 @@ import { Request } from 'src/offer/request.model';
 import { UserRating } from './user-rating.model';
 import { EmailHandler } from 'src/util/email/email-handler';
 import { uuid } from 'uuidv4';
+import { TrustedDevice } from './trusted-device.model';
+import { UserSession } from './user-session.model';
 
 const axios = require('axios');
 const bcrypt = require('bcrypt');
@@ -34,7 +36,7 @@ export class UserService {
 	/**
 	 * Returns a User Object containing publicly visible user information
 	 * @param id ID of user
-	 * @param detailLevel
+	 * @param detailLevel Detail level of the request, taken from Static Consts (PUBLIC, CONTRACT, COMPLETE)
 	 */
 	public async getUser(id: string, detailLevel?: number): Promise<User> {
 
@@ -149,10 +151,7 @@ export class UserService {
 	 */
 	public async updateUser(
 		auth: {
-			session: {
-				session_id: string,
-				user_id: string
-			}
+			session: UserSession
 		},
 		user: User,
 		password?: {
@@ -229,10 +228,7 @@ export class UserService {
 	public async softDeleteUser(
 		user_id: string,
 		auth: {
-			session: {
-				user_id: string,
-				session_id: string
-			}
+			session: UserSession
 		}
 	): Promise<void> {
 		// Check parameter
@@ -297,10 +293,7 @@ export class UserService {
 				email: string,
 				password_hash: string
 			},
-			session?: {
-				session_id: string,
-				user_id: string
-			},
+			session?: UserSession,
 			oauth?: {
 				email: string,
 				method: string
@@ -715,10 +708,7 @@ export class UserService {
 
 	public async rateUser(
 		auth: {
-			session: {
-				session_id: string,
-				user_id: string
-			}
+			session: UserSession
 		},
 		rating: {
 			user_id: string,
@@ -800,6 +790,9 @@ export class UserService {
 
 	public async getUserRatingById(rating_id: string): Promise<UserRating> {
 		const result = (await Connector.executeQuery(QueryBuilder.getUserRatingById(rating_id)))[0];
+		if(!result) {
+			throw new NotFoundException("User rating not found");
+		}
 		let userRating: UserRating = {
 			rating_id: result.rating_id,
 			rating_type: result.rating_type,
@@ -834,10 +827,7 @@ export class UserService {
 	 */
 	public async updateUserRatingById(
 		auth: {
-			session: {
-				user_id: string,
-				session_id: string
-			}
+			session: UserSession
 		},
 		rating: {
             user_id: string,
@@ -892,13 +882,16 @@ export class UserService {
 
 	public async deleteUserRating(
 		auth: {
-			session: {
-				user_id: string,
-				session_id: string
-			}
+			session: UserSession
 		},
 		rating_id: string
 	): Promise<UserRating> {
+		
+		// Check parameter
+		if(!rating_id || rating_id == "") {
+			throw new BadRequestException("Invalid request parameter");
+		}
+
 		// Verify session and user
 		const validatedUser = await this.validateUser({ session: auth.session });
 		const userRating: UserRating = await this.getUserRatingById(rating_id);
@@ -1094,23 +1087,20 @@ export class UserService {
 	public async register2Fa(
 		user_id: string, 
 		auth: {
-			session: {
-				user_id: string,
-				session_id: string
-			}
+			session: UserSession
 		},
 		trusted_device?: {
 			device_name: string
 		}
 	): Promise<{ 
 		tfaURL: string,
-		trusted_device_id: string
+		trusted_device: TrustedDevice
 	}> {
 		
 		// Validate session
 		const validatedUser = await this.validateUser(auth)
 
-		if(validatedUser.user.user_id === user_id) {
+		if(validatedUser.user.user_id != user_id) {
 			throw new UnauthorizedException("Not authorized");
 		}
 
@@ -1125,15 +1115,16 @@ export class UserService {
 		await Connector.executeQuery(QueryBuilder.update2FaSecret(user_id, secret.base32));
 
 		// Register trusted device (if exists)
-		let deviceId: string;
+		let device: TrustedDevice;
+
 		if(trusted_device) {
-			deviceId = await this.registerTrustedDevice(user_id, trusted_device.device_name, auth);
+			device = await this.registerTrustedDevice(user_id, auth, trusted_device.device_name);
 		}
 		
 
 		return {
 			tfaURL: secret.otpauth_url,
-			trusted_device_id: !deviceId ? "" : deviceId
+			trusted_device: !device ? null : device
 		}
 	}
 
@@ -1143,7 +1134,28 @@ export class UserService {
 	 * @param user_id Id of the user
 	 * @param token 2FA token (6 digits)
 	 */
-	public async check2faToken(user_id: string, token: string) {
+	public async check2FaToken(
+		user_id: string, 
+		auth: {
+			login: {
+				email: string,
+				password_hash: string
+			}
+		},
+		token: string
+	): Promise<{
+		user: User,
+		session_id: string
+	}> {
+
+		if(!auth || !auth.login || !auth.login.email || !auth.login.password_hash) {
+			throw new BadRequestException("Invalid auth parameters");
+		}
+
+		if(!user_id || !token) {
+			throw new BadRequestException("Invalid request parameters");
+		}
+
 		const user = (await Connector.executeQuery(QueryBuilder.getUser({user_id: user_id})))[0];
 
 		let verified: boolean = await speakeasy.totp.verify({
@@ -1154,9 +1166,10 @@ export class UserService {
 
 		if(!verified) {
 			throw new UnauthorizedException("Wrong token");
-		}
+		};
 
-		return await this.getUser(user_id, StaticConsts.userDetailLevel.COMPLETE);
+		// return await this.getUser(user_id, StaticConsts.userDetailLevel.COMPLETE);
+		return await this.validateUser(auth)
 	}
 
 	
@@ -1168,14 +1181,11 @@ export class UserService {
 	 */
 	public async registerTrustedDevice(
 		user_id: string, 
-		device_name: string,
 		auth: {
-			session: {
-				session_id: string,
-				user_id: string
-			}
-		}
-	): Promise<string> {
+			session: UserSession
+		},
+		device_name?: string,
+	): Promise<TrustedDevice> {
 		// Validate credentials / auth parameter
 		const validatedUser = await this.validateUser(auth);
 
@@ -1183,23 +1193,59 @@ export class UserService {
 			throw new UnauthorizedException("Not authorized");
 		}
 
+		if(!device_name || device_name === "") {
+			device_name = `Trusted Device #${cryptoRandomString({length: 4, type: 'alphanumeric'}).toUpperCase()}`
+		}
+
 		const deviceId: string = uuidv4();
 		await Connector.executeQuery(QueryBuilder.registerTrustedDevice2FA(user_id, deviceId, device_name));
 
 
-		return deviceId;
+		return {
+			trusted_device_id: deviceId,
+			user_id: user_id,
+			device_name: device_name,
+			created_at: new Date()
+		};
 	}
 
+
+	/**
+	 * Removes a trusted device from the users account
+	 * @param user_id 
+	 * @param auth authentication object (session)
+	 * @param device_id Id of the device to be removed
+	 */
 	public async removeTrustedDevice(
 		user_id: string,
 		auth: {
-			session: {
-				session_id: string,
-				user_id: string
-			}
+			session: UserSession
 		},
 		device_id: string
-	) {
+	): Promise<TrustedDevice> {
+		// Get Trusted Device (And validate session)
+		const device: TrustedDevice = await this.getTrustedDevice(user_id, auth, device_id);
+		
+		// Delete Trusted Device
+		await Connector.executeQuery(QueryBuilder.deleteTrustedDevice(user_id, device_id));
+
+		return device;
+	}
+
+
+	/**
+	 * Returns a trusted device by device Id
+	 * @param user_id Id of the user
+	 * @param auth authentication object (session)
+	 * @param device_id Id of the device
+	 */
+	public async getTrustedDevice(
+		user_id: string,
+		auth: {
+			session: UserSession
+		},
+		device_id: string
+	): Promise<TrustedDevice> {
 		// Validate session
 		const validatedUser = await this.validateUser(auth);
 
@@ -1208,7 +1254,37 @@ export class UserService {
 		}
 
 		// Get trusted Device
-		
-		// Delete Trusted Device
+		const device = (await Connector.executeQuery(QueryBuilder.getTrustedDeviceByDeviceId(user_id, device_id)))[0];
+
+		if(!device) {
+			throw new BadRequestException("No Device with that id");
+		}
+
+		return device;
 	}
+
+	/**
+	 * Returns an array of all trusted devices 
+	 * @param user_id 
+	 * @param auth authentication object (session)
+	 */
+	public async getAllTrustedDevicesForUser(
+		user_id: string,
+		auth: {
+			session: UserSession
+		}
+	): Promise<TrustedDevice[]> {
+
+		// Validate session
+		const validatedUser = await this.validateUser(auth);
+
+		if(validatedUser.user.user_id != user_id) {
+			throw new UnauthorizedException("Not authorized");
+		}
+
+		const devices: TrustedDevice[] = await Connector.executeQuery(QueryBuilder.getTrustedDevicesByUserId(user_id));
+
+		return devices
+	}
+	
 }

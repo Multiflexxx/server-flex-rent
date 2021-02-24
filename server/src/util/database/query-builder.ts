@@ -1531,7 +1531,7 @@ export class QueryBuilder {
 
 	public static registerTrustedDevice2FA(user_id: string, device_id: string, device_name: string): Query {
 		return {
-			query: "INSERT trusted_device_2fa (user_id, device_id, device_name) VALUES (?, ?, ?);",
+			query: "INSERT trusted_device_2fa (user_id, trusted_device_id, device_name) VALUES (?, ?, ?);",
 			args: [
 				user_id,
 				device_id, 
@@ -1544,6 +1544,25 @@ export class QueryBuilder {
 			query: "DELETE FROM trusted_device_2fa WHERE trusted_device_id = ? AND user_id = ?;",
 			args: [
 				device_id,
+				user_id
+			]
+		}
+	}
+
+	public static getTrustedDeviceByDeviceId(user_id: string, device_id: string): Query {
+		return {
+			query: "SELECT * FROM trusted_device_2fa WHERE user_id = ? AND trusted_device_id = ?;",
+			args: [
+				user_id,
+				device_id
+			]
+		}
+	}
+
+	public static getTrustedDevicesByUserId(user_id: string): Query {
+		return {
+			query: "SELECT * FROM trusted_device_2fa WHERE user_id = ?;",
+			args: [
 				user_id
 			]
 		}
