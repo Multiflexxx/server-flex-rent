@@ -14,6 +14,69 @@ export class UserController {
     ) {}
 
 
+            /**
+     * Returns a single user specified by the ID passed in the URL
+     * @param id ID of user
+     */
+    @Get(':id')
+    async getUser(
+        @Param('id') id: string
+    ) {
+        return await this.userService.getUser(id);
+    }
+
+
+    /**
+     * Creates a user with the Specified parameters in the request's body
+     * @param reqBody Parameters of user to be created
+     */
+    @Put()
+    async createUser(
+        @Body('user') user: any,
+        @Body('sign_in_method') method: string
+    ) {
+        return await this.userService.createUser(user, method);
+    }
+
+
+    /**
+     * Updates a specified user with the data passed in the request's body.
+     * @param id ID of user to be updated
+     * @param reqBody Parameters-Value pairs to be updated, also contains authorization
+     */
+    @Patch()
+    async updateUser(
+        @Body('auth') auth: {
+			session: UserSession
+		},
+        @Body('user') user: User,
+        @Body('password') password?: {
+            old_password_hash: string,
+            new_password_hash: string,
+        }
+    ) {
+        return await this.userService.updateUser(auth, user, password);
+    }
+
+    /**
+     * Used for logging in a user, either with a session or email + password
+     * @param auth authentication details containing a user_id and session_id in the session object OR an email and password_hash as part of the login object
+     */
+    @Post()
+    async authenticateUser(
+        @Body('auth') auth: {
+            login?: {
+                email: string,
+                password_hash: string
+            },
+            session?: UserSession
+        }
+    ): Promise<{
+        user: User,
+        session_id: string
+    }> {
+        return await this.userService.validateUser(auth);
+    }
 
 
     /**
@@ -34,7 +97,6 @@ export class UserController {
     }
 
 
-    
 
     /**
      * Request a password reset for a user by email
@@ -177,7 +239,7 @@ export class UserController {
     }
 
     
-    @Patch('/rating/delete/:id')
+    @Patch('rating/delete/:id')
     async deleteUserRating(
         @Body('auth') auth: {
 			session: UserSession
@@ -193,7 +255,7 @@ export class UserController {
      * @param rating parameters for the rating object
      * @param rating_id rating to be updated
      */
-    @Patch('/rating/:id')
+    @Patch('rating/:id')
     async updateUserRating(
         @Body('auth') auth: {
 			session: UserSession
@@ -360,70 +422,6 @@ export class UserController {
         return await this.userService.getTrustedDevice(user_id, auth, device_id);
     }
 
-
-        /**
-     * Returns a single user specified by the ID passed in the URL
-     * @param id ID of user
-     */
-    @Get(':id')
-    async getUser(
-        @Param('id') id: string
-    ) {
-        return await this.userService.getUser(id);
-    }
-
-
-    /**
-     * Creates a user with the Specified parameters in the request's body
-     * @param reqBody Parameters of user to be created
-     */
-    @Put()
-    async createUser(
-        @Body('user') user: any,
-        @Body('sign_in_method') method: string
-    ) {
-        return await this.userService.createUser(user, method);
-    }
-
-
-    /**
-     * Updates a specified user with the data passed in the request's body.
-     * @param id ID of user to be updated
-     * @param reqBody Parameters-Value pairs to be updated, also contains authorization
-     */
-    @Patch()
-    async updateUser(
-        @Body('auth') auth: {
-			session: UserSession
-		},
-        @Body('user') user: User,
-        @Body('password') password?: {
-            old_password_hash: string,
-            new_password_hash: string,
-        }
-    ) {
-        return await this.userService.updateUser(auth, user, password);
-    }
-
-    /**
-     * Used for logging in a user, either with a session or email + password
-     * @param auth authentication details containing a user_id and session_id in the session object OR an email and password_hash as part of the login object
-     */
-    @Post()
-    async authenticateUser(
-        @Body('auth') auth: {
-            login?: {
-                email: string,
-                password_hash: string
-            },
-            session?: UserSession
-        }
-    ): Promise<{
-        user: User,
-        session_id: string
-    }> {
-        return await this.userService.validateUser(auth);
-    }
 
 
     // @Post('test2/:id')
