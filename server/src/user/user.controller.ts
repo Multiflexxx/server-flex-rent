@@ -177,7 +177,7 @@ export class UserController {
     }
 
     
-    @Patch('rating-delete/:id')
+    @Post('rating-delete/:id')
     async deleteUserRating(
         @Body('auth') auth: {
 			session: UserSession
