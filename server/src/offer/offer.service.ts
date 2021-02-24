@@ -1314,7 +1314,8 @@ export class OfferService {
 			rating_text: (ratingResponse[0].rating_text == null ? "" : ratingResponse[0].rating_text),
 			rating: ratingResponse[0].rating,
 			rating_owner: responseUser,
-			updated_at: ratingResponse[0].updated_at
+			updated_at: ratingResponse[0].updated_at,
+			rating_type: StaticConsts.OFFER_RATING_TYPE
 		}
 
 		return response;
@@ -1508,7 +1509,8 @@ export class OfferService {
 			rating_text: (ratingResponse[0].rating_text == null ? "" : ratingResponse[0].rating_text),
 			rating: ratingResponse[0].rating,
 			rating_owner: responseUser,
-			updated_at: ratingResponse[0].updated_at
+			updated_at: ratingResponse[0].updated_at,
+			rating_type: StaticConsts.OFFER_RATING_TYPE
 		}
 
 		return response;
@@ -1620,7 +1622,8 @@ export class OfferService {
 				headline: (dbRatings[i].headline === null ? "" : dbRatings[i].headline),
 				rating_text: (dbRatings[i].rating_text === null ? "" : dbRatings[i].rating_text),
 				updated_at: dbRatings[i].updated_at,
-				rating_owner: userOfRating
+				rating_owner: userOfRating,
+				rating_type: StaticConsts.OFFER_RATING_TYPE
 			}
 			responseArray.push(o);
 		}
@@ -1718,7 +1721,8 @@ export class OfferService {
 			rating_text: (dbRatings[0].rating_text == null ? "" : dbRatings[0].rating_text),
 			rating: dbRatings[0].rating,
 			rating_owner: responseUser,
-			updated_at: dbRatings[0].updated_at
+			updated_at: dbRatings[0].updated_at,
+			rating_type: StaticConsts.OFFER_RATING_TYPE
 		}
 
 		return response;
@@ -2436,7 +2440,8 @@ export class OfferService {
 			headline: (dbRatings[0].headline === null ? "" : dbRatings[0].headline),
 			rating_text: (dbRatings[0].rating_text === null ? "" : dbRatings[0].rating_text),
 			updated_at: dbRatings[0].updated_at,
-			rating_owner: userOfRating
+			rating_owner: userOfRating,
+			rating_type: StaticConsts.OFFER_RATING_TYPE
 		}
 
 		return o;
