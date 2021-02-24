@@ -875,6 +875,10 @@ export class UserService {
 		// Seems valid, let's update
 		await Connector.executeQuery(QueryBuilder.updateUserRatingById(rating_id, rating));
 
+		// Update the users rating 
+		await this.updateUserRating(oldUserRating.rated_user.user_id);
+
+		// Get the updated User rating
 		const newUserRating: UserRating = await this.getUserRatingById(rating_id);
 
 		return newUserRating;
@@ -902,6 +906,13 @@ export class UserService {
 
 		// delete the rating
 		await Connector.executeQuery(QueryBuilder.deleteUserRatingById(rating_id));
+
+		// Update user rating
+		await this.updateUserRating(validatedUser.user.user_id);
+
+		// Update the rated user with new rating information (-1 rating)
+		userRating.rated_user = await this.getUser(userRating.rated_user.user_id)
+		
 		return userRating;
 	}
 
