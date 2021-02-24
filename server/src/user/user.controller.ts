@@ -177,7 +177,7 @@ export class UserController {
     }
 
     
-    @Patch('rating/delete/:id')
+    @Patch('/rating/delete/:id')
     async deleteUserRating(
         @Body('auth') auth: {
 			session: UserSession
@@ -193,7 +193,7 @@ export class UserController {
      * @param rating parameters for the rating object
      * @param rating_id rating to be updated
      */
-    @Patch('rating/:id')
+    @Patch('/rating/:id')
     async updateUserRating(
         @Body('auth') auth: {
 			session: UserSession
