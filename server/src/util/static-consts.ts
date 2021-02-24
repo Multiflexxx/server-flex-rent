@@ -20,6 +20,7 @@ export const MAX_NUMBER_OF_OFFER_IMAGES = 10;
 export const MAX_FILE_SIZE_FOR_OFFER_IMAGES = 5242880;
 export const OFFER_STATUS_DELETED = -1;
 export const OFFER_STATUS_CREATED = 1;
+export const OFFER_RATING_TYPE = "offer";
 
 /* ------ CATEGORY ------ */
 export const LIMIT_FOR_TOP_CATEGORIES = 4;
