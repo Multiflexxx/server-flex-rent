@@ -6,7 +6,7 @@ import { AppModule } from './app.module';
 import { CronJobs } from './util/cron/cron-jobs';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { cors: true});
   // Serve static file
   app.useStaticAssets(join(__dirname, '..', 'public'));
   
