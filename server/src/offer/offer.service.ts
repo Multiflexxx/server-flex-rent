@@ -21,7 +21,7 @@ export class OfferService {
 	constructor(
 		@Inject(forwardRef(() => UserService))
 		private readonly userService: UserService
-	) { }
+	) {}
 
 	/**
 	 * Returns five best offers, best lessors, and latest offers

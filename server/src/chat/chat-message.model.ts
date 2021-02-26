@@ -5,5 +5,6 @@ export interface ChatMessage {
     message_content: string,
     message_type: string,
     status_id: number,
-    created_at: Date
+    created_at: Date,
+    message_id?: string
 }
