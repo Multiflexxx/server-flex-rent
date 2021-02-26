@@ -2530,7 +2530,7 @@ export class OfferService {
 				// Lessor is now a user!
 				let lessor: User;
 				try {
-					lessor = await this.userService.getUser(offerList[i].user_id, StaticConsts.userDetailLevel.CONTRACT);
+					lessor = await this.userService.getUser(offerList[i].user_id, StaticConsts.userDetailLevel.PUBLIC);
 				} catch (error) {
 					throw error;
 				}
