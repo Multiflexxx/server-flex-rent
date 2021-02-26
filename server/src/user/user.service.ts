@@ -994,11 +994,10 @@ export class UserService {
 		const newUserRating = (await Connector.executeQuery(QueryBuilder.calculateUserRating(user_id)));
 		const lessor_info = newUserRating.filter(x => x.rating_type == "lessor")[0];
 		const lessee_info = newUserRating.filter(x => x.rating_type == "lessee")[0];
-		const ratedUserId: string = newUserRating[0].rated_user_id 
 
 		// Update Rating for user
 		await Connector.executeQuery(QueryBuilder.setNewUserRating(
-			ratedUserId, 
+			user_id, 
 			!lessor_info ? 0 : lessor_info.average, 
 			!lessor_info ? 0 : lessor_info.rating_count, 
 			!lessee_info ? 0 : lessee_info.average, 
