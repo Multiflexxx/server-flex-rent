@@ -173,6 +173,10 @@ export class QueryBuilder {
 		}
 	}
 
+	/**
+	 * returns a query to soft delete a user by user id
+	 * @param ID of user
+	 */
 	public static softDeleteUser(user_id: string): Query {
 		return {
 			query: "UPDATE user SET first_name = 'Gelöschter', last_name = 'Nutzer', email = '', phone_number = '', password_hash = '', verified = 0, place_id = ?, street = '', house_number = '', lessee_rating = 0,  lessor_rating = 0, number_of_lessee_ratings= 0, number_of_lessor_ratings = 0, date_of_birth = CURRENT_DATE() , profile_picture = NULL, sign_in_method = '', status_id = ?, deletion_date = DATE_ADD(CURRENT_DATE(), INTERVAL 8 DAY) WHERE user_id = ?;",
@@ -1539,6 +1543,12 @@ export class QueryBuilder {
 		}
 	}
 
+
+	/**
+	 * 
+	 * @param user_id 
+	 * @param secret 
+	 */
 	public static update2FaSecret(user_id: string, secret: string): Query {
 		return {
 			query: "UPDATE user SET 2fa_secret = ? WHERE user_id = ?;",
@@ -1549,6 +1559,13 @@ export class QueryBuilder {
 		}
 	}
 
+
+	/**
+	 * 
+	 * @param user_id 
+	 * @param device_id 
+	 * @param device_name 
+	 */
 	public static registerTrustedDevice2FA(user_id: string, device_id: string, device_name: string): Query {
 		return {
 			query: "INSERT trusted_device_2fa (user_id, trusted_device_id, device_name) VALUES (?, ?, ?);",
@@ -1559,6 +1576,13 @@ export class QueryBuilder {
 			]
 		}
 	}
+	
+
+	/**
+	 * 
+	 * @param user_id 
+	 * @param device_id 
+	 */
 	public static deleteTrustedDevice(user_id: string, device_id: string): Query {
 		return {
 			query: "DELETE FROM trusted_device_2fa WHERE trusted_device_id = ? AND user_id = ?;",
@@ -1569,6 +1593,12 @@ export class QueryBuilder {
 		}
 	}
 
+
+	/**
+	 * 
+	 * @param user_id 
+	 * @param device_id 
+	 */
 	public static getTrustedDeviceByDeviceId(user_id: string, device_id: string): Query {
 		return {
 			query: "SELECT * FROM trusted_device_2fa WHERE user_id = ? AND trusted_device_id = ?;",
@@ -1579,6 +1609,11 @@ export class QueryBuilder {
 		}
 	}
 
+
+	/**
+	 * 
+	 * @param user_id 
+	 */
 	public static getTrustedDevicesByUserId(user_id: string): Query {
 		return {
 			query: "SELECT * FROM trusted_device_2fa WHERE user_id = ?;",
@@ -1588,6 +1623,11 @@ export class QueryBuilder {
 		}
 	}
 
+	/**
+	 * Returns a query to write a chat message to database
+	 * @param messageId generated Id of message
+	 * @param message message object to be written
+	 */
 	public static writeChatMessageToDb(messageId: string, message: ChatMessage): Query {
 		return {
 			query: "INSERT INTO message (message_id, chat_id, from_user_id, to_user_id, message_content, message_type, status_id) VALUES (?, ?, ?, ?, ?, ?, ?);",
@@ -1603,6 +1643,12 @@ export class QueryBuilder {
 		}
 	}
 
+	/**
+	 * Returns a query to get all message by a given chat id
+	 * @param chatId id of chat
+	 * @param pageSize page size (see const file)
+	 * @param pageNumber page number (for paging in frontend)
+	 */
 	public static getMessagesByChatId(chatId: string, pageSize: number, pageNumber: number): Query {
 		return {
 			query: "SELECT message_id, chat_id, from_user_id, to_user_id, message_content, message_type, status_id, created_at FROM message WHERE chatId = ? ORDER BY created_at DESC LIMIT ? OFFSET ?;",
@@ -1614,12 +1660,30 @@ export class QueryBuilder {
 		}
 	}
 
+	/**
+	 * Returns a query to get a message by it's message id
+	 * @param chatId ID of chat
+	 * @param messageId ID of message
+	 */
 	public static getMessageByMessageId(chatId: string, messageId: string) : Query {
 		return {
 			query: "SELECT message_id, chat_id, from_user_id, to_user_id, message_content, message_type, status_id, created_at FROM message WHERE chat_id = ? AND message_id = ?;",
 			args: [
 				chatId,
 				messageId
+			]
+		}
+	}
+
+	/**
+	 * Returns a query to count the number of messages per chat
+	 * @param chatId ID of chat
+	 */
+	public static getNumberMessagesInChat(chatId: string): Query {
+		return {
+			query: "SELECT COUNT(message_id) AS message_count FROM message WHERE chat_id = ?;",
+			args: [
+				chatId
 			]
 		}
 	}

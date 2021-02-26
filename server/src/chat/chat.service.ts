@@ -92,25 +92,67 @@ export class ChatService {
      */
     public async getMessagesByChatId(
         chatId: string, 
-        session: UserSession
+        session: UserSession,
+        query: {
+            page: number
+        }
     ): Promise<{
         messages: Array<ChatMessage>,
 		current_page: number,
 		max_page: number,
 		messages_per_page: number,
-        from_user: User,
-        to_user: User
+        chat_partner: User
     }> {
-        // Check parameter
+        // Check user + session
         if(!chatId || !session || !session.session_id || session.user_id) {
             throw new BadRequestException("Invalid request parameters");
         }
 
+        // Check query parameters
+        if(!query || !query.page || isNaN(query.page)) {
+            throw new BadRequestException("Invalid request parameters");
+        }
+
         // Validate user session
-        let user = this.userService.validateUser({session: session});
+        let validatedUser: {user: User, session_id: string} = await this.userService.validateUser({session: session});
+
+        // Get number of chat messages
+        let result: {
+            message_count: number
+        } = (await Connector.executeQuery(QueryBuilder.getNumberMessagesInChat(chatId)))[0];
+
+        let messageCount: number;
+        if(!result) {
+            messageCount = 0;
+        } else {
+            messageCount = result.message_count;
+        }
         
-        throw new NotImplementedException("Not implemented yet!");
+        // Calculate max page count
+        const maxPage: number = Math.ceil(messageCount / StaticConsts.MESSAGES_PER_PAGE);
+
+        if(query.page > maxPage) {
+            throw new BadRequestException("Ran out of pages");
+        }
+        
+        // Get Messages from DB
+        let messages: Array<ChatMessage> = await Connector.executeQuery(QueryBuilder.getMessagesByChatId(chatId, StaticConsts.MESSAGES_PER_PAGE, query.page));
+
+        // Get from and to user
+        const chatPartnerId: string = this.getSecondsUserFromChatId(chatId, session.user_id);
+        const chatPartner: User = await this.userService.getUser(chatPartnerId, StaticConsts.userDetailLevel.CONTRACT);
+        
+        return {
+            messages: messages,
+            current_page: query.page,
+            max_page: maxPage,
+            messages_per_page: StaticConsts.MESSAGES_PER_PAGE,
+            chat_partner: chatPartner
+        };
     }
+
+
+    public getChatsForUser() {}
 
 
 
@@ -121,5 +163,15 @@ export class ChatService {
      */
     private calculateChatId(userOne: string, userTwo: string): string {
         return [userOne, userTwo].sort().join("");
+    }
+
+    /**
+     * Returns the second userId from a chat
+     * @param chatId ID of chat
+     * @param firstUser known user
+     */
+    private getSecondsUserFromChatId(chatId: string, firstUser: string): string {
+        // Remove first user from chatId and return
+        return chatId.replace(firstUser, "");
     }
 }

@@ -5,6 +5,7 @@ import { FilesInterceptor } from '@nestjs/platform-express';
 import * as StaticConsts from 'src/util/static-consts';
 import { ChatMessage } from './chat-message.model';
 import { UserSession } from 'src/user/user-session.model';
+import { stringify } from 'querystring';
 const fileConfig = require('../../file-handler-config.json');
 
 @Controller('chat')
@@ -44,9 +45,25 @@ export class ChatController {
     @Post(':id')
     getMessagesByChatId(
         @Param('id') chatId: string,
-        @Body('session') session: UserSession
+        @Body('session') session: UserSession,
+        @Body('query') query: {
+            page: number
+        }
     ) {
-        return this.chatService.getMessagesByChatId(chatId, session);
+        return this.chatService.getMessagesByChatId(chatId, session, query);
+    }
+
+
+    @Post('all/:id')
+    getChatsForUser(
+        @Param('id') userId: string,
+        @Body('session') session: UserSession,
+        @Body('query') query: {
+            page: number
+        }
+    ) {
+        
+
     }
 
 }
