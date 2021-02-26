@@ -3,6 +3,7 @@ import { Query } from "./query.model";
 import { Request } from "src/offer/request.model";
 const moment = require('moment');
 import * as StaticConsts from 'src/util/static-consts';
+import { ChatMessage } from "src/chat/chat-message.model";
 
 export class QueryBuilder {
 	/**
@@ -1347,10 +1348,10 @@ export class QueryBuilder {
 	}
 
 	/**
-	 * Returns a query to check if lessor / lesse has an update on a given offer
+	 * Returns a query to check if lessor / lessee has an update on a given offer
 	 * @param userId ID of user
 	 * @param offerId ID of offer
-	 * @param lessor check for lessor / lesse
+	 * @param lessor check for lessor / lessee
 	 */
 	public static hasOfferRequestUpdate(requestId: string, lessor: boolean): Query {
 		if (lessor) {
@@ -1373,6 +1374,25 @@ export class QueryBuilder {
 					requestId
 				]
 			}
+		}
+	}
+
+	/**
+	 * Returns a query to get the number of open and in progress offer requests between two users
+	 * @param userA userId of first user
+	 * @param userB userId of second user
+	 */
+	public static checkIfUsersHaveAnOpenOfferRequest(userA: string, userB: string): Query {
+		return {
+			query: "SELECT COUNT(request_id) AS number_of_requests FROM request JOIN offer ON request.offer_id = offer.offer_id WHERE ((request.user_id = ? AND offer.user_id = ?) OR (request.user_id = ? AND offer.user_id = ?)) AND request.status_id >= ? AND request.status_id <= ?;",
+			args: [
+				userA,
+				userB,
+				userB,
+				userA,
+				StaticConsts.REQUEST_STATUS_ACCEPTED_BY_LESSOR,
+				StaticConsts.REQUEST_STATUS_ITEM_RETURNED_TO_LESSOR
+			]
 		}
 	}
 
@@ -1568,10 +1588,37 @@ export class QueryBuilder {
 		}
 	}
 
+	public static writeChatMessageToDb(messageId: string, message: ChatMessage): Query {
+		return {
+			query: "INSERT INTO message (message_id, chat_id, from_user_id, to_user_id, message_content, message_type, status_id) VALUES (?, ?, ?, ?, ?, ?, ?);",
+			args: [
+				messageId,
+				message.chat_id,
+				message.from_user_id,
+				message.to_user_id,
+				message.message_content,
+				message.message_type,
+				message.status_id
+			]
+		}
+	}
+
+	public static getMessagesByChatId(chatId: string, pageSize: number, pageNumber: number): Query {
+		return {
+			query: "SELECT message_id, chat_id, from_user_id, to_user_id, message_content, message_type, status_id, created_at FROM message WHERE chatId = ? ORDER BY created_at DESC LIMIT ? OFFSET ?;",
+			args: [
+				chatId,
+				pageSize,
+				pageNumber
+			]
+		}
+	}
+
 	public static testQuery() {
 		return {
 			query: "SELECT * FROM place WHERE place_id < 4;",
 			args: [
+			
 			]
 		}
 	}

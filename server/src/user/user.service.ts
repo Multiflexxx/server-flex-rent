@@ -908,7 +908,7 @@ export class UserService {
 		await Connector.executeQuery(QueryBuilder.deleteUserRatingById(rating_id));
 
 		// Update user rating
-		await this.updateUserRating(validatedUser.user.user_id);
+		await this.updateUserRating(userRating.rated_user.user_id);
 
 		// Update the rated user with new rating information (-1 rating)
 		userRating.rated_user = await this.getUser(userRating.rated_user.user_id)
