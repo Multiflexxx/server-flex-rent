@@ -1614,6 +1614,16 @@ export class QueryBuilder {
 		}
 	}
 
+	public static getMessageByMessageId(chatId: string, messageId: string) : Query {
+		return {
+			query: "SELECT message_id, chat_id, from_user_id, to_user_id, message_content, message_type, status_id, created_at FROM message WHERE chat_id = ? AND message_id = ?;",
+			args: [
+				chatId,
+				messageId
+			]
+		}
+	}
+
 	public static testQuery() {
 		return {
 			query: "SELECT * FROM place WHERE place_id < 4;",

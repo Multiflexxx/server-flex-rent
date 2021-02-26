@@ -54,6 +54,8 @@ export class UserService {
 		}
 
 		
+
+		
 		let user: User = {
 			user_id: result.user_id,
 				first_name: result.first_name,
@@ -65,26 +67,28 @@ export class UserService {
 				lessor_rating: result.lessor_rating,
 				number_of_lessor_ratings: result.number_of_lessor_ratings,
 				profile_picture: result.profile_picture ? fileConfig.user_image_base_url + result.profile_picture.split(".")[0] + `?refresh=${uuidv4()}` : "",
-				status_id: result.status_id
+				status_id: result.status_id,
 		};
 
+		// Get post code and city name by place_id
+		let place = (await Connector.executeQuery(QueryBuilder.getPlace({ place_id: user.place_id })))[0];
+
+		if (!place) {
+			throw new InternalServerErrorException("User with unkown place");
+		}
+
+		user.post_code = place.post_code;
+		user.city = place.place
+
 		if(detailLevel === StaticConsts.userDetailLevel.CONTRACT || detailLevel === StaticConsts.userDetailLevel.COMPLETE) {
-			// Get post code and city name by place_id
-			let place = (await Connector.executeQuery(QueryBuilder.getPlace({ place_id: user.place_id })))[0];
 
-			if (!place) {
-				throw new InternalServerErrorException("User with unkown place");
-			}
-
-			user.post_code = place.post_code;
-			user.city = place.name;
+			user.street = result.street;
+			user.house_number = result.house_number;
 		}
 
 		if(detailLevel === StaticConsts.userDetailLevel.COMPLETE) {
 			user.email = result.email;
 			user.phone_number = result.phone_number;
-			user.street = result.street;
-			user.house_number = result.house_number;
 			user.date_of_birth = result.date_of_birth;
 			user.password_hash = result.password_hash;
 		}

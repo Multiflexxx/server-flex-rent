@@ -76,12 +76,12 @@ export class ChatService {
         }
 
         // Write chat message to DB
-        const messageId: string = chatId + uuidv4()
+        const messageId: string = chatId + uuidv4();
         await Connector.executeQuery(QueryBuilder.writeChatMessageToDb(messageId, message));
 
         message.message_id = messageId;
 
-        return message
+        return message;
     }
 
 
@@ -108,6 +108,7 @@ export class ChatService {
 
         // Validate user session
         let user = this.userService.validateUser({session: session});
+        
         throw new NotImplementedException("Not implemented yet!");
     }
 
