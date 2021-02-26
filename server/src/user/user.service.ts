@@ -78,7 +78,7 @@ export class UserService {
 		}
 
 		user.post_code = place.post_code;
-		user.city = place.place
+		user.city = place.name;
 
 		if(detailLevel === StaticConsts.userDetailLevel.CONTRACT || detailLevel === StaticConsts.userDetailLevel.COMPLETE) {
 
