@@ -212,10 +212,19 @@ export class ChatService {
             });
         });
 
+        let numberOfChatsFromDb: Array<{
+            number_of_chats: number
+        }> = await Connector.executeQuery(QueryBuilder.getNumberOfChatsForUser(validatedUser.user.user_id));
+
+        let numberOfChats: number = 0;
+        if(numberOfChatsFromDb.length > StaticConsts.CHECK_ZERO) {
+            numberOfChats = numberOfChatsFromDb[0].number_of_chats;
+        }
+
         return {
             chats: chats,
             current_page: query.page,
-            max_page: -1, // TODO: Figure out how tf to calculate this
+            max_page: Math.ceil(numberOfChats / StaticConsts.CHATS_PER_PAGE), // Could work I guess
             chats_per_page: StaticConsts.CHATS_PER_PAGE
         }
     }

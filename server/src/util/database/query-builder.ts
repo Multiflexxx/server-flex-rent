@@ -1571,12 +1571,12 @@ export class QueryBuilder {
 			query: "INSERT trusted_device_2fa (user_id, trusted_device_id, device_name) VALUES (?, ?, ?);",
 			args: [
 				user_id,
-				device_id, 
+				device_id,
 				device_name
 			]
 		}
 	}
-	
+
 
 	/**
 	 * 
@@ -1665,7 +1665,7 @@ export class QueryBuilder {
 	 * @param chatId ID of chat
 	 * @param messageId ID of message
 	 */
-	public static getMessageByMessageId(chatId: string, messageId: string) : Query {
+	public static getMessageByMessageId(chatId: string, messageId: string): Query {
 		return {
 			query: "SELECT message_id, chat_id, from_user_id, to_user_id, message_content, message_type, status_id, created_at FROM message WHERE chat_id = ? AND message_id = ?;",
 			args: [
@@ -1707,11 +1707,25 @@ export class QueryBuilder {
 		}
 	}
 
+	/**
+	 * Returns a query to get the number of chats per user
+	 * @param userId ID of user
+	 */
+	public static getNumberOfChatsForUser(userId: string) {
+		return {
+			query: "SELECT COUNT(DISTINCT chat_id) AS number_of_chats FROM message WHERE from_user_id = ? OR to_user_id = ?;",
+			args: [
+				userId,
+				userId
+			]
+		}
+	}
+
 	public static testQuery() {
 		return {
 			query: "SELECT * FROM place WHERE place_id < 4;",
 			args: [
-			
+
 			]
 		}
 	}
