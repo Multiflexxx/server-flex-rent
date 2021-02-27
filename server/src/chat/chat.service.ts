@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, forwardRef, Inject, Injectable, InternalServerErrorException, NotImplementedException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, forwardRef, Inject, Injectable, InternalServerErrorException, NotImplementedException, UnauthorizedException } from '@nestjs/common';
 import { UserSession } from 'src/user/user-session.model';
 import { UserService } from 'src/user/user.service';
 import { Connector } from 'src/util/database/connector';
@@ -9,6 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { User } from 'src/user/user.model';
 import { OfferService } from 'src/offer/offer.service';
 import { Offer } from 'src/offer/offer.model';
+import { Chat } from './chat.model';
 
 @Injectable()
 export class ChatService {
@@ -116,6 +117,11 @@ export class ChatService {
         // Validate user session
         let validatedUser: {user: User, session_id: string} = await this.userService.validateUser({session: session});
 
+        // Check if session authorizes access to that chat
+        if(!chatId.includes(validatedUser.user.user_id)) {
+            throw new UnauthorizedException("Unauthorized");
+        }
+
         // Get number of chat messages
         let result: {
             message_count: number
@@ -152,7 +158,69 @@ export class ChatService {
     }
 
 
-    public getChatsForUser() {}
+    /**
+     * Returns an array of chats (chatId, chat partner, last message)
+     * @param userId user to retrieve the chats for
+     * @param session user session
+     * @param query query object containing paging information
+     */
+    public async getChatsForUser(
+        userId: string, 
+        session: UserSession, 
+        query: {
+            page: number
+        }
+    ): Promise<{
+        chats: Array<Chat>,
+        current_page: number,
+		max_page: number,
+		chats_per_page: number,
+    }> {
+        
+        // Check for missing parameters
+        if(!userId 
+            || !session 
+            || !session.session_id 
+            || !session.user_id
+            || !query
+            || !query.page
+            || isNaN(query.page)) {
+                throw new BadRequestException("Invalid request parameters");
+        }
+
+        // Validate Session
+        const validatedUser: {user: User, session_id: string} = await this.userService.validateUser({session: session});
+
+        if(validatedUser.user.user_id != userId) {
+            throw new UnauthorizedException("Unauthorized");
+        }
+
+        // Get most recent messages for each chat for user
+        const recentMessages: ChatMessage[] = await Connector.executeQuery(QueryBuilder.getChatsByUserId(userId, StaticConsts.CHATS_PER_PAGE, query.page));
+
+        if(recentMessages.length === 0) {
+            throw new BadRequestException("Ran out of pages");
+        }
+
+        let chats: Chat[] = [];
+        recentMessages.forEach(async message => {
+            chats.push({
+                chat_id: message.chat_id,
+                chat_partner: await this.userService.getUser(this.getSecondsUserFromChatId(message.chat_id, userId), StaticConsts.userDetailLevel.CONTRACT),
+                last_message: message,
+                unread_messages: message.from_user_id != userId && message.status_id === StaticConsts.MESSAGE_STATUS.SENT
+            });
+        });
+
+        return {
+            chats: chats,
+            current_page: query.page,
+            max_page: -1, // TODO: Figure out how tf to calculate this
+            chats_per_page: StaticConsts.CHATS_PER_PAGE
+        }
+    }
+
+    public async sendSystemMessage() {}
 
 
 

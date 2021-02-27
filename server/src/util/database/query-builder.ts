@@ -1644,7 +1644,7 @@ export class QueryBuilder {
 	}
 
 	/**
-	 * Returns a query to get all message by a given chat id
+	 * Returns a query to get all message by a given chat id, first page is 1, default page size is 20. Messages are sorted by date
 	 * @param chatId id of chat
 	 * @param pageSize page size (see const file)
 	 * @param pageNumber page number (for paging in frontend)
@@ -1655,7 +1655,7 @@ export class QueryBuilder {
 			args: [
 				chatId,
 				pageSize,
-				pageNumber
+				(pageNumber - 1) * pageSize
 			]
 		}
 	}
@@ -1684,6 +1684,25 @@ export class QueryBuilder {
 			query: "SELECT COUNT(message_id) AS message_count FROM message WHERE chat_id = ?;",
 			args: [
 				chatId
+			]
+		}
+	}
+
+
+	/**
+	 * return the nth page of chat messages for a user first page is 1, default page size is 20. Messages are sorted by date
+	 * @param userId 
+	 * @param pageSize 
+	 * @param pageNumber 
+	 */
+	public static getChatsByUserId(userId: string, pageSize: number, pageNumber: number): Query {
+		return {
+			query: "WITH newest_messages AS (SELECT chat_id, MAX(created_at) AS most_recent FROM message WHERE from_user_id = ? OR to_user_id = ? GROUP BY chat_id ) Select message.message_id, message.chat_id, message.from_user_id, message.to_user_id, message.message_content, message.message_type, message.status_id, message.created_at FROM newest_messages, message WHERE message.chat_id = newest_messages.chat_id AND message.created_at = newest_messages.most_recent ORDER BY message.created_at DESC LIMIT ? OFFSET ?;",
+			args: [
+				userId,
+				userId,
+				pageSize,
+				(pageNumber - 1) * pageSize
 			]
 		}
 	}

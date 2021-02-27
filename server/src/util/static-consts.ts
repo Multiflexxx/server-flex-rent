@@ -68,5 +68,10 @@ export const userDetailLevel = {
 export const MAX_RATING_HEADLINE_LENGTH = 400;
 export const MAX_RATING_TEXT_LENGTH = 400;
 
-/* ------ MESSAGES ------ */
+/* ------ CHAT ------ */
 export const MESSAGES_PER_PAGE = 20;
+export const CHATS_PER_PAGE = 20;
+export const MESSAGE_STATUS = {
+	SENT: 1,
+	READ: 2
+}

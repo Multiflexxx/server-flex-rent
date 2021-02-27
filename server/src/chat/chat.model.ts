@@ -5,5 +5,5 @@ export interface Chat {
     chat_id: string,
     chat_partner: User,
     last_message: ChatMessage,
-    unread_messages: number
+    unread_messages: boolean
 }
