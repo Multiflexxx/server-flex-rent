@@ -265,13 +265,14 @@ export class ChatService {
         })
 
 
-        
+        let count = 2
         for(let i = 0; i < 1000; i++) {
             let query: Query = {
-                query: "INSERT INTO message (message_id, chat_id, from_user_id, to_user_id, message_content, message_type, status_id) VALUES ",
+                query: "INSERT INTO message (message_id, chat_id, from_user_id, to_user_id, message_content, message_type, status_id, message_count) VALUES ",
                 args: []
             }
             for(let j = 0; j < 1000; j++) {
+                
                 let start = Math.floor(Math.random() * 6);
                 let userPair: string[] = userIds.slice(start, start+2)
                 userPair = this.shuffle(userPair);
@@ -286,7 +287,8 @@ export class ChatService {
                     message_id: this.calculateChatId(userPair[0], userPair[1]) + uuidv4(),
                 }
 
-                query.query += `("${message.message_id}", "${message.chat_id}", "${message.from_user_id}", "${message.to_user_id}", "${message.message_content}", ${message.message_type}, ${message.status_id}),`;
+                query.query += `("${message.message_id}", "${message.chat_id}", "${message.from_user_id}", "${message.to_user_id}", "${message.message_content}", ${message.message_type}, ${message.status_id}, ${count}),`;
+                count++;
             }
             query.query = query.query.slice(0, -1) + ';';
             await Connector.executeQuery(query);
