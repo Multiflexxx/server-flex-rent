@@ -1628,9 +1628,9 @@ export class QueryBuilder {
 	 * @param messageId generated Id of message
 	 * @param message message object to be written
 	 */
-	public static writeChatMessageToDb(messageId: string, message: ChatMessage): Query {
+	public static writeChatMessageToDb(messageId: string, message: ChatMessage, index): Query {
 		return {
-			query: "INSERT INTO message (message_id, chat_id, from_user_id, to_user_id, message_content, message_type, status_id) VALUES (?, ?, ?, ?, ?, ?, ?);",
+			query: "INSERT INTO message (message_id, chat_id, from_user_id, to_user_id, message_content, message_type, status_id, message_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
 			args: [
 				messageId,
 				message.chat_id,
@@ -1638,8 +1638,16 @@ export class QueryBuilder {
 				message.to_user_id,
 				message.message_content,
 				message.message_type,
-				message.status_id
+				message.status_id,
+				index
 			]
+		}
+	}
+
+	public static getMessageIndex(): Query {
+		return {
+			query: "SELECT MAX(message_count) AS message_count FROM message",
+			args: []
 		}
 	}
 
@@ -1651,7 +1659,7 @@ export class QueryBuilder {
 	 */
 	public static getMessagesByChatId(chatId: string, pageSize: number, pageNumber: number): Query {
 		return {
-			query: "SELECT message_id, chat_id, from_user_id, to_user_id, message_content, message_type, status_id, created_at FROM message WHERE chatId = ? ORDER BY created_at DESC LIMIT ? OFFSET ?;",
+			query: "SELECT message_id, chat_id, from_user_id, to_user_id, message_content, message_type, status_id, created_at FROM message WHERE chat_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?;",
 			args: [
 				chatId,
 				pageSize,
