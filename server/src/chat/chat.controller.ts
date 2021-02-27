@@ -54,6 +54,12 @@ export class ChatController {
     }
 
 
+    /**
+     * Returns all(paged) chats for a given userId
+     * @param userId ID of user
+     * @param session user + session for authentication
+     * @param query used for paging
+     */
     @Post('all/:id')
     getChatsForUser(
         @Param('id') userId: string,
