@@ -195,6 +195,12 @@ export class ChatService {
             throw new UnauthorizedException("Unauthorized");
         }
 
+// TAKE A LOOK AT THIS QUERY:
+// REPLACE ids with ?
+/*
+SELECT DISTINCT message_id, chat_id, from_user_id, to_user_id, message_content, message_type, status_id, created_at FROM message WHERE from_user_id = "0372447f-f74a-4ed4-ae12-6bb25c96c939" OR to_user_id = "0372447f-f74a-4ed4-ae12-6bb25c96c939" AND created_at = (SELECT MAX(created_at)) GROUP BY chat_id;
+*/
+
         // Get most recent messages for each chat for user
         const recentMessages: ChatMessage[] = await Connector.executeQuery(QueryBuilder.getChatsByUserId(userId, StaticConsts.CHATS_PER_PAGE, query.page));
 
