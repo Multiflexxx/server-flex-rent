@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, forwardRef, Inject, Injectable, InternalServerErrorException, NotImplementedException, Query, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, forwardRef, Inject, Injectable, InternalServerErrorException, NotImplementedException, UnauthorizedException } from '@nestjs/common';
 import { UserSession } from 'src/user/user-session.model';
 import { UserService } from 'src/user/user.service';
 import { Connector } from 'src/util/database/connector';
@@ -8,7 +8,6 @@ import { ChatMessage } from './chat-message.model';
 import { v4 as uuidv4 } from 'uuid';
 import { User } from 'src/user/user.model';
 import { OfferService } from 'src/offer/offer.service';
-import { Offer } from 'src/offer/offer.model';
 import { Chat } from './chat.model';
 import { Query } from 'src/util/database/query.model';
 import { uuid } from 'uuidv4';
@@ -257,6 +256,7 @@ export class ChatService {
             "0bb5b8f3-6c05-4387-bc99-9afd64dc5243",
             "32e97524-21a2-4d98-a8f1-5a5e27ed1b17",
             "3fcb1a3a-e890-4df5-a48f-1f2306b1364c",
+            "9721b024-6143-431d-8098-912a79c2c0b6"
         ];
 
         userIds.forEach(async userId => {
@@ -272,7 +272,7 @@ export class ChatService {
                 args: []
             }
             for(let j = 0; j < 1000; j++) {
-                let start = Math.floor(Math.random() * 5);
+                let start = Math.floor(Math.random() * 6);
                 let userPair: string[] = userIds.slice(start, start+2)
                 userPair = this.shuffle(userPair);
                 let message;
