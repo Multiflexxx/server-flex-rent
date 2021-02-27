@@ -212,14 +212,15 @@ export class ChatService {
         }
 
         let chats: Chat[] = [];
-        recentMessages.forEach(async message => {
+
+        for(let message of recentMessages) {
             chats.push({
                 chat_id: message.chat_id,
                 chat_partner: await this.userService.getUser(this.getSecondsUserFromChatId(message.chat_id, userId), StaticConsts.userDetailLevel.CONTRACT),
                 last_message: message,
                 unread_messages: message.from_user_id != userId && message.status_id === StaticConsts.MESSAGE_STATUS.SENT
             });
-        });
+        }
 
         let numberOfChatsFromDb: Array<{
             number_of_chats: number
