@@ -27,7 +27,8 @@ export class ChatController {
 
     /**
      * Is used to create a new chat message, returns the sent message
-     * @param reqBody message body
+     * @param session user + session for authentication
+     * @param message message from user
      */
     @Put()
     receiveChatMessage(
