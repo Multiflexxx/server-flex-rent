@@ -54,7 +54,6 @@ export class ChatService {
             || !message.from_user_id 
             || !message.message_content 
             || !message.message_type 
-            || !message.status_id 
             || !message.to_user_id) {
                 throw new BadRequestException("Invalid request parameters (message)");
         }
@@ -81,6 +80,8 @@ export class ChatService {
         await Connector.executeQuery(QueryBuilder.writeChatMessageToDb(messageId, message));
 
         message.message_id = messageId;
+        message.status_id = StaticConsts.MESSAGE_STATUS.SENT;
+        message.created_at = new Date();
 
         return message;
     }
