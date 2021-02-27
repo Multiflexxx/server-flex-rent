@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, forwardRef, Inject, Injectable, InternalServerErrorException, NotImplementedException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, forwardRef, Inject, Injectable, InternalServerErrorException, NotImplementedException, Query, UnauthorizedException } from '@nestjs/common';
 import { UserSession } from 'src/user/user-session.model';
 import { UserService } from 'src/user/user.service';
 import { Connector } from 'src/util/database/connector';
@@ -75,9 +75,15 @@ export class ChatService {
             throw new ForbiddenException("Cannot chat with users without accepted offer requests");
         }
 
+        let newIndexDB: Array<{
+            message_count: number
+        }> = await Connector.executeQuery(QueryBuilder.getMessageIndex());
+
+        let newIndex = (!newIndexDB || newIndexDB.length === StaticConsts.CHECK_ZERO || !newIndexDB[0] ? 0 : newIndexDB[0].message_count) + 1;
+
         // Write chat message to DB
         const messageId: string = chatId + uuidv4();
-        await Connector.executeQuery(QueryBuilder.writeChatMessageToDb(messageId, message));
+        await Connector.executeQuery(QueryBuilder.writeChatMessageToDb(messageId, message, newIndex));
 
         message.message_id = messageId;
         message.status_id = StaticConsts.MESSAGE_STATUS.SENT;
