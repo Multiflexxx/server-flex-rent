@@ -62,8 +62,7 @@ export class ChatController {
             page: number
         }
     ) {
-        
-
+        return this.chatService.getChatsForUser(userId, session, query);
     }
 
 }
