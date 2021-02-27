@@ -53,9 +53,7 @@ export class UserService {
 			throw new NotFoundException("User not found");
 		}
 
-		
 
-		
 		let user: User = {
 			user_id: result.user_id,
 				first_name: result.first_name,
