@@ -1627,6 +1627,7 @@ export class QueryBuilder {
 	 * Returns a query to write a chat message to database
 	 * @param messageId generated Id of message
 	 * @param message message object to be written
+	 * @param index count of last message + 1
 	 */
 	public static writeChatMessageToDb(messageId: string, message: ChatMessage, index): Query {
 		return {
@@ -1644,6 +1645,9 @@ export class QueryBuilder {
 		}
 	}
 
+	/**
+	 * Returns a query to get the last index from database to set the index of a new message to the last index + 1
+	 */
 	public static getMessageIndex(): Query {
 		return {
 			query: "SELECT MAX(message_count) AS message_count FROM message",
@@ -1699,13 +1703,13 @@ export class QueryBuilder {
 
 	/**
 	 * return the nth page of chat messages for a user first page is 1, default page size is 20. Messages are sorted by date
-	 * @param userId 
-	 * @param pageSize 
-	 * @param pageNumber 
+	 * @param userId ID of user
+	 * @param pageSize Size of Page
+	 * @param pageNumber Page number
 	 */
 	public static getChatsByUserId(userId: string, pageSize: number, pageNumber: number): Query {
 		return {
-			query: "SELECT DISTINCT message_id, chat_id, from_user_id, to_user_id, message_content, message_type, status_id, created_at FROM message WHERE from_user_id = ? OR to_user_id = ? AND created_at = (SELECT MAX(created_at) FROM message WHERE from_user_id = ? OR to_user_id = ?) GROUP BY chat_id ORDER BY message.created_at DESC LIMIT ? OFFSET ?;",
+			query: "SELECT DISTINCT message_id, chat_id, from_user_id, to_user_id, message_content, message_type, status_id, created_at FROM message WHERE from_user_id = ? OR to_user_id = ? AND message_count = (SELECT MAX(message_count) FROM message WHERE from_user_id = ? OR to_user_id = ?) GROUP BY chat_id ORDER BY message_count DESC LIMIT ? OFFSET ?;",
 			args: [
 				userId,
 				userId,
