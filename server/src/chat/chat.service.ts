@@ -8,7 +8,6 @@ import { ChatMessage } from './chat-message.model';
 import { v4 as uuidv4 } from 'uuid';
 import { User } from 'src/user/user.model';
 import { OfferService } from 'src/offer/offer.service';
-import { Offer } from 'src/offer/offer.model';
 import { Chat } from './chat.model';
 import { Query } from 'src/util/database/query.model';
 import { uuid } from 'uuidv4';
@@ -77,9 +76,15 @@ export class ChatService {
             throw new ForbiddenException("Cannot chat with users without accepted offer requests");
         }
 
+        let newIndexDB: Array<{
+            message_count: number
+        }> = await Connector.executeQuery(QueryBuilder.getMessageIndex());
+
+        let newIndex = (!newIndexDB || newIndexDB.length === StaticConsts.CHECK_ZERO || !newIndexDB[0] ? 0 : newIndexDB[0].message_count) + 1;
+
         // Write chat message to DB
         const messageId: string = chatId + uuidv4();
-        await Connector.executeQuery(QueryBuilder.writeChatMessageToDb(messageId, message));
+        await Connector.executeQuery(QueryBuilder.writeChatMessageToDb(messageId, message, newIndex));
 
         message.message_id = messageId;
         message.status_id = StaticConsts.MESSAGE_STATUS.SENT;
@@ -251,6 +256,7 @@ export class ChatService {
             "0bb5b8f3-6c05-4387-bc99-9afd64dc5243",
             "32e97524-21a2-4d98-a8f1-5a5e27ed1b17",
             "3fcb1a3a-e890-4df5-a48f-1f2306b1364c",
+            "9721b024-6143-431d-8098-912a79c2c0b6"
         ];
 
         userIds.forEach(async userId => {
@@ -259,14 +265,15 @@ export class ChatService {
         })
 
 
-        
+        let count = 2
         for(let i = 0; i < 1000; i++) {
             let query: Query = {
-                query: "INSERT INTO message (message_id, chat_id, from_user_id, to_user_id, message_content, message_type, status_id) VALUES ",
+                query: "INSERT INTO message (message_id, chat_id, from_user_id, to_user_id, message_content, message_type, status_id, message_count) VALUES ",
                 args: []
             }
             for(let j = 0; j < 1000; j++) {
-                let start = Math.floor(Math.random() * 5);
+                
+                let start = Math.floor(Math.random() * 6);
                 let userPair: string[] = userIds.slice(start, start+2)
                 userPair = this.shuffle(userPair);
                 let message;
@@ -280,7 +287,8 @@ export class ChatService {
                     message_id: this.calculateChatId(userPair[0], userPair[1]) + uuidv4(),
                 }
 
-                query.query += `("${message.message_id}", "${message.chat_id}", "${message.from_user_id}", "${message.to_user_id}", "${message.message_content}", ${message.message_type}, ${message.status_id}),`;
+                query.query += `("${message.message_id}", "${message.chat_id}", "${message.from_user_id}", "${message.to_user_id}", "${message.message_content}", ${message.message_type}, ${message.status_id}, ${count}),`;
+                count++;
             }
             query.query = query.query.slice(0, -1) + ';';
             await Connector.executeQuery(query);
