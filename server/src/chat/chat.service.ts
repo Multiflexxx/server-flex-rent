@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, forwardRef, Inject, Injectable, InternalServerErrorException, NotImplementedException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotImplementedException, UnauthorizedException } from '@nestjs/common';
 import { UserSession } from 'src/user/user-session.model';
 import { UserService } from 'src/user/user.service';
 import { Connector } from 'src/util/database/connector';
@@ -10,14 +10,12 @@ import { User } from 'src/user/user.model';
 import { OfferService } from 'src/offer/offer.service';
 import { Chat } from './chat.model';
 import { Query } from 'src/util/database/query.model';
-import { uuid } from 'uuidv4';
 
 @Injectable()
 export class ChatService {
 
     constructor(
-        private readonly userService: UserService,
-        private readonly offerService: OfferService
+        private readonly userService: UserService
     ) { }
 
     /**
@@ -34,7 +32,6 @@ export class ChatService {
     ): Promise<ChatMessage> {
         throw new NotImplementedException("Not implemented yet!");
     }
-
 
     /**
      * Receives a message from the client and uploads it to the server
@@ -92,7 +89,6 @@ export class ChatService {
 
         return message;
     }
-
 
     /**
      * Used to get chat messages by chat id
@@ -165,7 +161,6 @@ export class ChatService {
         };
     }
 
-
     /**
      * Returns an array of chats (chatId, chat partner, last message)
      * @param userId user to retrieve the chats for
@@ -203,12 +198,6 @@ export class ChatService {
             throw new UnauthorizedException("Unauthorized");
         }
 
-        // TAKE A LOOK AT THIS QUERY:
-        // REPLACE ids with ?
-        /*
-        SELECT DISTINCT message_id, chat_id, from_user_id, to_user_id, message_content, message_type, status_id, created_at FROM message WHERE from_user_id = "0372447f-f74a-4ed4-ae12-6bb25c96c939" OR to_user_id = "0372447f-f74a-4ed4-ae12-6bb25c96c939" AND created_at = (SELECT MAX(created_at)) GROUP BY chat_id;
-        */
-
         // Get most recent messages for each chat for user
         const recentMessages: ChatMessage[] = await Connector.executeQuery(QueryBuilder.getChatsByUserId(userId, StaticConsts.CHATS_PER_PAGE, query.page));
 
@@ -218,7 +207,7 @@ export class ChatService {
 
         let chats: Chat[] = [];
 
-        for(let message of recentMessages) {
+        for (let message of recentMessages) {
             chats.push({
                 chat_id: message.chat_id,
                 chat_partner: await this.userService.getUser(this.getSecondsUserFromChatId(message.chat_id, userId), StaticConsts.userDetailLevel.CONTRACT),
@@ -239,7 +228,7 @@ export class ChatService {
         return {
             chats: chats,
             current_page: query.page,
-            max_page: Math.ceil(numberOfChats / StaticConsts.CHATS_PER_PAGE), // Could work I guess
+            max_page: Math.ceil(numberOfChats / StaticConsts.CHATS_PER_PAGE),
             chats_per_page: StaticConsts.CHATS_PER_PAGE
         }
     }
@@ -253,28 +242,33 @@ export class ChatService {
             "2cb93d70-8ae8-4667-bdc2-cfee559db81d",
             "0372447f-f74a-4ed4-ae12-6bb25c96c939",
             "125d61fd-0fa5-444e-b368-2c3c509cc2af",
+            "9721b024-6143-431d-8098-912a79c2c0b6",
             "0bb5b8f3-6c05-4387-bc99-9afd64dc5243",
             "32e97524-21a2-4d98-a8f1-5a5e27ed1b17",
             "3fcb1a3a-e890-4df5-a48f-1f2306b1364c",
-            "9721b024-6143-431d-8098-912a79c2c0b6"
+
         ];
 
         userIds.forEach(async userId => {
-            console.log(userId)
+            // console.log(userId)
             await this.userService.getUser(userId);
         })
 
+        let newIndexDB: Array<{
+            message_count: number
+        }> = await Connector.executeQuery(QueryBuilder.getMessageIndex());
 
-        let count = 2
-        for(let i = 0; i < 1000; i++) {
+        let count = (!newIndexDB || newIndexDB.length === StaticConsts.CHECK_ZERO || !newIndexDB[0] ? 0 : newIndexDB[0].message_count) + 1;
+
+        for (let i = 0; i < 100; i++) {
             let query: Query = {
                 query: "INSERT INTO message (message_id, chat_id, from_user_id, to_user_id, message_content, message_type, status_id, message_count) VALUES ",
                 args: []
             }
-            for(let j = 0; j < 1000; j++) {
-                
+            for (let j = 0; j < 1000; j++) {
+
                 let start = Math.floor(Math.random() * 6);
-                let userPair: string[] = userIds.slice(start, start+2)
+                let userPair: string[] = userIds.slice(start, start + 2)
                 userPair = this.shuffle(userPair);
                 let message;
                 message = {
@@ -295,7 +289,6 @@ export class ChatService {
         }
     }
 
-
     /**
      * Takes two userIds as input and calculates the chatId
      * @param userOne 
@@ -308,7 +301,7 @@ export class ChatService {
     /**
      * Returns the second userId from a chat
      * @param chatId ID of chat
-     * @param firstUser known user
+     * @param firstUser known user id
      */
     private getSecondsUserFromChatId(chatId: string, firstUser: string): string {
         // Remove first user from chatId and return
@@ -316,6 +309,10 @@ export class ChatService {
     }
 
 
+    /**
+     * USED FOR TESTING
+     * @param a 
+     */
     private shuffle(a) {
         var j, x, i;
         for (i = a.length - 1; i > 0; i--) {
