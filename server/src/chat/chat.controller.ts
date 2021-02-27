@@ -72,4 +72,9 @@ export class ChatController {
         return this.chatService.getChatsForUser(userId, session, query);
     }
 
+    @Get('test/generate')
+    generateFakeData() {
+        return this.chatService.generateTestData();
+    }
+
 }
