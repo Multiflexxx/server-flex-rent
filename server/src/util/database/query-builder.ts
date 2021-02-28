@@ -1639,7 +1639,7 @@ export class QueryBuilder {
 				message.to_user_id,
 				message.message_content,
 				message.message_type,
-				message.status_id,
+				StaticConsts.MESSAGE_STATUS.SENT,
 				index
 			]
 		}
