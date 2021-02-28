@@ -1134,6 +1134,7 @@ export class OfferService {
 			const messageId: string = chatId + uuid();
 			await Connector.executeQuery(QueryBuilder.writeChatMessageToDb(messageId, systemMessage, newIndex));
 
+			console.log(systemMessage)
 			try {
 				await Connector.executeQuery(QueryBuilder.createRequest(request));
 			} catch (e) {
