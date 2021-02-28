@@ -153,7 +153,7 @@ export class ChatService {
         const chatPartner: User = await this.userService.getUser(chatPartnerId, StaticConsts.userDetailLevel.CONTRACT);
 
         // Set Messages in that chat to read
-        this.setChatMessagesToRead(chatId);
+        await this.setChatMessagesToRead(chatId);
 
         return {
             messages: messages,
