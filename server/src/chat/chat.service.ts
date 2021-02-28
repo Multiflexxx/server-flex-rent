@@ -152,6 +152,9 @@ export class ChatService {
         const chatPartnerId: string = this.getSecondsUserFromChatId(chatId, session.user_id);
         const chatPartner: User = await this.userService.getUser(chatPartnerId, StaticConsts.userDetailLevel.CONTRACT);
 
+        // Set Messages in that chat to read
+        this.setChatMessagesToRead(chatId);
+
         return {
             messages: messages,
             current_page: query.page,
@@ -231,6 +234,10 @@ export class ChatService {
             max_page: Math.ceil(numberOfChats / StaticConsts.CHATS_PER_PAGE),
             chats_per_page: StaticConsts.CHATS_PER_PAGE
         }
+    }
+
+    private async setChatMessagesToRead(chatId: string) {
+        await Connector.executeQuery(QueryBuilder.setChatMessagesToRead(chatId, StaticConsts.MESSAGE_STATUS.READ));
     }
 
     public async sendSystemMessage() { }

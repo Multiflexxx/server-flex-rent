@@ -1735,6 +1735,17 @@ export class QueryBuilder {
 		}
 	}
 
+	public static setChatMessagesToRead(chatId: string, newStatus: number): Query {
+		return {
+			query: "UPDATE message SET status_id = ? WHERE chat_id = ? and status_id != ?;",
+			args: [
+				newStatus,
+				chatId,
+				newStatus
+			]
+		}
+	}
+
 	public static testQuery() {
 		return {
 			query: "SELECT * FROM place WHERE place_id < 4;",
