@@ -79,12 +79,14 @@ export class ChatService {
 
         let newIndex = (!newIndexDB || newIndexDB.length === StaticConsts.CHECK_ZERO || !newIndexDB[0] ? 0 : newIndexDB[0].message_count) + 1;
 
+        // Used to set right state to db
+        message.status_id = StaticConsts.MESSAGE_STATUS.SENT;
+
         // Write chat message to DB
         const messageId: string = chatId + uuidv4();
         await Connector.executeQuery(QueryBuilder.writeChatMessageToDb(messageId, message, newIndex));
 
         message.message_id = messageId;
-        message.status_id = StaticConsts.MESSAGE_STATUS.SENT;
         message.created_at = new Date();
 
         return message;
@@ -153,7 +155,7 @@ export class ChatService {
         const chatPartner: User = await this.userService.getUser(chatPartnerId, StaticConsts.userDetailLevel.CONTRACT);
 
         // Set Messages in that chat to read
-        this.setChatMessagesToRead(chatId);
+        await this.setChatMessagesToRead(chatId);
 
         return {
             messages: messages,
