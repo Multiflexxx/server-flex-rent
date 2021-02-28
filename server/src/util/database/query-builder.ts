@@ -1639,7 +1639,7 @@ export class QueryBuilder {
 				message.to_user_id,
 				message.message_content,
 				message.message_type,
-				message.status_id,
+				StaticConsts.MESSAGE_STATUS.SENT,
 				index
 			]
 		}
@@ -1731,6 +1731,17 @@ export class QueryBuilder {
 			args: [
 				userId,
 				userId
+			]
+		}
+	}
+
+	public static setChatMessagesToRead(chatId: string, newStatus: number): Query {
+		return {
+			query: "UPDATE message SET status_id = ? WHERE chat_id = ? and status_id != ?;",
+			args: [
+				newStatus,
+				chatId,
+				newStatus
 			]
 		}
 	}
