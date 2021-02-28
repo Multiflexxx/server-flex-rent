@@ -109,7 +109,7 @@ export class ChatService {
         chat_partner: User
     }> {
         // Check user + session
-        if (!chatId || !session || !session.session_id || session.user_id) {
+        if (!chatId || !session || !session.session_id || !session.user_id) {
             throw new BadRequestException("Invalid request parameters");
         }
 
