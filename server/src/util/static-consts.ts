@@ -74,5 +74,10 @@ export const CHATS_PER_PAGE = 20;
 export const MESSAGE_STATUS = {
 	TEST: -1,
 	SENT: 1,
-	READ: 2
+	READ: 2,
+}
+export const MESSAGE_TYPES = {
+	OFFER_REQUEST: 1,
+	TEXT: 2,
+	IMAGE: 3
 }
