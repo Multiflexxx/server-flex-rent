@@ -1709,10 +1709,8 @@ export class QueryBuilder {
 	 */
 	public static getChatsByUserId(userId: string, pageSize: number, pageNumber: number): Query {
 		return {
-			query: "SELECT DISTINCT message_id, chat_id, from_user_id, to_user_id, message_content, message_type, status_id, created_at FROM message WHERE from_user_id = ? OR to_user_id = ? AND message_count = (SELECT MAX(message_count) FROM message WHERE from_user_id = ? OR to_user_id = ?) GROUP BY chat_id ORDER BY message_count DESC LIMIT ? OFFSET ?;",
+			query: "WITH newest_messages AS (SELECT chat_id, MAX(message_count) AS most_recent FROM message WHERE from_user_id = ? OR to_user_id = ? GROUP BY chat_id ) Select message.message_id, message.chat_id, message.from_user_id, message.to_user_id, message.message_content, message.message_type, message.status_id, message.created_at FROM newest_messages, message WHERE message.chat_id = newest_messages.chat_id AND message.message_count = newest_messages.most_recent ORDER BY message.message_count DESC LIMIT ? OFFSET ?;",
 			args: [
-				userId,
-				userId,
 				userId,
 				userId,
 				pageSize,
@@ -1735,13 +1733,14 @@ export class QueryBuilder {
 		}
 	}
 
-	public static setChatMessagesToRead(chatId: string, newStatus: number): Query {
+	public static setChatMessagesToRead(chatId: string, newStatus: number, userId: string): Query {
 		return {
-			query: "UPDATE message SET status_id = ? WHERE chat_id = ? and status_id != ?;",
+			query: "UPDATE message SET status_id = ? WHERE chat_id = ? AND status_id != ? AND to_user_id = ?;",
 			args: [
 				newStatus,
 				chatId,
-				newStatus
+				newStatus,
+				userId
 			]
 		}
 	}
