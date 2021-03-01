@@ -6,8 +6,8 @@ export class SMSHandler {
 
     public static async sendVerificationSMS(
         phoneNumber: string,
-        verificationCode: number):
-        Promise<any> {
+        verificationCode: string
+    ): Promise<any> {
         let message = `${verificationCode} ist dein Bestaetigungs Code fuer Flexrent.\n@flexrent #${verificationCode}`;
 
         let messageBody = {
