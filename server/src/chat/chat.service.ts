@@ -215,7 +215,7 @@ export class ChatService {
         // Get most recent messages for each chat for user
         const recentMessages: ChatMessage[] = await Connector.executeQuery(QueryBuilder.getChatsByUserId(userId, StaticConsts.CHATS_PER_PAGE, query.page));
 
-        if (recentMessages.length === StaticConsts.CHECK_ZERO && numberOfChats >= StaticConsts.CHECK_ZERO) {
+        if (recentMessages.length === StaticConsts.CHECK_ZERO && numberOfChats > StaticConsts.CHECK_ZERO) {
             throw new BadRequestException("Ran out of pages");
         }
 
