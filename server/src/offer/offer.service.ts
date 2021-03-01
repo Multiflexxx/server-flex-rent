@@ -1128,7 +1128,7 @@ export class OfferService {
 				to_user_id: offer.lessor.user_id,
 				message_content: requestUuid,
 				message_type: StaticConsts.MESSAGE_TYPES.OFFER_REQUEST,
-				status_id: StaticConsts.MESSAGE_STATUS.OFFER_REQUEST
+				status_id: StaticConsts.MESSAGE_STATUS.SENT
 			}
 			// Write chat message to DB
 			const messageId: string = chatId + uuid();
