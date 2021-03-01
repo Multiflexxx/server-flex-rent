@@ -1735,13 +1735,14 @@ export class QueryBuilder {
 		}
 	}
 
-	public static setChatMessagesToRead(chatId: string, newStatus: number): Query {
+	public static setChatMessagesToRead(chatId: string, newStatus: number, userId: string): Query {
 		return {
-			query: "UPDATE message SET status_id = ? WHERE chat_id = ? and status_id != ?;",
+			query: "UPDATE message SET status_id = ? WHERE chat_id = ? AND status_id != ? AND to_user_id = ?;",
 			args: [
 				newStatus,
 				chatId,
-				newStatus
+				newStatus,
+				userId
 			]
 		}
 	}

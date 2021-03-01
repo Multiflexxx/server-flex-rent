@@ -153,7 +153,7 @@ export class ChatService {
         const chatPartner: User = await this.userService.getUser(chatPartnerId, StaticConsts.userDetailLevel.CONTRACT);
 
         // Set Messages in that chat to read
-        this.setChatMessagesToRead(chatId);
+        this.setChatMessagesToRead(chatId, session.user_id);
 
         return {
             messages: messages,
@@ -236,8 +236,8 @@ export class ChatService {
         }
     }
 
-    private async setChatMessagesToRead(chatId: string) {
-        await Connector.executeQuery(QueryBuilder.setChatMessagesToRead(chatId, StaticConsts.MESSAGE_STATUS.READ));
+    private async setChatMessagesToRead(chatId: string, userId: string) {
+        await Connector.executeQuery(QueryBuilder.setChatMessagesToRead(chatId, StaticConsts.MESSAGE_STATUS.READ, userId));
     }
 
     public async sendSystemMessage() { }
@@ -259,7 +259,7 @@ export class ChatService {
         userIds.forEach(async userId => {
             // console.log(userId)
             await this.userService.getUser(userId);
-        })
+        });
 
         let newIndexDB: Array<{
             message_count: number
