@@ -1388,7 +1388,7 @@ export class QueryBuilder {
 	 */
 	public static checkIfUsersHaveAnOpenOfferRequest(userA: string, userB: string): Query {
 		return {
-			query: "SELECT COUNT(request_id) AS number_of_requests FROM request JOIN offer ON request.offer_id = offer.offer_id WHERE ((request.user_id = ? AND offer.user_id = ?) OR (request.user_id = ? AND offer.user_id = ?)) AND (request.status_id == ? OR (request.status_id > ? AND request.status_id <= ?));",
+			query: "SELECT COUNT(request_id) AS number_of_requests FROM request JOIN offer ON request.offer_id = offer.offer_id WHERE ((request.user_id = ? AND offer.user_id = ?) OR (request.user_id = ? AND offer.user_id = ?)) AND (request.status_id = ? OR (request.status_id > ? AND request.status_id <= ?));",
 			args: [
 				userA,
 				userB,
