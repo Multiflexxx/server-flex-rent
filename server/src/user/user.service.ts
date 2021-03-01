@@ -13,6 +13,7 @@ import { EmailHandler } from 'src/util/email/email-handler';
 import { uuid } from 'uuidv4';
 import { TrustedDevice } from './trusted-device.model';
 import { UserSession } from './user-session.model';
+import { SMSHandler } from 'src/util/sms/sms-handler';
 
 const axios = require('axios');
 const bcrypt = require('bcrypt');
@@ -144,6 +145,7 @@ export class UserService {
 		EmailHandler.sendVerificationEmail(user.email, user.first_name, emailValidationPath);
 
 		// TODO: Send SMS
+		SMSHandler.sendVerificationSMS(user.phone_number, phoneToken);
 	}
 
 	/**
@@ -470,6 +472,8 @@ export class UserService {
 		if(!user_id || !token) {
 			throw new BadRequestException("Invalid request parameters");
 		}
+
+		token = token.toUpperCase();
 
 		// Check if token is valid
 		let user = (await Connector.executeQuery(QueryBuilder.getUserByPhoneValidationToken(user_id, token)))[0];
