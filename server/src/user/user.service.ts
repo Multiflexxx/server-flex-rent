@@ -57,16 +57,16 @@ export class UserService {
 
 		let user: User = {
 			user_id: result.user_id,
-				first_name: result.first_name,
-				last_name: result.last_name,
-				verified: (result.verified === 1 ? true : false),
-				place_id: result.place_id,
-				lessee_rating: result.lessee_rating,
-				number_of_lessee_ratings: result.number_of_lessee_ratings,
-				lessor_rating: result.lessor_rating,
-				number_of_lessor_ratings: result.number_of_lessor_ratings,
-				profile_picture: result.profile_picture ? fileConfig.user_image_base_url + result.profile_picture.split(".")[0] + `?refresh=${uuidv4()}` : "",
-				status_id: result.status_id,
+			first_name: result.first_name,
+			last_name: result.last_name,
+			verified: (result.verified === 1 ? true : false),
+			place_id: result.place_id,
+			lessee_rating: result.lessee_rating,
+			number_of_lessee_ratings: result.number_of_lessee_ratings,
+			lessor_rating: result.lessor_rating,
+			number_of_lessor_ratings: result.number_of_lessor_ratings,
+			profile_picture: result.profile_picture ? fileConfig.user_image_base_url + result.profile_picture.split(".")[0] + `?refresh=${uuidv4()}` : "",
+			status_id: result.status_id
 		};
 
 		// Get post code and city name by place_id
