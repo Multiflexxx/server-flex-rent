@@ -1,5 +1,6 @@
 export interface ChatMessage {
     chat_id: string,
+    message_count: number,
     from_user_id: string,
     to_user_id: string,
     message_content: string,
