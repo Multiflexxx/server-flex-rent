@@ -1691,9 +1691,9 @@ export class QueryBuilder {
 	 * Returns a query to count the number of messages per chat
 	 * @param chatId ID of chat
 	 */
-	public static getNumberMessagesInChat(chatId: string): Query {
+	public static getLastMessageCountInChat(chatId: string): Query {
 		return {
-			query: "SELECT COUNT(message_id) AS message_count FROM message WHERE chat_id = ?;",
+			query: "SELECT MIN(message_count) AS message_count FROM message WHERE chat_id = ?;",
 			args: [
 				chatId
 			]
@@ -1745,6 +1745,28 @@ export class QueryBuilder {
 		}
 	}
 
+	public static getNewestMessagesWithLastMessage(chatId: string, lastMessageCount: number): Query {
+		return {
+			query: "SELECT message_id, chat_id, from_user_id, to_user_id, message_content, message_type, status_id, created_at FROM message WHERE chat_id = ? AND message_count > ? ORDER BY message_count ASC;",
+			args: [
+				chatId,
+				lastMessageCount
+			]
+		}
+	}
+
+
+	public static getOlderMessagesWithLastMessage(chatId: string, lastMessageCount: number): Query {
+		return {
+			query: "SELECT message_id, chat_id, from_user_id, to_user_id, message_content, message_type, status_id, created_at FROM message WHERE chat_id = ? AND message_count < ? ORDER BY message_count ASC LIMIT ?;",
+			args: [
+				chatId,
+				lastMessageCount,
+				StaticConsts.MESSAGES_PER_PAGE
+			]
+		}
+	}
+
 	public static testQuery() {
 		return {
 			query: "SELECT * FROM place WHERE place_id < 4;",
@@ -1753,4 +1775,5 @@ export class QueryBuilder {
 			]
 		}
 	}
+
 }

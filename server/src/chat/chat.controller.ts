@@ -47,7 +47,8 @@ export class ChatController {
         @Param('id') chatId: string,
         @Body('session') session: UserSession,
         @Body('query') query: {
-            page: number
+            message_count: number,
+            newer: boolean
         }
     ) {
         return this.chatService.getMessagesByChatId(chatId, session, query);

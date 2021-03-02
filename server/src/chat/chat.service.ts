@@ -101,14 +101,14 @@ export class ChatService {
         chatId: string,
         session: UserSession,
         query: {
-            page: number
+            message_count: number,
+            newer: boolean
         }
     ): Promise<{
         messages: Array<ChatMessage>,
-        current_page: number,
-        max_page: number,
         messages_per_page: number,
-        chat_partner: User
+        chat_partner: User,
+        oldest_message_count: number
     }> {
         // Check user + session
         if (!chatId || !session || !session.session_id || !session.user_id) {
@@ -116,7 +116,7 @@ export class ChatService {
         }
 
         // Check query parameters
-        if (!query || !query.page || isNaN(query.page)) {
+        if (!query || !query.message_count || isNaN(query.message_count) || query.newer === undefined || query.newer === null) {
             throw new BadRequestException("Invalid request parameters");
         }
 
@@ -131,24 +131,24 @@ export class ChatService {
         // Get number of chat messages
         let result: {
             message_count: number
-        } = (await Connector.executeQuery(QueryBuilder.getNumberMessagesInChat(chatId)))[0];
+        } = (await Connector.executeQuery(QueryBuilder.getLastMessageCountInChat(chatId)))[0];
 
         let messageCount: number;
         if (!result) {
-            messageCount = 0;
+            messageCount = -1;
         } else {
             messageCount = result.message_count;
         }
 
-        // Calculate max page count
-        const maxPage: number = Math.ceil(messageCount / StaticConsts.MESSAGES_PER_PAGE);
-
-        if (query.page > maxPage) {
-            throw new BadRequestException("Ran out of pages");
+        let messages: Array<ChatMessage>;
+        if(query.message_count === -1) {
+            // Get first 20 messages for chat
+            messages = await Connector.executeQuery(QueryBuilder.getMessagesByChatId(chatId, StaticConsts.MESSAGES_PER_PAGE, 1));
+        } else if (query.newer) {
+            messages = await Connector.executeQuery(QueryBuilder.getNewestMessagesWithLastMessage(chatId, query.message_count));
+        } else {
+            messages = await Connector.executeQuery(QueryBuilder.getOlderMessagesWithLastMessage(chatId, query.message_count));
         }
-
-        // Get Messages from DB
-        let messages: Array<ChatMessage> = await Connector.executeQuery(QueryBuilder.getMessagesByChatId(chatId, StaticConsts.MESSAGES_PER_PAGE, query.page));
 
         // Get from and to user
         const chatPartnerId: string = this.getSecondsUserFromChatId(chatId, session.user_id);
@@ -159,10 +159,9 @@ export class ChatService {
 
         return {
             messages: messages,
-            current_page: query.page,
-            max_page: maxPage,
             messages_per_page: StaticConsts.MESSAGES_PER_PAGE,
-            chat_partner: chatPartner
+            chat_partner: chatPartner,
+            oldest_message_count: messageCount
         };
     }
 
