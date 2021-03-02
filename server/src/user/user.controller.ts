@@ -152,12 +152,12 @@ export class UserController {
         await this.userService.validateEmail(user_id, query.token);
     }
 
-    @Get('validate-phone/:token')
+    @Post('validate-phone')
     async validatePhone(
-        @Param('token') token: string,
-        @Query() query
+        @Body('token') token: string,
+        @Body('user_id') userId: string
     ) {
-        await this.userService.validatePhone(query.user_id, token);
+        await this.userService.validatePhone(userId, token);
     }
 
     /**

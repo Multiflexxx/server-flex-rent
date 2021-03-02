@@ -202,10 +202,19 @@ export class ChatService {
             throw new UnauthorizedException("Unauthorized");
         }
 
+        let numberOfChatsFromDb: Array<{
+            number_of_chats: number
+        }> = await Connector.executeQuery(QueryBuilder.getNumberOfChatsForUser(validatedUser.user.user_id));
+
+        let numberOfChats: number = 0;
+        if (numberOfChatsFromDb.length > StaticConsts.CHECK_ZERO) {
+            numberOfChats = numberOfChatsFromDb[0].number_of_chats;
+        }
+
         // Get most recent messages for each chat for user
         const recentMessages: ChatMessage[] = await Connector.executeQuery(QueryBuilder.getChatsByUserId(userId, StaticConsts.CHATS_PER_PAGE, query.page));
 
-        if (recentMessages.length === 0) {
+        if (recentMessages.length === StaticConsts.CHECK_ZERO && numberOfChats > StaticConsts.CHECK_ZERO) {
             throw new BadRequestException("Ran out of pages");
         }
 
@@ -218,15 +227,6 @@ export class ChatService {
                 last_message: message,
                 unread_messages: message.from_user_id != userId && message.status_id === StaticConsts.MESSAGE_STATUS.SENT
             });
-        }
-
-        let numberOfChatsFromDb: Array<{
-            number_of_chats: number
-        }> = await Connector.executeQuery(QueryBuilder.getNumberOfChatsForUser(validatedUser.user.user_id));
-
-        let numberOfChats: number = 0;
-        if (numberOfChatsFromDb.length > StaticConsts.CHECK_ZERO) {
-            numberOfChats = numberOfChatsFromDb[0].number_of_chats;
         }
 
         return {
