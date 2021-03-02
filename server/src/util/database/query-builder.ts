@@ -1664,7 +1664,7 @@ export class QueryBuilder {
 	 */
 	public static getMessagesByChatId(chatId: string, pageSize: number, pageNumber: number): Query {
 		return {
-			query: "SELECT message_id, chat_id, from_user_id, to_user_id, message_content, message_type, status_id, created_at FROM message WHERE chat_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?;",
+			query: "SELECT message_id, chat_id, from_user_id, to_user_id, message_content, message_type, status_id, created_at, message_count FROM message WHERE chat_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?;",
 			args: [
 				chatId,
 				pageSize,
@@ -1680,7 +1680,7 @@ export class QueryBuilder {
 	 */
 	public static getMessageByMessageId(chatId: string, messageId: string): Query {
 		return {
-			query: "SELECT message_id, chat_id, from_user_id, to_user_id, message_content, message_type, status_id, created_at FROM message WHERE chat_id = ? AND message_id = ?;",
+			query: "SELECT message_id, chat_id, from_user_id, to_user_id, message_content, message_type, status_id, created_at, message_count FROM message WHERE chat_id = ? AND message_id = ?;",
 			args: [
 				chatId,
 				messageId
@@ -1710,7 +1710,7 @@ export class QueryBuilder {
 	 */
 	public static getChatsByUserId(userId: string, pageSize: number, pageNumber: number): Query {
 		return {
-			query: "WITH newest_messages AS (SELECT chat_id, MAX(message_count) AS most_recent FROM message WHERE from_user_id = ? OR to_user_id = ? GROUP BY chat_id ) Select message.message_id, message.chat_id, message.from_user_id, message.to_user_id, message.message_content, message.message_type, message.status_id, message.created_at FROM newest_messages, message WHERE message.chat_id = newest_messages.chat_id AND message.message_count = newest_messages.most_recent ORDER BY message.message_count DESC LIMIT ? OFFSET ?;",
+			query: "WITH newest_messages AS (SELECT chat_id, MAX(message_count) AS most_recent FROM message WHERE from_user_id = ? OR to_user_id = ? GROUP BY chat_id ) SELECT message.message_id, message.chat_id, message.from_user_id, message.to_user_id, message.message_content, message.message_type, message.status_id, message.created_at, message.message_count FROM newest_messages, message WHERE message.chat_id = newest_messages.chat_id AND message.message_count = newest_messages.most_recent ORDER BY message.message_count DESC LIMIT ? OFFSET ?;",
 			args: [
 				userId,
 				userId,
@@ -1748,7 +1748,7 @@ export class QueryBuilder {
 
 	public static getNewestMessagesWithLastMessage(chatId: string, lastMessageCount: number): Query {
 		return {
-			query: "SELECT message_id, chat_id, from_user_id, to_user_id, message_content, message_type, status_id, created_at FROM message WHERE chat_id = ? AND message_count > ? ORDER BY message_count ASC;",
+			query: "SELECT message_id, chat_id, from_user_id, to_user_id, message_content, message_type, status_id, created_at, message_count FROM message WHERE chat_id = ? AND message_count > ? ORDER BY message_count ASC;",
 			args: [
 				chatId,
 				lastMessageCount
@@ -1759,7 +1759,7 @@ export class QueryBuilder {
 
 	public static getOlderMessagesWithLastMessage(chatId: string, lastMessageCount: number): Query {
 		return {
-			query: "SELECT message_id, chat_id, from_user_id, to_user_id, message_content, message_type, status_id, created_at FROM message WHERE chat_id = ? AND message_count < ? ORDER BY message_count ASC LIMIT ?;",
+			query: "SELECT message_id, chat_id, from_user_id, to_user_id, message_content, message_type, status_id, created_at, message_count FROM message WHERE chat_id = ? AND message_count < ? ORDER BY message_count ASC LIMIT ?;",
 			args: [
 				chatId,
 				lastMessageCount,
