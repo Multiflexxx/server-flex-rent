@@ -1759,7 +1759,7 @@ export class QueryBuilder {
 
 	public static getOlderMessagesWithLastMessage(chatId: string, lastMessageCount: number): Query {
 		return {
-			query: "SELECT message_id, chat_id, from_user_id, to_user_id, message_content, message_type, status_id, created_at, message_count FROM message WHERE chat_id = ? AND message_count < ? ORDER BY message_count DESC LIMIT ?;",
+			query: "SELECT message_id, chat_id, from_user_id, to_user_id, message_content, message_type, status_id, created_at, message_count FROM message WHERE chat_id = ? AND message_count < ? ORDER BY message_count ASC LIMIT ?;",
 			args: [
 				chatId,
 				lastMessageCount,
