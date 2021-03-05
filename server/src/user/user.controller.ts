@@ -156,8 +156,8 @@ export class UserController {
     async validatePhone(
         @Body('token') token: string,
         @Body('user_id') userId: string
-    ) {
-        await this.userService.validatePhone(userId, token);
+    ): Promise<{user: User, session_id: string}> {
+        return await this.userService.validatePhone(userId, token);
     }
 
     /**
