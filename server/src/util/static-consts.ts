@@ -76,3 +76,8 @@ export const MESSAGE_STATUS = {
 	SENT: 1,
 	READ: 2
 }
+export const MESSAGE_TYPES = {
+	OFFER_REQUEST: 1,
+	TEXT: 2,
+	IMAGE: 3
+}

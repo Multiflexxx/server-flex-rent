@@ -13,6 +13,7 @@ import { User } from 'src/user/user.model';
 import { Request } from './request.model';
 import * as StaticConsts from 'src/util/static-consts';
 import { OfferRating } from './offer-rating.model';
+import { ChatMessage } from 'src/chat/chat-message.model';
 
 const BASE_OFFER_LINK = require('../../file-handler-config.json').offer_image_base_url;
 
@@ -1111,7 +1112,29 @@ export class OfferService {
 				lessee_rating: null,
 				offer_rating: null
 			}
+	
+			// calculate chatid
+			const chatId: string = this.calculateChatId(responseUser.user_id, offer.lessor.user_id);
+	
+			let newIndexDB: Array<{
+				message_count: number
+			}> = await Connector.executeQuery(QueryBuilder.getMessageIndex());
+	
+			let newIndex = (!newIndexDB || newIndexDB.length === StaticConsts.CHECK_ZERO || !newIndexDB[0] ? 0 : newIndexDB[0].message_count) + 1;
+	
+			let systemMessage: ChatMessage = {
+				chat_id: chatId,
+				from_user_id: responseUser.user_id,
+				to_user_id: offer.lessor.user_id,
+				message_content: requestUuid,
+				message_type: StaticConsts.MESSAGE_TYPES.OFFER_REQUEST,
+				status_id: StaticConsts.MESSAGE_STATUS.SENT
+			}
+			// Write chat message to DB
+			const messageId: string = chatId + uuid();
+			await Connector.executeQuery(QueryBuilder.writeChatMessageToDb(messageId, systemMessage, newIndex));
 
+			console.log(systemMessage)
 			try {
 				await Connector.executeQuery(QueryBuilder.createRequest(request));
 			} catch (e) {
@@ -2633,4 +2656,13 @@ export class OfferService {
 
 		return offers;
 	}
+
+	/**
+     * Takes two userIds as input and calculates the chatId
+     * @param userOne 
+     * @param userTwo 
+     */
+    private calculateChatId(userOne: string, userTwo: string): string {
+        return [userOne, userTwo].sort().join("");
+    }
 }

@@ -79,12 +79,14 @@ export class ChatService {
 
         let newIndex = (!newIndexDB || newIndexDB.length === StaticConsts.CHECK_ZERO || !newIndexDB[0] ? 0 : newIndexDB[0].message_count) + 1;
 
+        // Used to set right state to db
+        message.status_id = StaticConsts.MESSAGE_STATUS.SENT;
+
         // Write chat message to DB
         const messageId: string = chatId + uuidv4();
         await Connector.executeQuery(QueryBuilder.writeChatMessageToDb(messageId, message, newIndex));
 
         message.message_id = messageId;
-        message.status_id = StaticConsts.MESSAGE_STATUS.SENT;
         message.created_at = new Date();
 
         return message;
@@ -151,6 +153,9 @@ export class ChatService {
         // Get from and to user
         const chatPartnerId: string = this.getSecondsUserFromChatId(chatId, session.user_id);
         const chatPartner: User = await this.userService.getUser(chatPartnerId, StaticConsts.userDetailLevel.CONTRACT);
+
+        // Set Messages in that chat to read
+        this.setChatMessagesToRead(chatId, session.user_id);
 
         return {
             messages: messages,
@@ -233,6 +238,10 @@ export class ChatService {
         }
     }
 
+    private async setChatMessagesToRead(chatId: string, userId: string) {
+        await Connector.executeQuery(QueryBuilder.setChatMessagesToRead(chatId, StaticConsts.MESSAGE_STATUS.READ, userId));
+    }
+
     public async sendSystemMessage() { }
 
 
@@ -252,7 +261,7 @@ export class ChatService {
         userIds.forEach(async userId => {
             // console.log(userId)
             await this.userService.getUser(userId);
-        })
+        });
 
         let newIndexDB: Array<{
             message_count: number
