@@ -69,7 +69,7 @@ export class ChatService {
         // Check if user is allowed to send messages
         let requestCount: number = (await Connector.executeQuery(QueryBuilder.checkIfUsersHaveAnOpenOfferRequest(message.from_user_id, message.to_user_id)))[0].number_of_requests;
 
-        if (requestCount == StaticConsts.CHECK_ZERO) {
+        if (!requestCount || requestCount == StaticConsts.CHECK_ZERO) {
             throw new ForbiddenException("Cannot chat with users without accepted offer requests");
         }
 
@@ -151,7 +151,7 @@ export class ChatService {
         }
 
         // Get from and to user
-        const chatPartnerId: string = this.getSecondsUserFromChatId(chatId, session.user_id);
+        const chatPartnerId: string = this.getSecondUserFromChatId(chatId, session.user_id);
         const chatPartner: User = await this.userService.getUser(chatPartnerId, StaticConsts.userDetailLevel.CONTRACT);
 
         // Set Messages in that chat to read
@@ -221,11 +221,20 @@ export class ChatService {
         let chats: Chat[] = [];
 
         for (let message of recentMessages) {
+
+            // Set is_allowed_to_chat field
+            let canChat: boolean = true;
+            let result = (await Connector.executeQuery(QueryBuilder.checkIfUsersHaveAnOpenOfferRequest(message.from_user_id, message.to_user_id)))[0];
+            if(result.number_of_requests == 0) {
+                canChat = false;
+            }
+
             chats.push({
                 chat_id: message.chat_id,
-                chat_partner: await this.userService.getUser(this.getSecondsUserFromChatId(message.chat_id, userId), StaticConsts.userDetailLevel.CONTRACT),
+                chat_partner: await this.userService.getUser(this.getSecondUserFromChatId(message.chat_id, userId), StaticConsts.userDetailLevel.CONTRACT),
                 last_message: message,
-                unread_messages: message.from_user_id != userId && message.status_id === StaticConsts.MESSAGE_STATUS.SENT
+                unread_messages: message.from_user_id != userId && message.status_id === StaticConsts.MESSAGE_STATUS.SENT,
+                is_allowed_to_chat: canChat
             });
         }
 
@@ -311,7 +320,7 @@ export class ChatService {
      * @param chatId ID of chat
      * @param firstUser known user id
      */
-    private getSecondsUserFromChatId(chatId: string, firstUser: string): string {
+    private getSecondUserFromChatId(chatId: string, firstUser: string): string {
         // Remove first user from chatId and return
         return chatId.replace(firstUser, "");
     }
