@@ -57,16 +57,16 @@ export class UserService {
 
 		let user: User = {
 			user_id: result.user_id,
-				first_name: result.first_name,
-				last_name: result.last_name,
-				verified: (result.verified === 1 ? true : false),
-				place_id: result.place_id,
-				lessee_rating: result.lessee_rating,
-				number_of_lessee_ratings: result.number_of_lessee_ratings,
-				lessor_rating: result.lessor_rating,
-				number_of_lessor_ratings: result.number_of_lessor_ratings,
-				profile_picture: result.profile_picture ? fileConfig.user_image_base_url + result.profile_picture.split(".")[0] + `?refresh=${uuidv4()}` : "",
-				status_id: result.status_id,
+			first_name: result.first_name,
+			last_name: result.last_name,
+			verified: (result.verified === 1 ? true : false),
+			place_id: result.place_id,
+			lessee_rating: result.lessee_rating,
+			number_of_lessee_ratings: result.number_of_lessee_ratings,
+			lessor_rating: result.lessor_rating,
+			number_of_lessor_ratings: result.number_of_lessor_ratings,
+			profile_picture: result.profile_picture ? fileConfig.user_image_base_url + result.profile_picture.split(".")[0] + `?refresh=${uuidv4()}` : "",
+			status_id: result.status_id
 		};
 
 		// Get post code and city name by place_id
@@ -100,7 +100,7 @@ export class UserService {
 	 * @param user 
 	 * @param method 
 	 */
-	public async createUser(user: User, method: string): Promise<{ user: User, session_id: string }> {
+	public async createUser(user: User, method: string): Promise<User> {
 		if (!user) {
 			throw new BadRequestException("No user information supplied");
 		}
@@ -125,12 +125,7 @@ export class UserService {
 		await this.startValidationProcess(user);
 
 		// Create Session for User and return user + new session
-		return await this.validateUser({
-			login: {
-				email: user.email,
-				password_hash: plainTextPwd
-			}
-		});
+		return await this.getUser(user.user_id);
 	}
 
 	public async startValidationProcess(user: User) {
@@ -347,6 +342,8 @@ export class UserService {
 
 			user = await this.getUser(result.user_id, StaticConsts.userDetailLevel.COMPLETE);
 
+			session_id = auth.session.session_id;
+
 		} else if (auth.oauth && auth.oauth.email && auth.oauth.method) {
 			// Authenticate using oauth flow (Email and method)
 			let result = (await Connector.executeQuery(QueryBuilder.getUser({ oauth: auth.oauth })))[0];
@@ -468,7 +465,7 @@ export class UserService {
 	 * @param user_id user id
 	 * @param token validation token 6 characters alphanumeric
 	 */
-	public async validatePhone(user_id: string, token: string) {
+	public async validatePhone(user_id: string, token: string): Promise<{user: User, session_id: string}> {
 		if(!user_id || !token) {
 			throw new BadRequestException("Invalid request parameters");
 		}
@@ -484,8 +481,16 @@ export class UserService {
 		// Set email to validated to user
 		await Connector.executeQuery(QueryBuilder.setPhoneToVerified(user.user_id));
 		await Connector.executeQuery(QueryBuilder.updateUserVerifiedStatus(user_id));
+		await Connector.executeQuery(QueryBuilder.deletePhoneValidationCode(user_id));
 
-		return;
+		// Create user session and return validated User
+		let sessionId: string = uuidv4();
+		await Connector.executeQuery(QueryBuilder.createSession(sessionId, user_id));
+
+		return await this.validateUser({session: {
+			user_id: user_id,
+			session_id: sessionId
+		}});
 	}
 
 	

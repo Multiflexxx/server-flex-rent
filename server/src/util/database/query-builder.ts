@@ -1544,6 +1544,16 @@ export class QueryBuilder {
 		}
 	}
 
+	public static deletePhoneValidationCode(userId: string): Query {
+		return {
+			query: "UPDATE user SET phone_number_validation_token = ? WHERE user_id = ?;",
+			args: [
+				"",
+				userId
+			]
+		}
+	}
+
 
 	/**
 	 * 
