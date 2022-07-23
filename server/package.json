@@ -29,7 +29,7 @@
     "bcrypt": "^5.0.0",
     "crypto-random-string": "^3.3.1",
     "email-validator": "^2.0.4",
-    "file-type": "^15.0.1",
+    "file-type": "^16.5.4",
     "gcp-metadata": "^4.2.1",
     "google-auth-library": "^6.1.6",
     "mariadb": "^2.5.3",
